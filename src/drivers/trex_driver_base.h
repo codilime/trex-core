@@ -24,6 +24,7 @@
 
 #include "main_dpdk.h"
 #include "dpdk_drv_filter.h"
+#include "interface/phy_eth_if.h"
 
 class CTrexDpdkParamsOverride {
  public:

@@ -436,9 +436,16 @@ main_src = SrcGroup(dir='src',
              'hdrh/hdr_histogram.c',
              'hdrh/hdr_histogram_log.c',
 
+             'internal_api/trex_platform_api_dpdk.cpp',
+
+             'interface/phy_eth_if.cpp',
+             'interface/phy_eth_if_dummy.cpp',
+             'interface/stats/phy_eth_if_stats.cpp',
+
              'bp_sim_tcp.cpp',
              'astf/astf_template_db.cpp',
              'stt_cp.cpp',
+             'trex_global_object.cpp',
              'trex_global.cpp',
              'trex_modes.cpp',
              'bp_sim.cpp',
