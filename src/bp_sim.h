@@ -1141,7 +1141,8 @@ public:
                     scWORK ,
                     scWAIT ,
                     scSTRECH,
-                    scTERMINATE
+                    scTERMINATE,
+                    scTIMESYNC
                    } sch_state_t;
 
    typedef enum { smSTATELESS = 0x17,

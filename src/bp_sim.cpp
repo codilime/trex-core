@@ -34,6 +34,7 @@ limitations under the License.
 
 #include "trex_stx.h"
 #include "utl_mbuf.h"
+#include "utl_timesync.h"
 
 /* stateless includes */
 #include "stl/trex_stl_stream_node.h"
@@ -3454,6 +3455,10 @@ inline int CNodeGenerator::flush_file_realtime(dsec_t max_time,
     dsec_t offset=0.0;
     dsec_t cur_time;
     dsec_t n_time;
+    dsec_t timesync_period = CGlobalInfo::m_options.m_timesync_period;
+    dsec_t timesync_time = (CGlobalInfo::m_options.m_timesync_method == CParserOption::TIMESYNC_NONE)
+                         ? (60.0 * 60.0 * 24.0 * 365.25)   // a kind of never-happen scenario
+                         : -timesync_period;
     if (ON_TERIMATE) {
          offset=old_offset;
     }else{
@@ -3468,6 +3473,11 @@ inline int CNodeGenerator::flush_file_realtime(dsec_t max_time,
     n_time = node->m_time + offset;
     cur_time = now_sec();
 
+    // TODO think of solution for this problem:
+    // cur_time stores time in seconds (double) where zero is the time TRex starts running.
+    // Currently now_sec (and thus cur_time) is measured using approximate value from TSC.
+    // It might be nice to replace it with actual configurable (nanos or not-nanos) solution.
+
     while (state!=scTERMINATE) {
 
          switch (state) {
@@ -3480,6 +3490,9 @@ inline int CNodeGenerator::flush_file_realtime(dsec_t max_time,
                     state = scSTRECH;
                 } else if (dt > 0) {
                     state = scWORK;
+                } else if (timesync_time + timesync_period < cur_time) {
+                    // do the timesyncing only if not working, i.e. possibly do not sync at all for high-throughput streams
+                    state = scTIMESYNC;
                 } else {
                     state = scWAIT;
                 }
@@ -3510,6 +3523,11 @@ inline int CNodeGenerator::flush_file_realtime(dsec_t max_time,
                 } while (true);
                 break;
             }
+
+         case scTIMESYNC:
+                timesync_time = do_timesync(cur_time);
+                state=scINIT;   // after syncing time do the initial calculations or not?
+                break;
 
          case scWAIT:
                 do_sleep(cur_time,thread,n_time); // estimate  loop

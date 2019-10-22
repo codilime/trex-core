@@ -502,6 +502,7 @@ main_src = SrcGroup(dir='src',
              'utils/utl_port_map.cpp',
              'utils/utl_sync_barrier.cpp',
              'utils/utl_term_io.cpp',
+             'utils/utl_timesync.cpp',
              'utils/utl_yaml.cpp',
              ]);
 
