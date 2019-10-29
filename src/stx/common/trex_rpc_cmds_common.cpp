@@ -20,7 +20,7 @@ limitations under the License.
 */
 
 /**
- * holds all the common RPC commands used by stateless and 
+ * holds all the common RPC commands used by stateless and
  * advanced stateful
  */
 
@@ -79,7 +79,7 @@ TREX_RPC_CMD_NOAPI(TrexRpcCmdPing, "ping");
 TREX_RPC_CMD(TrexRpcCmdShutdown,              "shutdown");
 TREX_RPC_CMD(TrexRpcCmdGetCmds,               "get_supported_cmds");
 TREX_RPC_CMD(TrexRpcCmdGetUtilization,        "get_utilization");
-TREX_RPC_CMD(TrexRpcPublishNow,               "publish_now"); 
+TREX_RPC_CMD(TrexRpcPublishNow,               "publish_now");
 TREX_RPC_CMD(TrexRpcCmdGetAsyncResults,       "get_async_results");
 TREX_RPC_CMD(TrexRpcCmdCancelAsyncTask,       "cancel_async_task");
 
@@ -90,7 +90,7 @@ void get_hostname(string &hostname);
 
 );
 
-TREX_RPC_CMD(TrexRpcCmdGetGlobalStats,        "get_global_stats"); 
+TREX_RPC_CMD(TrexRpcCmdGetGlobalStats,        "get_global_stats");
 
 
 /**
@@ -165,7 +165,7 @@ TREX_RPC_CMD(TrexRpcCmdTXPkts, "push_pkts");
 
 /**
  * old API sync command (for backward compatability of GUI)
- * 
+ *
  */
 trex_rpc_cmd_rc_e
 TrexRpcCmdAPISync::_run(const Json::Value &params, Json::Value &result) {
@@ -203,7 +203,7 @@ TrexRpcCmdAPISync::_run(const Json::Value &params, Json::Value &result) {
 
 /**
  * API sync command V2
- *  
+ *
  */
 trex_rpc_cmd_rc_e
 TrexRpcCmdAPISyncV2::_run(const Json::Value &params, Json::Value &result) {
@@ -324,7 +324,7 @@ TrexRpcCmdGetVersion::_run(const Json::Value &params, Json::Value &result) {
     section["build_time"]    = get_build_time();
     section["built_by"]      = VERSION_USER;
     section["mode"]          = TrexRpcCommandsTable::get_instance().get_config_name();
-    
+
     #else
 
     section["version"]       = "v1.75";
@@ -332,7 +332,7 @@ TrexRpcCmdGetVersion::_run(const Json::Value &params, Json::Value &result) {
     section["build_time"]    = __TIME__;
     section["built_by"]      = "MOCK";
     section["mode"]          = "MOCK";
-    
+
     #endif
 
     return (TREX_RPC_CMD_OK);
@@ -393,7 +393,7 @@ TrexRpcCmdGetSysInfo::_run(const Json::Value &params, Json::Value &result) {
     string hostname;
 
     TrexPlatformApi &api = get_platform_api();
-    
+
     Json::Value &section = result["result"];
 
     get_hostname(hostname);
@@ -438,11 +438,11 @@ TrexRpcCmdGetSysInfo::_run(const Json::Value &params, Json::Value &result) {
         port_json["stack"]        = port.second->get_stack_name();
 
         port_json["description"]  = api.getPortAttrObj(i)->get_description();
-        
+
         api.get_port_stat_info(i, rx_count_num, rx_caps, ip_id_base);
-        
+
         port_json["rx"]["caps"]      = Json::arrayValue;
-        
+
         if (rx_caps & TrexPlatformApi::IF_STAT_IPV4_ID) {
             port_json["rx"]["caps"].append("flow_stats");
         }
@@ -452,7 +452,7 @@ TrexRpcCmdGetSysInfo::_run(const Json::Value &params, Json::Value &result) {
         if (rx_caps & TrexPlatformApi::IF_STAT_RX_BYTES_COUNT) {
             port_json["rx"]["caps"].append("rx_bytes");
         }
-        
+
         port_json["rx"]["counters"]     = rx_count_num;
         port_json["is_fc_supported"]    = api.getPortAttrObj(i)->is_fc_change_supported();
         port_json["is_led_supported"]   = api.getPortAttrObj(i)->is_led_change_supported();
@@ -460,7 +460,7 @@ TrexRpcCmdGetSysInfo::_run(const Json::Value &params, Json::Value &result) {
         port_json["is_prom_supported"]  = api.getPortAttrObj(i)->is_prom_change_supported();
         port_json["is_vxlan_supported"] = api.getPortAttrObj(i)->is_vxlan_fs_supported();
         port_json["is_virtual"]         = api.getPortAttrObj(i)->is_virtual();
-        
+
         port_json["supp_speeds"] = Json::arrayValue;
         for (int speed_id=0; speed_id<supp_speeds.size(); speed_id++) {
             port_json["supp_speeds"].append(supp_speeds[speed_id]);
@@ -479,7 +479,7 @@ TrexRpcCmdGetSysInfo::_run(const Json::Value &params, Json::Value &result) {
 
 /**
  * get global stats
- * 
+ *
  */
 trex_rpc_cmd_rc_e
 TrexRpcCmdGetGlobalStats::_run(const Json::Value &params, Json::Value &result) {
@@ -563,7 +563,7 @@ TrexRpcCmdGetUtilization::_run(const Json::Value &params, Json::Value &result) {
         section["cpu"][thread_id]["ports"].append(cpu_util_full[thread_id].m_port1);
         section["cpu"][thread_id]["ports"].append(cpu_util_full[thread_id].m_port2);
     }
-    
+
     return (TREX_RPC_CMD_OK);
 }
 
@@ -647,10 +647,10 @@ TrexRpcCmdSetPortAttr::_run(const Json::Value &params, Json::Value &result) {
             generate_execute_err(result, "Error applying " + name + " attribute, return value: " + to_string(ret));
         }
     }
-    
+
     result["result"] = Json::objectValue;
     return (TREX_RPC_CMD_OK);
-   
+
 }
 
 /**
@@ -763,7 +763,7 @@ TrexRpcCmdGetPortStats::_run(const Json::Value &params, Json::Value &result) {
  */
 trex_rpc_cmd_rc_e
 TrexRpcCmdSetRxFeature::_run(const Json::Value &params, Json::Value &result) {
-    
+
     uint8_t port_id = parse_port(params, result);
     TrexPort *port  = get_stx()->get_port_by_id(port_id);
 
@@ -782,15 +782,15 @@ TrexRpcCmdSetRxFeature::_run(const Json::Value &params, Json::Value &result) {
 
     result["result"] = Json::objectValue;
     return (TREX_RPC_CMD_OK);
-   
+
 }
 
-void 
+void
 TrexRpcCmdSetRxFeature::parse_queue_msg(const Json::Value &msg, TrexPort *port, Json::Value &result) {
     bool enabled = parse_bool(msg, "enabled", result);
 
     if (enabled) {
-        
+
         if (!port->is_service_mode_on()) {
             generate_execute_err(result, "setting RX queue is only available under service mode");
         }
@@ -819,13 +819,13 @@ TrexRpcCmdSetRxFeature::parse_queue_msg(const Json::Value &msg, TrexPort *port, 
 
 }
 
-void 
+void
 TrexRpcCmdSetRxFeature::parse_server_msg(const Json::Value &msg, TrexPort *port, Json::Value &result) {
 }
 
 /**
  * set capwap proxy on pair of ports (one for wireless side, another for wired)
- * 
+ *
  */
 void
 TrexRpcCmdSetRxFeature::parse_capwap_proxy_msg(const Json::Value &msg, TrexPort *port, Json::Value &result) {
@@ -854,7 +854,7 @@ TrexRpcCmdSetRxFeature::parse_capwap_proxy_msg(const Json::Value &msg, TrexPort 
 
 trex_rpc_cmd_rc_e
 TrexRpcCmdGetRxQueuePkts::_run(const Json::Value &params, Json::Value &result) {
-    
+
     uint8_t port_id = parse_port(params, result);
 
     TrexPort *port = get_stx()->get_port_by_id(port_id);
@@ -863,13 +863,13 @@ TrexRpcCmdGetRxQueuePkts::_run(const Json::Value &params, Json::Value &result) {
         generate_execute_err(result, "fetching RX queue packets is only available under service mode");
     }
 
-    
+
     try {
         const TrexPktBuffer *pkt_buffer = port->get_rx_queue_pkts();
         if (pkt_buffer) {
             result["result"]["pkts"] = pkt_buffer->to_json();
             delete pkt_buffer;
-            
+
         } else {
             result["result"]["pkts"] = Json::arrayValue;
         }
@@ -878,14 +878,14 @@ TrexRpcCmdGetRxQueuePkts::_run(const Json::Value &params, Json::Value &result) {
         generate_execute_err(result, ex.what());
     }
 
-    
+
     return (TREX_RPC_CMD_OK);
 }
 
 
 /**
  * configures a port in L2 mode
- * 
+ *
  */
 trex_rpc_cmd_rc_e
 TrexRpcCmdSetL2::_run(const Json::Value &params, Json::Value &result) {
@@ -1015,7 +1015,7 @@ TrexRpcCmdSetVLAN::validate_vlan(uint16_t vlan, Json::Value &result) {
 
 /**
  * configures a port in L3 mode
- * 
+ *
  */
 trex_rpc_cmd_rc_e
 TrexRpcCmdSetL3::_run(const Json::Value &params, Json::Value &result) {
@@ -1103,7 +1103,7 @@ void TrexRpcCmdSetL3::process_results(uint64_t ticket_id, const Json::Value &par
 
 /**
  * configures IPv6 of a port
- * 
+ *
  */
 trex_rpc_cmd_rc_e
 TrexRpcCmdConfIPv6::_run(const Json::Value &params, Json::Value &result) {
@@ -1166,7 +1166,7 @@ void TrexRpcCmdConfIPv6::process_results(uint64_t ticket_id, const Json::Value &
 
 /**
  * configures a port in L3 mode
- * 
+ *
  */
 trex_rpc_cmd_rc_e
 TrexRpcCmdSetNameSpaceBatch::_run(const Json::Value &params, Json::Value &result) {
@@ -1307,12 +1307,12 @@ TrexRpcCmdSetCapturePortBPF::_run(const Json::Value &params, Json::Value &result
 
 /**
  * capture command tree
- * 
+ *
  */
 trex_rpc_cmd_rc_e
 TrexRpcCmdCapture::_run(const Json::Value &params, Json::Value &result) {
     const string cmd = parse_choice(params, "command", {"start", "stop", "fetch", "status", "remove"}, result);
-    
+
     if (cmd == "start") {
         parse_cmd_start(params, result);
     } else if (cmd == "stop") {
@@ -1327,60 +1327,60 @@ TrexRpcCmdCapture::_run(const Json::Value &params, Json::Value &result) {
         /* can't happen */
         assert(0);
     }
-    
+
     return TREX_RPC_CMD_OK;
 }
 
 /**
  * starts PCAP capturing
- * 
+ *
  */
 void
 TrexRpcCmdCapture::parse_cmd_start(const Json::Value &params, Json::Value &result) {
-    
+
     uint32_t limit              = parse_uint32(params, "limit", result);
-    
+
     /* parse mode type */
     const string mode_str  = parse_choice(params, "mode", {"fixed", "cyclic"}, result);
     TrexPktBuffer::mode_e mode  = ( (mode_str == "fixed") ? TrexPktBuffer::MODE_DROP_TAIL : TrexPktBuffer::MODE_DROP_HEAD);
-    
+
     /* parse filters */
     const Json::Value &tx_json  = parse_array(params, "tx", result);
     const Json::Value &rx_json  = parse_array(params, "rx", result);
     CaptureFilter filter;
- 
+
     /* parse a BPF format filter for the capture */
     const string filter_str = parse_string(params, "filter", result, "");
-    
+
     /* compile it to verify */
     if (!bpf_verify(filter_str.c_str())) {
         generate_parse_err(result, "BPF filter: '" + filter_str + "' is not a valid pattern");
     }
-    
+
     /* set the BPF filter to the capture filter */
     filter.set_bpf_filter(filter_str);
-    
+
     set<uint8_t> ports;
     set<uint8_t> rx_ports;
-    
+
     /* populate the filter */
     for (int i = 0; i < tx_json.size(); i++) {
         uint8_t tx_port = parse_byte(tx_json, i, result);
         validate_port_id(tx_port, result);
-        
+
         filter.add_tx(tx_port);
         ports.insert(tx_port);
     }
-    
+
     for (int i = 0; i < rx_json.size(); i++) {
         uint8_t rx_port = parse_byte(rx_json, i, result);
         validate_port_id(rx_port, result);
-        
+
         filter.add_rx(rx_port);
         ports.insert(rx_port);
         rx_ports.insert(rx_port);
     }
-    
+
     /* check that all ports are under service mode */
     for (uint8_t port_id : ports) {
         TrexPort *port = get_stx()->get_port_by_id(port_id);
@@ -1388,29 +1388,29 @@ TrexRpcCmdCapture::parse_cmd_start(const Json::Value &params, Json::Value &resul
             generate_parse_err(result, "start_capture is available only under service mode");
         }
     }
-    
+
     static MsgReply<TrexCaptureRCStart> reply;
     reply.reset();
-  
+
     /* send a start message to RX core */
     TrexRxCaptureStart *start_msg = new TrexRxCaptureStart(filter, limit, mode, reply);
     get_stx()->send_msg_to_rx(start_msg);
-    
+
       /* wait for reply - might get a timeout */
     try {
-        
+
         TrexCaptureRCStart rc = reply.wait_for_reply();
         if (!rc) {
             generate_execute_err(result, rc.get_err());
         }
-        
+
         result["result"]["capture_id"] = rc.get_new_id();
         result["result"]["start_ts"]   = rc.get_start_ts();
-    
+
     } catch (const TrexException &ex) {
         generate_execute_err(result, ex.what());
     }
-    
+
     if (get_is_stateless() && get_dpdk_mode()->dp_rx_queues()) {
         get_stx()->set_capture_feature(rx_ports);
     }
@@ -1418,29 +1418,29 @@ TrexRpcCmdCapture::parse_cmd_start(const Json::Value &params, Json::Value &resul
 
 /**
  * stops PCAP capturing
- * 
+ *
  */
 void
 TrexRpcCmdCapture::parse_cmd_stop(const Json::Value &params, Json::Value &result) {
-    
+
     uint32_t capture_id = parse_uint32(params, "capture_id", result);
-    
+
     static MsgReply<TrexCaptureRCStop> reply;
     reply.reset();
-    
+
     TrexRxCaptureStop *stop_msg = new TrexRxCaptureStop(capture_id, reply);
     get_stx()->send_msg_to_rx(stop_msg);
-    
-    
+
+
     /* wait for reply - might get a timeout */
     try {
-        
+
         TrexCaptureRCStop rc = reply.wait_for_reply();
         if (!rc) {
             generate_execute_err(result, rc.get_err());
         }
         result["result"]["pkt_count"] = rc.get_pkt_count();
-    
+
     } catch (const TrexException &ex) {
         generate_execute_err(result, ex.what());
     }
@@ -1451,101 +1451,101 @@ TrexRpcCmdCapture::parse_cmd_stop(const Json::Value &params, Json::Value &result
 
 /**
  * gets the status of all captures in the system
- * 
+ *
  */
 void
 TrexRpcCmdCapture::parse_cmd_status(const Json::Value &params, Json::Value &result) {
-    
+
     /* generate a status command */
-    
+
     static MsgReply<TrexCaptureRCStatus> reply;
     reply.reset();
-    
+
     TrexRxCaptureStatus *status_msg = new TrexRxCaptureStatus(reply);
     get_stx()->send_msg_to_rx(status_msg);
-    
+
       /* wait for reply - might get a timeout */
     try {
-        
+
         TrexCaptureRCStatus rc = reply.wait_for_reply();
         if (!rc) {
             generate_execute_err(result, rc.get_err());
         }
-        
+
         result["result"] = rc.get_status();
-    
+
     } catch (const TrexException &ex) {
         generate_execute_err(result, ex.what());
     }
-    
+
 }
 
 /**
  * fetch packets from a capture
- * 
+ *
  */
 void
 TrexRpcCmdCapture::parse_cmd_fetch(const Json::Value &params, Json::Value &result) {
-    
+
     uint32_t capture_id = parse_uint32(params, "capture_id", result);
     uint32_t pkt_limit  = parse_uint32(params, "pkt_limit", result);
-    
+
     /* generate a fetch command */
-    
+
     static MsgReply<TrexCaptureRCFetch> reply;
     reply.reset();
-    
+
     TrexRxCaptureFetch *fetch_msg = new TrexRxCaptureFetch(capture_id, pkt_limit, reply);
     get_stx()->send_msg_to_rx(fetch_msg);
-    
+
      /* wait for reply - might get a timeout */
     try {
-        
+
         TrexCaptureRCFetch rc = reply.wait_for_reply();
         if (!rc) {
             generate_execute_err(result, rc.get_err());
         }
-    
+
         const TrexPktBuffer *pkt_buffer = rc.get_pkt_buffer();
-            
+
         result["result"]["pending"]     = rc.get_pending();
         result["result"]["start_ts"]    = rc.get_start_ts();
         result["result"]["pkts"]        = pkt_buffer->to_json();
- 
+
         /* delete the buffer */
         delete pkt_buffer;
-       
+
     } catch (const TrexException &ex) {
         generate_execute_err(result, ex.what());
     }
- 
+
 }
 
 
 void
 TrexRpcCmdCapture::parse_cmd_remove(const Json::Value &params, Json::Value &result) {
-    
+
     uint32_t capture_id = parse_uint32(params, "capture_id", result);
- 
+
     /* generate a remove command */
-    
+
     static MsgReply<TrexCaptureRCRemove> reply;
     reply.reset();
-    
+
     TrexRxCaptureRemove *remove_msg = new TrexRxCaptureRemove(capture_id, reply);
     get_stx()->send_msg_to_rx(remove_msg);
-    
-    
+
+
     /* wait for reply - might get a timeout */
     try {
-        
+
         TrexCaptureRCRemove rc = reply.wait_for_reply();
         if (!rc) {
             generate_execute_err(result, rc.get_err());
         }
-        
+
         result["result"] = Json::objectValue;
-        
+
     } catch (const TrexException &ex) {
         generate_execute_err(result, ex.what());
     }
@@ -1567,31 +1567,31 @@ TrexRpcCmdTXPkts::_run(const Json::Value &params, Json::Value &result) {
 
     /* IPG in usec */
     uint32_t ipg_usec = parse_uint32(params, "ipg_usec", result, 0);
-    
+
     const Json::Value &pkts_json = parse_array(params, "pkts", result);
-    
+
     /* do not allow batch of more than 1 seconds to be added - this can cause a non ending TX queue */
     if ( (usec_to_sec(pkts_json.size() * ipg_usec)) > 1) {
         generate_parse_err(result, "TX batch total transmit time exceeds the limit of 1 second");
     }
-    
+
     vector<string> pkts;
     CNodeBase port_node;
     bool port_node_updated = false;
-    
+
     for (int i = 0; i < pkts_json.size(); i++) {
         const Json::Value &pkt = parse_object(pkts_json, i, result);
 
         bool use_port_dst_mac = parse_bool(pkt, "use_port_dst_mac", result);
         bool use_port_src_mac = parse_bool(pkt, "use_port_src_mac", result);
-        
+
         string pkt_binary = base64_decode(parse_string(pkt, "binary", result));
-        
+
         /* check packet size */
         if ( (pkt_binary.size() < MIN_PKT_SIZE) || (pkt_binary.size() > MAX_PKT_SIZE) ) {
             stringstream ss;
             ss << "Bad packet size provided: " << pkt_binary.size() <<  ". Should be between " << MIN_PKT_SIZE << " and " << MAX_PKT_SIZE;
-            generate_execute_err(result, ss.str()); 
+            generate_execute_err(result, ss.str());
         }
 
         if ( use_port_dst_mac || use_port_src_mac ) {
@@ -1616,27 +1616,27 @@ TrexRpcCmdTXPkts::_run(const Json::Value &params, Json::Value &result) {
 
         pkts.push_back(pkt_binary);
     }
-    
+
     /* send packets to the RX core for TX'ing */
     static MsgReply<uint32_t> reply;
     reply.reset();
-    
+
     dsec_t now = now_sec();
-    
+
     TrexRxTXPkts *tx_pkts_msg = new TrexRxTXPkts(port_id, pkts, ipg_usec, reply);
     get_stx()->send_msg_to_rx(tx_pkts_msg);
-    
+
       /* wait for reply - might get a timeout */
     try {
-        
+
         result["result"]["sent"] = reply.wait_for_reply();
-        
+
     } catch (const TrexException &ex) {
         generate_execute_err(result, ex.what());
     }
-    
+
     result["result"]["ts"]   = now;
-    
+
     return TREX_RPC_CMD_OK;
 }
 
@@ -1678,15 +1678,15 @@ TrexRpcCmdCancelAsyncTask::_run(const Json::Value &params, Json::Value &result) 
 
 /**
  * common RPC component
- * 
+ *
  */
 TrexRpcCmdsCommon::TrexRpcCmdsCommon() : TrexRpcComponent("common") {
-    
+
     m_cmds.push_back(new TrexRpcCmdAPISync(this));
     m_cmds.push_back(new TrexRpcCmdAPISyncV2(this));
-    
+
     m_cmds.push_back(new TrexRpcCmdGetPortStatus(this));
-        
+
     m_cmds.push_back(new TrexRpcCmdPing(this));
 
     m_cmds.push_back(new TrexRpcCmdSetL2(this));
@@ -1694,7 +1694,7 @@ TrexRpcCmdsCommon::TrexRpcCmdsCommon() : TrexRpcComponent("common") {
     m_cmds.push_back(new TrexRpcCmdConfIPv6(this));
     m_cmds.push_back(new TrexRpcCmdSetNameSpaceBatch(this));
     m_cmds.push_back(new TrexRpcCmdSetVLAN(this));
-    
+
     m_cmds.push_back(new TrexRpcPublishNow(this));
     m_cmds.push_back(new TrexRpcCmdGetVersion(this));
     m_cmds.push_back(new TrexRpcCmdGetSysInfo(this));
@@ -1717,7 +1717,7 @@ TrexRpcCmdsCommon::TrexRpcCmdsCommon() : TrexRpcComponent("common") {
     m_cmds.push_back(new TrexRpcCmdStartCapturePort(this));
     m_cmds.push_back(new TrexRpcCmdStopCapturePort(this));
     m_cmds.push_back(new TrexRpcCmdSetCapturePortBPF(this));
- 
+
 }
 
 

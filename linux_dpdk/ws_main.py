@@ -143,7 +143,7 @@ def options(opt):
     opt.add_option('--pkg-file', '--pkg_file', dest='pkg_file', default=False, action='store', help="Destination filename for 'pkg' option.")
     opt.add_option('--publish-commit', '--publish_commit', dest='publish_commit', default=False, action='store', help="Specify commit id for 'publish_both' option (Please make sure it's good!)")
     opt.add_option('--no-mlx', dest='no_mlx', default=(True if march == 'aarch64' else False), action='store', help="don't use mlx5 dpdk driver. use with ./b configure --no-mlx. no need to run build with it")
-    opt.add_option('--with-ntacc', dest='with_ntacc', default=False, action='store_true', help="Use Napatech dpdk driver. Use with ./b configure --with-ntacc.")    
+    opt.add_option('--with-ntacc', dest='with_ntacc', default=False, action='store_true', help="Use Napatech dpdk driver. Use with ./b configure --with-ntacc.")
     opt.add_option('--with-bird', default=False, action='store_true', help="Build Bird server. Use with ./b configure --with-bird.")
     opt.add_option('--no-ver', action = 'store_true', help = "Don't update version file.")
     opt.add_option('--no-old', action = 'store_true', help = "Don't build old targets.")
@@ -152,7 +152,7 @@ def options(opt):
     co = opt.option_groups['configure options']
     co.add_option('--sanitized', dest='sanitized', default=False, action='store_true',
                    help='for GCC {0}+ use address sanitizer to catch memory errors'.format(SANITIZE_CC_VERSION))
-    
+
     co.add_option('--gcc6', dest='gcc6', default=False, action='store_true',
                    help='use GCC 6.2 instead of the machine version')
 
@@ -252,12 +252,12 @@ def check_ntapi(ctx):
     ctx.end_msg('Found needed NTAPI library')
     return True
 
-    
+
 def verify_cc_version (env, min_ver = REQUIRED_CC_VERSION):
     ver = StrictVersion('.'.join(env['CC_VERSION']))
 
     return (ver >= min_ver, ver, min_ver)
-    
+
 
 @conf
 def get_ld_search_path(ctx):
@@ -317,9 +317,9 @@ def configure(conf):
     with_ntacc      = conf.options.with_ntacc
     with_bird       = conf.options.with_bird
     with_sanitized  = conf.options.sanitized
-    
+
     configure_sanitized(conf, with_sanitized)
-            
+
     conf.env.NO_MLX = no_mlx
     if not no_mlx:
         ofed_ok = conf.check_ofed(mandatory = False)
@@ -379,7 +379,7 @@ def configure_gcc(conf, explicit_paths = None):
         conf.environ['PATH'] = explicit_path
         load_compiler(conf)
     finally:
-        conf.environ['PATH'] = saved 
+        conf.environ['PATH'] = saved
 
 
 
@@ -389,7 +389,7 @@ def configure_sanitized (conf, with_sanitized):
     conf.env.SANITIZED = False
 
     # if sanitized is required - check GCC version for sanitizing
-    conf.start_msg('Build sanitized images (GCC >= {0})'.format(SANITIZE_CC_VERSION))    
+    conf.start_msg('Build sanitized images (GCC >= {0})'.format(SANITIZE_CC_VERSION))
 
     # not required
     if not with_sanitized:
@@ -595,14 +595,14 @@ stateless_src = SrcGroup(dir='src/stx/stl/',
                                     'trex_stl_port.cpp',
                                     'trex_stl_streams_compiler.cpp',
                                     'trex_stl_vm_splitter.cpp',
-                                    
+
                                     'trex_stl_dp_core.cpp',
                                     'trex_stl_fs.cpp',
-                                    
+
                                     'trex_stl_messaging.cpp',
-                                    
+
                                     'trex_stl_rpc_cmds.cpp'
-                                    
+
                                     ])
 
 
@@ -773,7 +773,7 @@ dpdk_src_x86_64 = SrcGroup(dir='src/dpdk/',
                  'drivers/net/failsafe/failsafe_flow.c',
                  'drivers/net/failsafe/failsafe_intr.c',
 
-                #tap 
+                #tap
 
                  'drivers/net/tap/rte_eth_tap.c',
                  'drivers/net/tap/tap_flow.c',
@@ -781,7 +781,7 @@ dpdk_src_x86_64 = SrcGroup(dir='src/dpdk/',
                  'drivers/net/tap/tap_tcmsgs.c',
                  'drivers/net/tap/tap_bpf_api.c',
                  'drivers/net/tap/tap_intr.c',
-                 
+
                  #vdev_netvsc
                  'drivers/net/vdev_netvsc/vdev_netvsc.c',
 
@@ -1036,7 +1036,7 @@ bp =SrcGroups([
         stateless_src,
         astf_batch_src,
         astf_src,
-                
+
         version_src,
     ]);
 
@@ -1073,7 +1073,7 @@ common_flags = ['-DWIN_UCODE_SIM',
 if march == 'x86_64':
     common_flags_new = common_flags + [
                     '-march=native',
-                    '-mssse3', '-msse4.1', '-mpclmul', 
+                    '-mssse3', '-msse4.1', '-mpclmul',
                     '-DRTE_MACHINE_CPUFLAG_SSE',
                     '-DRTE_MACHINE_CPUFLAG_SSE2',
                     '-DRTE_MACHINE_CPUFLAG_SSE3',
@@ -1162,7 +1162,7 @@ dpdk_includes_path =''' ../src/
                         ../src/dpdk/drivers/net/ena/
                         ../src/dpdk/drivers/net/ena/base/
                         ../src/dpdk/drivers/net/ena/base/ena_defs/
-                         
+
                         ../src/dpdk/lib/
                         ../src/dpdk/lib/librte_cfgfile/
                         ../src/dpdk/lib/librte_compat/
@@ -1189,7 +1189,7 @@ dpdk_includes_path =''' ../src/
                         ../src/dpdk/lib/librte_ring/
                         ../src/dpdk/lib/librte_timer/
                         ../src/dpdk/
-                        
+
                         ../src/dpdk/drivers/bus/pci/
                         ../src/dpdk/drivers/bus/vdev/
                         ../src/dpdk/drivers/bus/pci/linux/
@@ -1265,11 +1265,11 @@ class build_option:
         self.env = env;
 
     def is_clang(self):
-        if self.env: 
+        if self.env:
             if 'clang' in self.env[0]:
                 return True
-        return False        
-      
+        return False
+
     def __str__(self):
        s=self.mode+","+self.platform;
        return (s);
@@ -1428,11 +1428,11 @@ class build_option:
 
         return (flags)
 
-        
+
     def get_c_flags (self, is_sanitized):
-        
+
         flags = self.get_common_flags()
-        
+
         if  self.isRelease () :
             flags += ['-DNDEBUG'];
 
@@ -1449,7 +1449,7 @@ class build_option:
         # for C no special flags yet
         return (flags)
 
-        
+
     def get_link_flags(self, is_sanitized):
         base_flags = ['-rdynamic'];
         if self.is64Platform() and self.isIntelPlatform():
@@ -1489,13 +1489,13 @@ def build_prog (bld, build_obj):
     debug_file_list='';
     #if not build_obj.isRelease ():
     #    debug_file_list +=ef_src.file_list(top)
-    
+
     build_obj.set_env(bld.env.CXX)
 
     cflags    = build_obj.get_c_flags(bld.env.SANITIZED)
     cxxflags  = build_obj.get_cxx_flags(bld.env.SANITIZED)
     linkflags = build_obj.get_link_flags(bld.env.SANITIZED)
-    
+
     bld.objects(
       features='c ',
       includes = dpdk_includes_path,
@@ -1932,7 +1932,7 @@ def fix_pkg_include(bld):
         pkg_include.append('bird')
 
 def release(ctx, custom_dir = None):
-    
+
     bld = Build.BuildContext()
     bld.load_envs()
 
