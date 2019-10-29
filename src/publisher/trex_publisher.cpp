@@ -30,8 +30,7 @@ limitations under the License.
  * create the publisher
  *
  */
-bool
-TrexPublisher::Create(uint16_t port, bool disable){
+bool TrexPublisher::Create(uint16_t port, bool disable) {
 
     char thread_name[256];
 
@@ -40,7 +39,7 @@ TrexPublisher::Create(uint16_t port, bool disable){
     }
 
     m_context = zmq_ctx_new();
-    if ( m_context == 0 ) {
+    if (m_context == 0) {
         show_zmq_last_error("can't connect to ZMQ library");
     }
 
@@ -48,20 +47,20 @@ TrexPublisher::Create(uint16_t port, bool disable){
     pthread_getname_np(pthread_self(), thread_name, sizeof(thread_name));
     pthread_setname_np(pthread_self(), "Trex Publisher");
 
-    m_publisher = zmq_socket (m_context, ZMQ_PUB);
+    m_publisher = zmq_socket(m_context, ZMQ_PUB);
 
     /* restore it */
     pthread_setname_np(pthread_self(), thread_name);
 
-    if ( m_context == 0 ) {
+    if (m_context == 0) {
         show_zmq_last_error("can't create ZMQ socket");
     }
 
     std::stringstream ss;
     ss << "tcp://*:" << port;
 
-    int rc = zmq_bind (m_publisher, ss.str().c_str());
-    if (rc != 0 ) {
+    int rc = zmq_bind(m_publisher, ss.str().c_str());
+    if (rc != 0) {
         show_zmq_last_error("can't bind to ZMQ socket at " + ss.str());
     }
 
@@ -72,9 +71,7 @@ TrexPublisher::Create(uint16_t port, bool disable){
     return (true);
 }
 
-
-void
-TrexPublisher::Delete(int timeout_sec) {
+void TrexPublisher::Delete(int timeout_sec) {
 
     m_is_connected = false;
 
@@ -87,23 +84,20 @@ TrexPublisher::Delete(int timeout_sec) {
         int val = timeout_sec;
         zmq_setsockopt(m_publisher, ZMQ_LINGER, &val, sizeof(val));
 
-        zmq_close (m_publisher);
+        zmq_close(m_publisher);
         m_publisher = NULL;
     }
 
     if (m_context) {
-        zmq_ctx_destroy (m_context);
+        zmq_ctx_destroy(m_context);
         m_context = NULL;
     }
-
 }
 
-
-void
-TrexPublisher::publish_json(const std::string &s, uint32_t zip_threshold){
+void TrexPublisher::publish_json(const std::string &s, uint32_t zip_threshold) {
 
     if (m_publisher) {
-        if ( (zip_threshold != 0) && (s.size() > zip_threshold) ) {
+        if ((zip_threshold != 0) && (s.size() > zip_threshold)) {
             publish_zipped_json(s);
         } else {
             publish_raw_json(s);
@@ -111,27 +105,24 @@ TrexPublisher::publish_json(const std::string &s, uint32_t zip_threshold){
     }
 }
 
-void
-TrexPublisher::publish_zipped_json(const std::string &s) {
+void TrexPublisher::publish_zipped_json(const std::string &s) {
     std::string compressed_msg;
 
     TrexRpcZip::compress(s, compressed_msg);
-    int size = zmq_send (m_publisher, compressed_msg.c_str(), compressed_msg.length(), 0);
+    int size = zmq_send(m_publisher, compressed_msg.c_str(), compressed_msg.length(), 0);
     if (size > 0) {
-      assert(size == compressed_msg.length());
+        assert(size == compressed_msg.length());
     }
 }
 
-void
-TrexPublisher::publish_raw_json(const std::string &s) {
-     int size = zmq_send (m_publisher, s.c_str(), s.length(), 0);
-     if (size > 0) {
+void TrexPublisher::publish_raw_json(const std::string &s) {
+    int size = zmq_send(m_publisher, s.c_str(), s.length(), 0);
+    if (size > 0) {
         assert(size == s.length());
-     }
+    }
 }
 
-void
-TrexPublisher::publish_event(event_type_e type, const Json::Value &data) {
+void TrexPublisher::publish_event(event_type_e type, const Json::Value &data) {
     Json::FastWriter writer;
     Json::Value value;
     std::string s;
@@ -144,8 +135,7 @@ TrexPublisher::publish_event(event_type_e type, const Json::Value &data) {
     publish_json(s);
 }
 
-void
-TrexPublisher::publish_barrier(uint32_t key) {
+void TrexPublisher::publish_barrier(uint32_t key) {
     Json::FastWriter writer;
     Json::Value value;
     std::string s;
@@ -162,10 +152,8 @@ TrexPublisher::publish_barrier(uint32_t key) {
  * error handling
  *
  */
-void
-TrexPublisher::show_zmq_last_error(const std::string &err){
+void TrexPublisher::show_zmq_last_error(const std::string &err) {
     std::cout << " ERROR " << err << "\n";
-    std::cout << " ZMQ: " << zmq_strerror (zmq_errno ());
+    std::cout << " ZMQ: " << zmq_strerror(zmq_errno());
     exit(-1);
 }
-

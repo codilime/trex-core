@@ -51,36 +51,25 @@ limitations under the License.
 #include "trex_rx_rpc_tunnel.h"
 #include "utl_json.h"
 
+class gt_tcp_long : public testing::Test {
 
+  protected:
+    virtual void SetUp() {}
 
-class gt_tcp_long  : public testing::Test {
+    virtual void TearDown() {}
 
-protected:
-      virtual void SetUp() {
-      }
-
-      virtual void TearDown() {
-      }
-    public:
+  public:
 };
 
+class gt_tcp : public testing::Test {
 
-class gt_tcp  : public testing::Test {
+  protected:
+    virtual void SetUp() {}
 
-protected:
-  virtual void SetUp() {
-  }
+    virtual void TearDown() {}
 
-  virtual void TearDown() {
-  }
-public:
+  public:
 };
-
-
-
-
-
-
 
 #if 0
 TEST_F(gt_tcp, tst2) {
@@ -99,7 +88,6 @@ TEST_F(gt_tcp, tst2) {
 }
 #endif
 
-
 TEST_F(gt_tcp, tst1) {
 #if 0
     CTcpFlow   flow;
@@ -110,11 +98,9 @@ TEST_F(gt_tcp, tst1) {
 #endif
 }
 
-
-
 TEST_F(gt_tcp, tst3) {
-    printf(" MSS %d \n",(int)TCP_MSS);
-    printf(" sizeof_tcpcb %d \n",(int)sizeof(tcpcb));
+    printf(" MSS %d \n", (int)TCP_MSS);
+    printf(" sizeof_tcpcb %d \n", (int)sizeof(tcpcb));
     tcpstat tcp_stats;
     tcp_stats.Clear();
     tcp_stats.m_sts.tcps_accepts++;
@@ -125,230 +111,213 @@ TEST_F(gt_tcp, tst3) {
 
 TEST_F(gt_tcp, tst4) {
     tcp_socket socket;
-    socket.so_options=0;
+    socket.so_options = 0;
     printf(" %d \n", (int)sizeof(socket));
 }
 
+class CTcpReassTest {
 
-
-
-class CTcpReassTest  {
-
-public:
+  public:
     bool Create();
     void Delete();
-    void add_pkts(vec_tcp_reas_t & list);
-    void expect(vec_tcp_reas_t & list,FILE *fd);
+    void add_pkts(vec_tcp_reas_t &list);
+    void expect(vec_tcp_reas_t &list, FILE *fd);
 
-public:
-    bool                    m_verbose;
+  public:
+    bool m_verbose;
 
-    CTcpPerThreadCtx        m_ctx;
-    CTcpReass               m_tcp_res;
-    CTcpFlow                m_flow;
+    CTcpPerThreadCtx m_ctx;
+    CTcpReass m_tcp_res;
+    CTcpFlow m_flow;
 };
 
-bool CTcpReassTest::Create(){
-    m_ctx.Create(100,false);
+bool CTcpReassTest::Create() {
+    m_ctx.Create(100, false);
     m_flow.Create(&m_ctx);
-    return(true);
+    return (true);
 }
 
-void CTcpReassTest::Delete(){
+void CTcpReassTest::Delete() {
     m_flow.Delete();
     m_ctx.Delete();
 }
 
-void CTcpReassTest::add_pkts(vec_tcp_reas_t & lpkt){
+void CTcpReassTest::add_pkts(vec_tcp_reas_t &lpkt) {
     int i;
     tcpiphdr ti;
 
-    for (i=0; i<lpkt.size(); i++) {
-        ti.ti_seq  = lpkt[i].m_seq;
-        ti.ti_len  = (uint16_t)lpkt[i].m_len;
-        ti.ti_flags =lpkt[i].m_flags;
-        m_tcp_res.pre_tcp_reass(&m_ctx,&m_flow.m_tcp,&ti,(struct rte_mbuf *)0);
+    for (i = 0; i < lpkt.size(); i++) {
+        ti.ti_seq = lpkt[i].m_seq;
+        ti.ti_len = (uint16_t)lpkt[i].m_len;
+        ti.ti_flags = lpkt[i].m_flags;
+        m_tcp_res.pre_tcp_reass(&m_ctx, &m_flow.m_tcp, &ti, (struct rte_mbuf *)0);
         if (m_verbose) {
-            fprintf(stdout," inter %d \n",i);
+            fprintf(stdout, " inter %d \n", i);
             m_tcp_res.Dump(stdout);
         }
     }
 }
 
-void CTcpReassTest::expect(vec_tcp_reas_t & lpkt,FILE *fd){
-    m_tcp_res.expect(lpkt,fd);
-}
-
+void CTcpReassTest::expect(vec_tcp_reas_t &lpkt, FILE *fd) { m_tcp_res.expect(lpkt, fd); }
 
 TEST_F(gt_tcp, tst5) {
-    vec_tcp_reas_t in_pkts = { {.m_seq=1000,.m_len=20,.m_flags=0},
-                               {.m_seq=2000,.m_len=20,.m_flags=0} };
+    vec_tcp_reas_t in_pkts = {{.m_seq = 1000, .m_len = 20, .m_flags = 0}, {.m_seq = 2000, .m_len = 20, .m_flags = 0}};
 
-    vec_tcp_reas_t out_pkts={ {.m_seq=1000,.m_len=20,.m_flags=0},
-                              {.m_seq=2000,.m_len=20,.m_flags=0}
-    };
+    vec_tcp_reas_t out_pkts = {{.m_seq = 1000, .m_len = 20, .m_flags = 0}, {.m_seq = 2000, .m_len = 20, .m_flags = 0}};
 
     CTcpReassTest tst;
     tst.Create();
-    tst.m_verbose=true;
+    tst.m_verbose = true;
     tst.add_pkts(in_pkts);
-    tst.expect(out_pkts,stdout);
+    tst.expect(out_pkts, stdout);
     tst.m_ctx.get_tcpstat()->Dump(stdout);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack,2);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte,40);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack, 2);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte, 40);
 
     tst.Delete();
 }
-
-
-
-
 
 TEST_F(gt_tcp, tst6) {
 
-    vec_tcp_reas_t in_pkts = { {.m_seq=1000,.m_len=20,.m_flags=0},
-                               {.m_seq=1000,.m_len=20,.m_flags=0} };
+    vec_tcp_reas_t in_pkts = {{.m_seq = 1000, .m_len = 20, .m_flags = 0}, {.m_seq = 1000, .m_len = 20, .m_flags = 0}};
 
-    vec_tcp_reas_t out_pkts={ {.m_seq=1000,.m_len=20,.m_flags=0}
+    vec_tcp_reas_t out_pkts = {{.m_seq = 1000, .m_len = 20, .m_flags = 0}
 
     };
 
     CTcpReassTest tst;
     tst.Create();
-    tst.m_verbose=true;
+    tst.m_verbose = true;
     tst.add_pkts(in_pkts);
-    tst.expect(out_pkts,stdout);
+    tst.expect(out_pkts, stdout);
     tst.m_ctx.get_tcpstat()->Dump(stdout);
 
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvduppack,1);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvdupbyte,20);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack,2);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte,40);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvduppack, 1);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvdupbyte, 20);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack, 2);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte, 40);
     tst.Delete();
-
 }
 
 TEST_F(gt_tcp, tst7) {
 
-    vec_tcp_reas_t in_pkts = { {.m_seq=1000,.m_len=20,.m_flags=0},
-                               {.m_seq=1001,.m_len=20,.m_flags=0} };
+    vec_tcp_reas_t in_pkts = {{.m_seq = 1000, .m_len = 20, .m_flags = 0}, {.m_seq = 1001, .m_len = 20, .m_flags = 0}};
 
-    vec_tcp_reas_t out_pkts={ {.m_seq=1000,.m_len=21,.m_flags=0}
+    vec_tcp_reas_t out_pkts = {{.m_seq = 1000, .m_len = 21, .m_flags = 0}
 
     };
 
     CTcpReassTest tst;
     tst.Create();
-    tst.m_verbose=true;
+    tst.m_verbose = true;
     tst.add_pkts(in_pkts);
-    tst.expect(out_pkts,stdout);
+    tst.expect(out_pkts, stdout);
     tst.m_ctx.get_tcpstat()->Dump(stdout);
 
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvpartduppack,1);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvpartdupbyte,1);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack,2);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte,40);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvpartduppack, 1);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvpartdupbyte, 1);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack, 2);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte, 40);
 
     tst.Delete();
 }
 
 TEST_F(gt_tcp, tst8) {
 
-    vec_tcp_reas_t in_pkts = { {.m_seq=1000,.m_len=20,.m_flags=0},
-                               {.m_seq=2000,.m_len=20,.m_flags=0},
-                               {.m_seq=900,.m_len=3000,.m_flags=0} };
+    vec_tcp_reas_t in_pkts = {{.m_seq = 1000, .m_len = 20, .m_flags = 0},
+                              {.m_seq = 2000, .m_len = 20, .m_flags = 0},
+                              {.m_seq = 900, .m_len = 3000, .m_flags = 0}};
 
-    vec_tcp_reas_t out_pkts={ {.m_seq=900,.m_len=3000,.m_flags=0}
+    vec_tcp_reas_t out_pkts = {{.m_seq = 900, .m_len = 3000, .m_flags = 0}
 
     };
 
     CTcpReassTest tst;
     tst.Create();
-    tst.m_verbose=true;
+    tst.m_verbose = true;
     tst.add_pkts(in_pkts);
-    tst.expect(out_pkts,stdout);
+    tst.expect(out_pkts, stdout);
     tst.m_ctx.get_tcpstat()->Dump(stdout);
 
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvduppack,2);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvdupbyte,40);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack,3);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte,3040);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvduppack, 2);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvdupbyte, 40);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack, 3);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte, 3040);
 
     tst.Delete();
 }
 
 TEST_F(gt_tcp, tst9) {
 
-    vec_tcp_reas_t in_pkts = { {.m_seq=1000,.m_len=20,.m_flags=TH_FIN},
-                               {.m_seq=2000,.m_len=20,.m_flags=0},
-                               {.m_seq=2000,.m_len=21,.m_flags=0} };
+    vec_tcp_reas_t in_pkts = {{.m_seq = 1000, .m_len = 20, .m_flags = TH_FIN},
+                              {.m_seq = 2000, .m_len = 20, .m_flags = 0},
+                              {.m_seq = 2000, .m_len = 21, .m_flags = 0}};
 
-    vec_tcp_reas_t out_pkts={ {.m_seq=1000,.m_len=20,.m_flags=TH_FIN},
-                              {.m_seq=2000,.m_len=21,.m_flags=0}
+    vec_tcp_reas_t out_pkts = {{.m_seq = 1000, .m_len = 20, .m_flags = TH_FIN},
+                               {.m_seq = 2000, .m_len = 21, .m_flags = 0}
 
     };
 
     CTcpReassTest tst;
     tst.Create();
-    tst.m_verbose=true;
+    tst.m_verbose = true;
     tst.add_pkts(in_pkts);
-    tst.expect(out_pkts,stdout);
+    tst.expect(out_pkts, stdout);
     tst.m_ctx.get_tcpstat()->Dump(stdout);
 
-
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvpartduppack,1);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvpartdupbyte,1);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack,3);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte,61);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvpartduppack, 1);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvpartdupbyte, 1);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack, 3);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte, 61);
     tst.Delete();
 }
 
 TEST_F(gt_tcp, tst10) {
 
-    vec_tcp_reas_t in_pkts = { {.m_seq=1000,.m_len=20,.m_flags=0},
-                               {.m_seq=2000,.m_len=20,.m_flags=0},
-                               {.m_seq=3000,.m_len=20,.m_flags=0},
-                               {.m_seq=4000,.m_len=20,.m_flags=0},
-                               {.m_seq=5000,.m_len=20,.m_flags=0},
+    vec_tcp_reas_t in_pkts = {
+        {.m_seq = 1000, .m_len = 20, .m_flags = 0}, {.m_seq = 2000, .m_len = 20, .m_flags = 0},
+        {.m_seq = 3000, .m_len = 20, .m_flags = 0}, {.m_seq = 4000, .m_len = 20, .m_flags = 0},
+        {.m_seq = 5000, .m_len = 20, .m_flags = 0},
 
-                                };
+    };
 
-    vec_tcp_reas_t out_pkts={ {.m_seq=1000,.m_len=20,.m_flags=0},
-                               {.m_seq=2000,.m_len=20,.m_flags=0},
-                               {.m_seq=3000,.m_len=20,.m_flags=0},
-                               {.m_seq=4000,.m_len=20,.m_flags=0},
+    vec_tcp_reas_t out_pkts = {
+        {.m_seq = 1000, .m_len = 20, .m_flags = 0},
+        {.m_seq = 2000, .m_len = 20, .m_flags = 0},
+        {.m_seq = 3000, .m_len = 20, .m_flags = 0},
+        {.m_seq = 4000, .m_len = 20, .m_flags = 0},
     };
 
     CTcpReassTest tst;
     tst.Create();
-    tst.m_verbose=true;
+    tst.m_verbose = true;
     tst.add_pkts(in_pkts);
-    tst.expect(out_pkts,stdout);
+    tst.expect(out_pkts, stdout);
     tst.m_ctx.get_tcpstat()->Dump(stdout);
 
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack,5);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte,100);
-    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopackdrop,1);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopack, 5);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoobyte, 100);
+    EXPECT_EQ(tst.m_ctx.get_tcpstat()->m_sts.tcps_rcvoopackdrop, 1);
     tst.Delete();
 }
 
-
 TEST_F(gt_tcp, tst11) {
 
-    vec_tcp_reas_t in_pkts = { {.m_seq=1000,.m_len=20,.m_flags=0},
-                               {.m_seq=1020,.m_len=20,.m_flags=0},
-                               {.m_seq=1040,.m_len=20,.m_flags=0}
+    vec_tcp_reas_t in_pkts = {{.m_seq = 1000, .m_len = 20, .m_flags = 0},
+                              {.m_seq = 1020, .m_len = 20, .m_flags = 0},
+                              {.m_seq = 1040, .m_len = 20, .m_flags = 0}
 
-                                };
+    };
 
-    vec_tcp_reas_t out_pkts={ {.m_seq=1000,.m_len=60,.m_flags=0},
+    vec_tcp_reas_t out_pkts = {
+        {.m_seq = 1000, .m_len = 60, .m_flags = 0},
     };
 
     CTcpReassTest tst;
     tst.Create();
-    tst.m_verbose=true;
+    tst.m_verbose = true;
     tst.add_pkts(in_pkts);
-    tst.expect(out_pkts,stdout);
+    tst.expect(out_pkts, stdout);
     tst.m_ctx.get_tcpstat()->Dump(stdout);
     tst.Delete();
 }
@@ -390,128 +359,119 @@ TEST_F(gt_tcp, tst12) {
 }
 #endif
 
-
-void set_mbuf_test(struct rte_mbuf  *m,
-                   uint32_t len,
-                   uintptr_t addr){
-    memset(m,0,sizeof(struct rte_mbuf));
+void set_mbuf_test(struct rte_mbuf *m, uint32_t len, uintptr_t addr) {
+    memset(m, 0, sizeof(struct rte_mbuf));
     /* one segment */
-    m->nb_segs=1;
-    m->pkt_len  =len;
-    m->data_len=len;
-    m->buf_len=1024*2+128;
-    m->data_off=128;
-    m->refcnt_reserved=1;
-    m->buf_addr=(void *)addr;
+    m->nb_segs = 1;
+    m->pkt_len = len;
+    m->data_len = len;
+    m->buf_len = 1024 * 2 + 128;
+    m->data_off = 128;
+    m->refcnt_reserved = 1;
+    m->buf_addr = (void *)addr;
 }
-
-
 
 TEST_F(gt_tcp, tst13) {
 
     CMbufBuffer buf;
 
-    struct rte_mbuf  mbuf0;
-    struct rte_mbuf  mbuf1;
-    struct rte_mbuf  mbuf2;
+    struct rte_mbuf mbuf0;
+    struct rte_mbuf mbuf1;
+    struct rte_mbuf mbuf2;
 
-    uintptr_t addr1=0x1000;
-    uint32_t blk_size=1024;
+    uintptr_t addr1 = 0x1000;
+    uint32_t blk_size = 1024;
 
     buf.Create(blk_size);
 
-    set_mbuf_test(&mbuf0,blk_size,addr1);
-    addr1+=1024;
-    set_mbuf_test(&mbuf1,blk_size,addr1);
-    addr1+=1024;
-    set_mbuf_test(&mbuf2,blk_size-10,addr1);
+    set_mbuf_test(&mbuf0, blk_size, addr1);
+    addr1 += 1024;
+    set_mbuf_test(&mbuf1, blk_size, addr1);
+    addr1 += 1024;
+    set_mbuf_test(&mbuf2, blk_size - 10, addr1);
 
-    CMbufObject  mbuf_obj;
+    CMbufObject mbuf_obj;
 
-    mbuf_obj.m_mbuf=&mbuf0;
-    mbuf_obj.m_type=MO_CONST;
+    mbuf_obj.m_mbuf = &mbuf0;
+    mbuf_obj.m_type = MO_CONST;
 
     buf.Add_mbuf(mbuf_obj);
 
-    mbuf_obj.m_mbuf=&mbuf1;
+    mbuf_obj.m_mbuf = &mbuf1;
     buf.Add_mbuf(mbuf_obj);
 
-    mbuf_obj.m_mbuf=&mbuf2;
+    mbuf_obj.m_mbuf = &mbuf2;
     buf.Add_mbuf(mbuf_obj);
-
 
     buf.Verify();
 
     CBufMbufRef res;
 
-    buf.get_by_offset(0,res);
-    EXPECT_EQ(res.m_offset,0);
-    EXPECT_EQ(res.m_mbuf,&mbuf0);
-    EXPECT_EQ(res.get_mbuf_size(),blk_size);
-    EXPECT_EQ(res.need_indirect_mbuf(blk_size),false);
+    buf.get_by_offset(0, res);
+    EXPECT_EQ(res.m_offset, 0);
+    EXPECT_EQ(res.m_mbuf, &mbuf0);
+    EXPECT_EQ(res.get_mbuf_size(), blk_size);
+    EXPECT_EQ(res.need_indirect_mbuf(blk_size), false);
 
-    buf.get_by_offset(1,res);
-    EXPECT_EQ(res.m_offset,1);
-    EXPECT_EQ(res.m_mbuf,&mbuf0);
-    EXPECT_EQ(res.get_mbuf_size(),blk_size-1);
-    EXPECT_EQ(res.need_indirect_mbuf(blk_size),true);
+    buf.get_by_offset(1, res);
+    EXPECT_EQ(res.m_offset, 1);
+    EXPECT_EQ(res.m_mbuf, &mbuf0);
+    EXPECT_EQ(res.get_mbuf_size(), blk_size - 1);
+    EXPECT_EQ(res.need_indirect_mbuf(blk_size), true);
 
-    buf.get_by_offset(2048+2,res);
-    EXPECT_EQ(res.m_offset,2);
-    EXPECT_EQ(res.m_mbuf,&mbuf2);
-    EXPECT_EQ(res.get_mbuf_size(),blk_size-2-10);
-    EXPECT_EQ(res.need_indirect_mbuf(blk_size),true);
+    buf.get_by_offset(2048 + 2, res);
+    EXPECT_EQ(res.m_offset, 2);
+    EXPECT_EQ(res.m_mbuf, &mbuf2);
+    EXPECT_EQ(res.get_mbuf_size(), blk_size - 2 - 10);
+    EXPECT_EQ(res.need_indirect_mbuf(blk_size), true);
 
-
-    buf.get_by_offset(2048+1024-11,res);
-    EXPECT_EQ(res.m_offset,1024-11);
-    EXPECT_EQ(res.m_mbuf,&mbuf2);
-    EXPECT_EQ(res.get_mbuf_size(),1);
-    EXPECT_EQ(res.need_indirect_mbuf(blk_size),true);
-
+    buf.get_by_offset(2048 + 1024 - 11, res);
+    EXPECT_EQ(res.m_offset, 1024 - 11);
+    EXPECT_EQ(res.m_mbuf, &mbuf2);
+    EXPECT_EQ(res.get_mbuf_size(), 1);
+    EXPECT_EQ(res.need_indirect_mbuf(blk_size), true);
 
     buf.Dump(stdout);
-    //buf.Delete();
+    // buf.Delete();
 }
 
 TEST_F(gt_tcp, tst14) {
 
     CMbufBuffer buf;
 
-    struct rte_mbuf  mbuf0;
-    struct rte_mbuf  mbuf1;
-    struct rte_mbuf  mbuf2;
+    struct rte_mbuf mbuf0;
+    struct rte_mbuf mbuf1;
+    struct rte_mbuf mbuf2;
 
-    uintptr_t addr1=0x1000;
-    uint32_t blk_size=1024;
+    uintptr_t addr1 = 0x1000;
+    uint32_t blk_size = 1024;
 
     buf.Create(blk_size);
 
-    set_mbuf_test(&mbuf0,blk_size,addr1);
-    addr1+=1024;
-    set_mbuf_test(&mbuf1,blk_size,addr1);
-    addr1+=1024;
-    set_mbuf_test(&mbuf2,blk_size-10,addr1);
+    set_mbuf_test(&mbuf0, blk_size, addr1);
+    addr1 += 1024;
+    set_mbuf_test(&mbuf1, blk_size, addr1);
+    addr1 += 1024;
+    set_mbuf_test(&mbuf2, blk_size - 10, addr1);
 
-    CMbufObject  mbuf_obj;
+    CMbufObject mbuf_obj;
 
-    mbuf_obj.m_mbuf=&mbuf0;
-    mbuf_obj.m_type=MO_CONST;
+    mbuf_obj.m_mbuf = &mbuf0;
+    mbuf_obj.m_type = MO_CONST;
 
     buf.Add_mbuf(mbuf_obj);
 
-    mbuf_obj.m_mbuf=&mbuf1;
+    mbuf_obj.m_mbuf = &mbuf1;
     buf.Add_mbuf(mbuf_obj);
 
-    mbuf_obj.m_mbuf=&mbuf2;
+    mbuf_obj.m_mbuf = &mbuf2;
     buf.Add_mbuf(mbuf_obj);
 
     buf.Verify();
 
     buf.Dump(stdout);
-    //buf.Delete();
+    // buf.Delete();
 }
-
 
 #if 0
 TEST_F(gt_tcp, tst15) {
@@ -588,7 +548,6 @@ TEST_F(gt_tcp, tst15) {
     //buf.Delete();
 }
 #endif
-
 
 #if 0
 TEST_F(gt_tcp, tst16) {
@@ -712,7 +671,6 @@ TEST_F(gt_tcp, tst18) {
     m_ctx.Create();
     m_flow.Create(&m_ctx);
 
-
 #if 0
 
     CEmulApp app;
@@ -752,128 +710,111 @@ TEST_F(gt_tcp, tst18) {
 
 #endif
 
+rte_mbuf_t *test_build_packet_size(int pkt_len, int chunk_size, int rand) {
 
+    rte_mbuf_t *m;
+    rte_mbuf_t *prev_m = NULL;
+    ;
+    rte_mbuf_t *mhead = NULL;
+    uint8_t seg = 0;
+    uint32_t save_pkt_len = pkt_len;
 
-rte_mbuf_t   * test_build_packet_size(int pkt_len,
-                                      int chunk_size,
-                                      int rand){
-
-    rte_mbuf_t   * m;
-    rte_mbuf_t   * prev_m=NULL;;
-    rte_mbuf_t   * mhead=NULL;
-    uint8_t seg=0;
-    uint32_t save_pkt_len=pkt_len;
-
-    uint8_t cnt=1;
-    while (pkt_len>0) {
-        m=tcp_pktmbuf_alloc(0,chunk_size);
+    uint8_t cnt = 1;
+    while (pkt_len > 0) {
+        m = tcp_pktmbuf_alloc(0, chunk_size);
         seg++;
 
         assert(m);
         if (prev_m) {
-            prev_m->next=m;
+            prev_m->next = m;
         }
-        prev_m=m;
-        if (mhead==NULL) {
-            mhead=m;
+        prev_m = m;
+        if (mhead == NULL) {
+            mhead = m;
         }
 
-        uint16_t   csize=(uint16_t)std::min(chunk_size,pkt_len);
-        utl_rte_pktmbuf_fill(m,
-                       csize,
-                       cnt,
-                       rand);
-        pkt_len-=csize;
+        uint16_t csize = (uint16_t)std::min(chunk_size, pkt_len);
+        utl_rte_pktmbuf_fill(m, csize, cnt, rand);
+        pkt_len -= csize;
     }
     mhead->pkt_len = save_pkt_len;
     mhead->nb_segs = seg;
-    return(mhead);
+    return (mhead);
 }
 
-
 TEST_F(gt_tcp, tst20) {
-    uint16_t off=0;
+    uint16_t off = 0;
     char buf[2048];
-    char *p =buf;
+    char *p = buf;
 
-    rte_mbuf_t   * m;
-    m=test_build_packet_size(1024,
-                             60,
-                             0);
-    rte_mbuf_t   * o=m;
-    //rte_pktmbuf_dump(m, 1024);
+    rte_mbuf_t *m;
+    m = test_build_packet_size(1024, 60, 0);
+    rte_mbuf_t *o = m;
+    // rte_pktmbuf_dump(m, 1024);
 
-    off=8;
-    m=utl_rte_pktmbuf_cpy(p,m,512,off);
+    off = 8;
+    m = utl_rte_pktmbuf_cpy(p, m, 512, off);
 
     rte_pktmbuf_free(o);
-
 }
 
 /* deep copy of mbufs from tx to rx */
-int test_mbuf_deepcpy(int pkt_size,int chunk_size){
+int test_mbuf_deepcpy(int pkt_size, int chunk_size) {
 
-    rte_mbuf_t   * m;
-    rte_mbuf_t   * mc;
+    rte_mbuf_t *m;
+    rte_mbuf_t *mc;
 
-    m=test_build_packet_size(pkt_size,chunk_size,1);
-    //rte_pktmbuf_dump(m, pkt_size);
+    m = test_build_packet_size(pkt_size, chunk_size, 1);
+    // rte_pktmbuf_dump(m, pkt_size);
 
-    rte_mempool_t * mpool = tcp_pktmbuf_get_pool(0,2047);
+    rte_mempool_t *mpool = tcp_pktmbuf_get_pool(0, 2047);
 
-    mc =utl_rte_pktmbuf_deepcopy(mpool,m);
+    mc = utl_rte_pktmbuf_deepcopy(mpool, m);
     assert(mc);
-    //rte_pktmbuf_dump(mc, pkt_size);
+    // rte_pktmbuf_dump(mc, pkt_size);
 
-    int res=utl_rte_pktmbuf_deepcmp(m,mc);
+    int res = utl_rte_pktmbuf_deepcmp(m, mc);
 
     rte_pktmbuf_free(m);
     rte_pktmbuf_free(mc);
-    return(res);
+    return (res);
 }
 
 TEST_F(gt_tcp, tst21) {
-   EXPECT_EQ(test_mbuf_deepcpy(128,60),0);
-   EXPECT_EQ(test_mbuf_deepcpy(1024,60),0);
-   EXPECT_EQ(test_mbuf_deepcpy(1025,60),0);
-   EXPECT_EQ(test_mbuf_deepcpy(1026,67),0);
-   EXPECT_EQ(test_mbuf_deepcpy(4025,129),0);
+    EXPECT_EQ(test_mbuf_deepcpy(128, 60), 0);
+    EXPECT_EQ(test_mbuf_deepcpy(1024, 60), 0);
+    EXPECT_EQ(test_mbuf_deepcpy(1025, 60), 0);
+    EXPECT_EQ(test_mbuf_deepcpy(1026, 67), 0);
+    EXPECT_EQ(test_mbuf_deepcpy(4025, 129), 0);
 }
 
+void tcp_gen_test(std::string pcap_file, bool debug_mode, cs_sim_test_id_t test_id = tiTEST2, int valn = 0,
+                  cs_sim_mode_t sim_mode = csSIM_NONE, bool is_ipv6 = false, uint16_t mss = 0,
+                  CClientServerTcpCfgExt *cfg = NULL) {
 
+    CClientServerTcp *lpt1 = new CClientServerTcp;
 
-void tcp_gen_test(std::string pcap_file,
-                  bool debug_mode,
-                  cs_sim_test_id_t test_id=tiTEST2,
-                  int valn=0,
-                  cs_sim_mode_t sim_mode=csSIM_NONE,
-                  bool is_ipv6=false,
-                  uint16_t mss=0,
-                  CClientServerTcpCfgExt * cfg=NULL){
-
-    CClientServerTcp *lpt1=new CClientServerTcp;
-
-    lpt1->Create("generated",pcap_file);
-    if (debug_mode){
+    lpt1->Create("generated", pcap_file);
+    if (debug_mode) {
         lpt1->set_debug_mode(true);
     }
-    if (valn){
-        lpt1->m_vlan=valn;
+    if (valn) {
+        lpt1->m_vlan = valn;
     }
 
-    if (is_ipv6){
-        lpt1->m_ipv6=true;
+    if (is_ipv6) {
+        lpt1->m_ipv6 = true;
     }
 
-    if (mss !=0){
-        lpt1->m_mss=mss;
+    if (mss != 0) {
+        lpt1->m_mss = mss;
     }
 
-    if (cfg){
+    if (cfg) {
         lpt1->set_cfg_ext(cfg);
     }
 
-    if (sim_mode!=csSIM_NONE){
+    if (sim_mode != csSIM_NONE) {
         lpt1->set_simulate_rst_error(sim_mode);
     }
 
@@ -882,14 +823,14 @@ void tcp_gen_test(std::string pcap_file,
         lpt1->test2();
         break;
 
-    case tiHTTP :
+    case tiHTTP:
         lpt1->simple_http();
         break;
 
-    case tiHTTP_RST :
+    case tiHTTP_RST:
         lpt1->simple_http_rst();
         break;
-    case tiHTTP_FIN_ACK :
+    case tiHTTP_FIN_ACK:
         lpt1->simple_http_fin_ack();
         break;
     case tiHTTP_CONNECT:
@@ -909,325 +850,165 @@ void tcp_gen_test(std::string pcap_file,
         assert(0);
     }
 
-
     lpt1->close_file();
 
-    bool res=true;
-    if (lpt1->m_skip_compare_file==false){
-        res=lpt1->compare("exp");
+    bool res = true;
+    if (lpt1->m_skip_compare_file == false) {
+        res = lpt1->compare("exp");
     }
 
-    EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 
     lpt1->Delete();
 
     delete lpt1;
 }
 
+TEST_F(gt_tcp, tst30) { tcp_gen_test("tcp2", true, tiTEST2); }
 
-TEST_F(gt_tcp, tst30) {
-    tcp_gen_test("tcp2",
-                 true,
-                 tiTEST2);
+TEST_F(gt_tcp, tst30_vlan) { tcp_gen_test("tcp2_vlan", true, tiTEST2, 100); }
 
-}
+TEST_F(gt_tcp, tst30_http_vlan) { tcp_gen_test("tcp2_http_vlan", true, tiHTTP, 100); }
 
-TEST_F(gt_tcp, tst30_vlan) {
+TEST_F(gt_tcp, tst30_http_simple) { tcp_gen_test("tcp2_http_simple", true, tiHTTP); }
 
-    tcp_gen_test("tcp2_vlan",
-                 true,
-                 tiTEST2,
-                 100);
+TEST_F(gt_tcp, tst30_http_simple_cmd_rst) { tcp_gen_test("tcp2_http_simple_cmd_rst", true, tiHTTP_RST); }
 
+TEST_F(gt_tcp, tst30_http_simple_cmd_fin_ack) { tcp_gen_test("tcp2_http_simple_cmd_fin_ack", true, tiHTTP_FIN_ACK); }
 
-}
-
-TEST_F(gt_tcp, tst30_http_vlan) {
-
-    tcp_gen_test("tcp2_http_vlan",
-                 true,
-                 tiHTTP,
-                 100);
-
-}
-
-
-TEST_F(gt_tcp, tst30_http_simple) {
-    tcp_gen_test("tcp2_http_simple",
-                 true,
-                 tiHTTP);
-
-}
-
-TEST_F(gt_tcp, tst30_http_simple_cmd_rst) {
-    tcp_gen_test("tcp2_http_simple_cmd_rst",
-                 true,
-                 tiHTTP_RST);
-
-}
-
-TEST_F(gt_tcp, tst30_http_simple_cmd_fin_ack) {
-    tcp_gen_test("tcp2_http_simple_cmd_fin_ack",
-                 true,
-                 tiHTTP_FIN_ACK);
-
-}
-
-TEST_F(gt_tcp, tst30_http_simple_cmd_connect) {
-    tcp_gen_test("tcp2_http_simple_cmd_connect",
-                 true,
-                 tiHTTP_CONNECT);
-
-}
+TEST_F(gt_tcp, tst30_http_simple_cmd_connect) { tcp_gen_test("tcp2_http_simple_cmd_connect", true, tiHTTP_CONNECT); }
 
 TEST_F(gt_tcp, tst30_http_simple_cmd_connect_rst) {
-    tcp_gen_test("tcp2_http_simple_cmd_connect_rst",
-                 true,
-                 tiHTTP_CONNECT_RST);
-
+    tcp_gen_test("tcp2_http_simple_cmd_connect_rst", true, tiHTTP_CONNECT_RST);
 }
 
 TEST_F(gt_tcp, tst30_http_simple_cmd_connect_rst2) {
-    tcp_gen_test("tcp2_http_simple_cmd_connect_rst2",
-                 true,
-                 tiHTTP_CONNECT_RST2);
-
+    tcp_gen_test("tcp2_http_simple_cmd_connect_rst2", true, tiHTTP_CONNECT_RST2);
 }
 
 TEST_F(gt_tcp, tst30_http_simple_cmd_connect_keepalive) {
-    tcp_gen_test("tcp2_http_simple_cmd_connect_rst_keepalive",
-                 true,
-                 tiHTTP_RST_KEEP_ALIVE,
-                 0,
-                 csSIM_RST_MIDDLE_KEEPALIVE
-                 );
-
+    tcp_gen_test("tcp2_http_simple_cmd_connect_rst_keepalive", true, tiHTTP_RST_KEEP_ALIVE, 0,
+                 csSIM_RST_MIDDLE_KEEPALIVE);
 }
 
-
-
-TEST_F(gt_tcp, tst30_http_simple_pad) {
-    tcp_gen_test("tcp2_http_simple_pad",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_PAD
-                 );
-}
-
+TEST_F(gt_tcp, tst30_http_simple_pad) { tcp_gen_test("tcp2_http_simple_pad", true, tiHTTP, 0, csSIM_PAD); }
 
 TEST_F(gt_tcp, tst30_http_simple_mss) {
-    tcp_gen_test("tcp2_http_simple_mss",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_NONE,
-                 false, /*IPv6*/
-                 512 /* MSS*/
-                 );
+    tcp_gen_test("tcp2_http_simple_mss", true, tiHTTP, 0, csSIM_NONE, false, /*IPv6*/
+                 512                                                         /* MSS*/
+    );
 }
 
+TEST_F(gt_tcp, tst30_http_rst) { tcp_gen_test("tcp2_http_rst", true, tiHTTP, 0, csSIM_RST_SYN); }
 
-TEST_F(gt_tcp, tst30_http_rst) {
+TEST_F(gt_tcp, tst30_http_rst1) { tcp_gen_test("tcp2_http_rst1", true, tiHTTP, 0, csSIM_RST_SYN1); }
 
-    tcp_gen_test("tcp2_http_rst",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_RST_SYN
-                 );
-
-}
-
-TEST_F(gt_tcp, tst30_http_rst1) {
-
-    tcp_gen_test("tcp2_http_rst1",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_RST_SYN1
-                 );
-
-}
-
-TEST_F(gt_tcp, tst30_http_wrong_port) {
-
-    tcp_gen_test("tcp2_http_wrong_port",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_WRONG_PORT
-                 );
-
-}
-
+TEST_F(gt_tcp, tst30_http_wrong_port) { tcp_gen_test("tcp2_http_wrong_port", true, tiHTTP, 0, csSIM_WRONG_PORT); }
 
 TEST_F(gt_tcp, tst30_http_drop) {
     CClientServerTcpCfgExt cfg;
-    cfg.m_rate=0.1;
-    cfg.m_check_counters=true;
+    cfg.m_rate = 0.1;
+    cfg.m_check_counters = true;
 
-    tcp_gen_test("tcp2_http_drop",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_DROP,
-                 false, /* ipv6*/
-                 0, /*mss*/
-                 &cfg
-                 );
-
-
+    tcp_gen_test("tcp2_http_drop", true, tiHTTP, 0, csSIM_DROP, false, /* ipv6*/
+                 0,                                                    /*mss*/
+                 &cfg);
 }
 
 TEST_F(gt_tcp, tst30_http_drop_high) {
     CClientServerTcpCfgExt cfg;
-    cfg.m_rate=0.6;
-    cfg.m_check_counters=true;
+    cfg.m_rate = 0.6;
+    cfg.m_check_counters = true;
     cfg.m_seed = 29;
 
-    tcp_gen_test("tcp2_http_drop_high",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_DROP,
-                 false, /* ipv6*/
-                 0, /*mss*/
-                 &cfg
-                 );
+    tcp_gen_test("tcp2_http_drop_high", true, tiHTTP, 0, csSIM_DROP, false, /* ipv6*/
+                 0,                                                         /*mss*/
+                 &cfg);
 }
-
 
 TEST_F(gt_tcp_long, tst30_http_drop_loop) {
 
     CClientServerTcpCfgExt cfg;
-    cfg.m_rate=0.1;
-    cfg.m_check_counters=true;
-    cfg.m_skip_compare_file=true;
+    cfg.m_rate = 0.1;
+    cfg.m_check_counters = true;
+    cfg.m_skip_compare_file = true;
 
     int i;
-    for (i=1; i<50; i++) {
-        cfg.m_rate=(double)rand()/(double)(0xffffffff);
-        if (cfg.m_rate>0.4) {
-            cfg.m_rate=0.4;
+    for (i = 1; i < 50; i++) {
+        cfg.m_rate = (double)rand() / (double)(0xffffffff);
+        if (cfg.m_rate > 0.4) {
+            cfg.m_rate = 0.4;
         }
-        if (cfg.m_rate<0.1) {
-            cfg.m_rate=0.1;
+        if (cfg.m_rate < 0.1) {
+            cfg.m_rate = 0.1;
         }
-        cfg.m_seed=i+1;
-        printf(" itr:%d rate %f seed %d \n",i,cfg.m_rate,i);
-        tcp_gen_test("tcp2_http_drop_loop",
-                     true,
-                     tiHTTP,
-                     0,
-                     csSIM_DROP,
-                     false, /* ipv6*/
-                     0, /*mss*/
-                     &cfg
-                     );
+        cfg.m_seed = i + 1;
+        printf(" itr:%d rate %f seed %d \n", i, cfg.m_rate, i);
+        tcp_gen_test("tcp2_http_drop_loop", true, tiHTTP, 0, csSIM_DROP, false, /* ipv6*/
+                     0,                                                         /*mss*/
+                     &cfg);
     }
 }
 
 TEST_F(gt_tcp, tst30_http_reorder) {
     CClientServerTcpCfgExt cfg;
-    cfg.m_rate=0.1;
-    cfg.m_check_counters=true;
-    cfg.m_skip_compare_file=false;
+    cfg.m_rate = 0.1;
+    cfg.m_check_counters = true;
+    cfg.m_skip_compare_file = false;
 
-    tcp_gen_test("tcp2_http_reorder",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_REORDER,
-                 false, /* ipv6*/
-                 0, /*mss*/
-                 &cfg
-                 );
+    tcp_gen_test("tcp2_http_reorder", true, tiHTTP, 0, csSIM_REORDER, false, /* ipv6*/
+                 0,                                                          /*mss*/
+                 &cfg);
 }
-
 
 TEST_F(gt_tcp_long, tst30_http_reorder_loop) {
     CClientServerTcpCfgExt cfg;
-    cfg.m_rate=0.1;
-    cfg.m_check_counters=true;
-    cfg.m_skip_compare_file=true;
+    cfg.m_rate = 0.1;
+    cfg.m_check_counters = true;
+    cfg.m_skip_compare_file = true;
 
     int i;
-    for (i=1; i<50; i++) {
-        cfg.m_rate=(double)rand()/(double)(0xffffffff);
-        if (cfg.m_rate>0.4) {
-            cfg.m_rate=0.4;
+    for (i = 1; i < 50; i++) {
+        cfg.m_rate = (double)rand() / (double)(0xffffffff);
+        if (cfg.m_rate > 0.4) {
+            cfg.m_rate = 0.4;
         }
-        if (cfg.m_rate<0.1) {
-            cfg.m_rate=0.1;
+        if (cfg.m_rate < 0.1) {
+            cfg.m_rate = 0.1;
         }
-        cfg.m_seed=i+1;
-        tcp_gen_test("tcp2_http_reorder",
-                     true,
-                     tiHTTP,
-                     0,
-                     csSIM_REORDER,
-                     false, /* ipv6*/
-                     0, /*mss*/
-                     &cfg
-                     );
+        cfg.m_seed = i + 1;
+        tcp_gen_test("tcp2_http_reorder", true, tiHTTP, 0, csSIM_REORDER, false, /* ipv6*/
+                     0,                                                          /*mss*/
+                     &cfg);
     }
 }
 
+TEST_F(gt_tcp, tst30_http_rst_middle) { tcp_gen_test("tcp2_http_rst_middle", true, tiHTTP, 0, csSIM_RST_MIDDLE); }
 
-TEST_F(gt_tcp, tst30_http_rst_middle) {
-
-    tcp_gen_test("tcp2_http_rst_middle",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_RST_MIDDLE
-                 );
-}
-
-
-TEST_F(gt_tcp, tst30_http_rst_middle1) {
-
-    tcp_gen_test("tcp2_http_rst_middle2",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_RST_MIDDLE2
-                 );
-
-}
+TEST_F(gt_tcp, tst30_http_rst_middle1) { tcp_gen_test("tcp2_http_rst_middle2", true, tiHTTP, 0, csSIM_RST_MIDDLE2); }
 
 TEST_F(gt_tcp, tst30_http_ipv6) {
 
-    tcp_gen_test("tcp2_http_ipv6",
-                 true,
-                 tiHTTP,
-                 0,
-                 csSIM_NONE,
-                 true /* IPV6*/
-                 );
-
+    tcp_gen_test("tcp2_http_ipv6", true, tiHTTP, 0, csSIM_NONE, true /* IPV6*/
+    );
 }
-
-
 
 TEST_F(gt_tcp, tst31) {
 
-    CMbufBuffer * buf;
-    CEmulAppProgram * prog;
-    CEmulApp * app;
+    CMbufBuffer *buf;
+    CEmulAppProgram *prog;
+    CEmulApp *app;
 
     app = new CEmulApp();
     buf = new CMbufBuffer();
 
-    utl_mbuf_buffer_create_and_fill(0,buf,2048,100*1024);
+    utl_mbuf_buffer_create_and_fill(0, buf, 2048, 100 * 1024);
 
     prog = new CEmulAppProgram();
 
     CEmulAppCmd cmd;
-    cmd.m_cmd =tcTX_BUFFER;
-    cmd.u.m_tx_cmd.m_buf =buf;
-
+    cmd.m_cmd = tcTX_BUFFER;
+    cmd.u.m_tx_cmd.m_buf = buf;
 
     prog->add_cmd(cmd);
 
@@ -1238,7 +1019,7 @@ TEST_F(gt_tcp, tst31) {
     prog->add_cmd(cmd);
 
     cmd.m_cmd = tcDELAY;
-    cmd.u.m_delay_cmd.m_ticks  = 1000;
+    cmd.u.m_delay_cmd.m_ticks = 1000;
 
     prog->add_cmd(cmd);
 
@@ -1246,24 +1027,18 @@ TEST_F(gt_tcp, tst31) {
 
     app->set_program(prog);
 
-
     delete app;
     delete prog;
     buf->Delete();
     delete buf;
 }
 
-
-
 #include <common/dlist.h>
-
-
 
 struct CMyNode {
     TCDListNode m_node;
-    uint32_t    m_id;
+    uint32_t m_id;
 };
-
 
 TEST_F(gt_tcp, tst32) {
     TCGenDList list;
@@ -1271,18 +1046,18 @@ TEST_F(gt_tcp, tst32) {
     list.Create();
 #if 1
     int i;
-    for (i=0; i<10; i++) {
-        CMyNode * lp=new CMyNode();
-        lp->m_id=i;
+    for (i = 0; i < 10; i++) {
+        CMyNode *lp = new CMyNode();
+        lp->m_id = i;
         lp->m_node.reset();
         list.insert_head(&lp->m_node);
     }
 #endif
     TCGenDListIterator it(list);
 
-    CMyNode * lp=0;
-    for ( ;(lp=(CMyNode *)it.node()); it++){
-        printf(" id: %lu \n",(ulong)lp->m_id);
+    CMyNode *lp = 0;
+    for (; (lp = (CMyNode *)it.node()); it++) {
+        printf(" id: %lu \n", (ulong)lp->m_id);
     }
 
     while (!list.is_empty()) {
@@ -1290,9 +1065,7 @@ TEST_F(gt_tcp, tst32) {
     }
 }
 
-
 #include <common/closehash.h>
-
 
 TEST_F(gt_tcp, tst33) {
     CFlowKeyTuple key;
@@ -1302,69 +1075,68 @@ TEST_F(gt_tcp, tst33) {
     key.set_proto(06);
     key.set_ipv4(true);
     key.dump(stdout);
-    printf(" %lx \n",(ulong)key.get_as_uint64());
+    printf(" %lx \n", (ulong)key.get_as_uint64());
 }
 
 #include <algorithm>
 #include <map>
 
-typedef std::map<uint64_t, uint32_t, std::less<uint64_t> > hash_test_map_t;
+typedef std::map<uint64_t, uint32_t, std::less<uint64_t>> hash_test_map_t;
 typedef hash_test_map_t::iterator hash_test_map_iter_t;
 
 struct chash_result {
     uint32_t max_lookup;
-    double   table_util;
-    double   lookup_hit;
+    double table_util;
+    double lookup_hit;
 };
 
 /* to check hash function */
-int hash_func_test(uint32_t mask,int clients,int ports,chash_result & res){
+int hash_func_test(uint32_t mask, int clients, int ports, chash_result &res) {
     int i;
     hash_test_map_t map_tbl;
     int c;
-    int hit=0;
-    int lookup=0;
-    int max_lookup=0;
+    int hit = 0;
+    int lookup = 0;
+    int max_lookup = 0;
 
-    for (c=0; c<clients; c++) {
-        for (i=1025; i<(ports+1025); i++) {
+    for (c = 0; c < clients; c++) {
+        for (i = 1025; i < (ports + 1025); i++) {
             lookup++;
 
             CFlowKeyTuple key;
-            key.set_ip(0x16000001+c);
+            key.set_ip(0x16000001 + c);
             key.set_port(i);
             key.set_proto(06);
             key.set_ipv4(true);
-            uint32_t mkey = key.get_hash()&mask;
-            uint32_t val=0;
+            uint32_t mkey = key.get_hash() & mask;
+            uint32_t val = 0;
 
             hash_test_map_iter_t iter;
             iter = map_tbl.find(mkey);
-            if (iter != map_tbl.end() ) {
-                val=((*iter).second);
+            if (iter != map_tbl.end()) {
+                val = ((*iter).second);
                 hit++;
-                (*iter).second=val+1;
-                if (val+1>max_lookup){
-                    max_lookup=val+1;
+                (*iter).second = val + 1;
+                if (val + 1 > max_lookup) {
+                    max_lookup = val + 1;
                 }
 
-            }else{
-                map_tbl.insert(hash_test_map_t::value_type(mkey,1));
+            } else {
+                map_tbl.insert(hash_test_map_t::value_type(mkey, 1));
             }
         }
     }
 
     res.max_lookup = max_lookup;
-    res.table_util = (ulong)100.0*(lookup)/(double)mask;
-    res.lookup_hit = ((double)(hit+lookup)/(double)lookup);
+    res.table_util = (ulong)100.0 * (lookup) / (double)mask;
+    res.lookup_hit = ((double)(hit + lookup) / (double)lookup);
 
-
-    printf(" lookup        : %lu \n",(ulong)lookup);
-    printf(" hit           : %lu \n",(ulong)hit);
-    printf(" table size    : %lu \n",(ulong)mask);
-    printf(" max_lookup    : %lu \n",(ulong)max_lookup);
-    printf(" table_util    : %f  \n",res.table_util);
-    printf(" lookup factor %.1f %% \n",res.lookup_hit);
+    printf(" lookup        : %lu \n", (ulong)lookup);
+    printf(" hit           : %lu \n", (ulong)hit);
+    printf(" table size    : %lu \n", (ulong)mask);
+    printf(" max_lookup    : %lu \n", (ulong)max_lookup);
+    printf(" table_util    : %f  \n", res.table_util);
+    printf(" lookup factor %.1f %% \n", res.lookup_hit);
     return (0);
 }
 
@@ -1406,18 +1178,16 @@ TEST_F(gt_tcp, tst35) {
 typedef CHashEntry<flow_key_t> test_hash_ent_t;
 typedef CCloseHash<flow_key_t> test_hash_t;
 
-
 class CMyFlowTest {
-public:
+  public:
     test_hash_ent_t m_hash_key;
-    uint32_t        m_id;
+    uint32_t m_id;
 };
-
 
 TEST_F(gt_tcp, tst36) {
 
-    test_hash_t   ht;
-    test_hash_ent_t * lp;
+    test_hash_t ht;
+    test_hash_ent_t *lp;
 
     CFlowKeyTuple tuple;
 
@@ -1429,20 +1199,20 @@ TEST_F(gt_tcp, tst36) {
     ht.Create(32);
 
     flow_key_t key = tuple.get_as_uint64();
-    uint32_t   hash =tuple.get_hash();
+    uint32_t hash = tuple.get_hash();
 
-    lp=ht.find(key,hash);
-    assert(lp==0);
+    lp = ht.find(key, hash);
+    assert(lp == 0);
 
-    CMyFlowTest * lp_flow = new CMyFlowTest();
+    CMyFlowTest *lp_flow = new CMyFlowTest();
 
-    lp_flow->m_hash_key.key =key;
-    lp_flow->m_id =17;
+    lp_flow->m_hash_key.key = key;
+    lp_flow->m_id = 17;
 
-    ht.insert_nc(&lp_flow->m_hash_key,hash);
+    ht.insert_nc(&lp_flow->m_hash_key, hash);
 
-    lp=ht.find(key,hash);
-    assert(lp==&lp_flow->m_hash_key);
+    lp = ht.find(key, hash);
+    assert(lp == &lp_flow->m_hash_key);
 
     ht.remove(&lp_flow->m_hash_key);
     delete lp_flow;
@@ -1450,19 +1220,17 @@ TEST_F(gt_tcp, tst36) {
     ht.Delete();
 }
 
+void my_close_hash_on_detach_cb(void *userdata, void *obj) {
 
-void my_close_hash_on_detach_cb(void *userdata,
-                             void  *obj){
-
-    CMyFlowTest * lpobj=(CMyFlowTest *)obj;
-    printf (" free id  %lu \n",(ulong)lpobj->m_id);
+    CMyFlowTest *lpobj = (CMyFlowTest *)obj;
+    printf(" free id  %lu \n", (ulong)lpobj->m_id);
     delete lpobj;
 }
 
 TEST_F(gt_tcp, tst37) {
 
-    test_hash_t   ht;
-    test_hash_ent_t * lp;
+    test_hash_t ht;
+    test_hash_ent_t *lp;
 
     CFlowKeyTuple tuple;
 
@@ -1474,33 +1242,30 @@ TEST_F(gt_tcp, tst37) {
     ht.Create(32);
 
     flow_key_t key = tuple.get_as_uint64();
-    uint32_t   hash =tuple.get_hash();
+    uint32_t hash = tuple.get_hash();
 
-    lp=ht.find(key,hash);
-    assert(lp==0);
+    lp = ht.find(key, hash);
+    assert(lp == 0);
 
-    CMyFlowTest * lp_flow = new CMyFlowTest();
+    CMyFlowTest *lp_flow = new CMyFlowTest();
 
-    lp_flow->m_hash_key.key =key;
-    lp_flow->m_id =17;
+    lp_flow->m_hash_key.key = key;
+    lp_flow->m_id = 17;
 
-    ht.insert_nc(&lp_flow->m_hash_key,hash);
+    ht.insert_nc(&lp_flow->m_hash_key, hash);
 
-    lp=ht.find(key,hash);
-    assert(lp==&lp_flow->m_hash_key);
+    lp = ht.find(key, hash);
+    assert(lp == &lp_flow->m_hash_key);
 
-    ht.detach_all(0,my_close_hash_on_detach_cb);
+    ht.detach_all(0, my_close_hash_on_detach_cb);
 
     ht.Delete();
 }
 
 class MyTestVirt {
-public:
-    virtual int a1(){
-        return(17);
-    }
-    virtual ~MyTestVirt(){
-    }
+  public:
+    virtual int a1() { return (17); }
+    virtual ~MyTestVirt() {}
     int a;
     int b;
 };
@@ -1510,29 +1275,26 @@ struct MyTestVirt2 {
     int b;
 };
 
-
 TEST_F(gt_tcp, tst38) {
-    MyTestVirt * lp=new MyTestVirt();
-    MyTestVirt2 *lp1=new MyTestVirt2();
+    MyTestVirt *lp = new MyTestVirt();
+    MyTestVirt2 *lp1 = new MyTestVirt2();
 
-    printf(" %p %p\n",lp,&lp->a);
+    printf(" %p %p\n", lp, &lp->a);
 
-    void *p=&lp->a;
+    void *p = &lp->a;
 
     UNSAFE_CONTAINER_OF_PUSH
-    MyTestVirt * lp2 =(MyTestVirt *)((uint8_t*)p-offsetof (MyTestVirt,a));
+    MyTestVirt *lp2 = (MyTestVirt *)((uint8_t *)p - offsetof(MyTestVirt, a));
     UNSAFE_CONTAINER_OF_POP
 
-    printf(" %p %p \n",lp2,&lp2->a);
+    printf(" %p %p \n", lp2, &lp2->a);
 
     delete lp;
     delete lp1;
-
 }
 
-
 class CTestStats64 {
-public:
+  public:
     uint64_t a;
     uint64_t b;
     uint64_t c;
@@ -1542,21 +1304,21 @@ TEST_F(gt_tcp, tst39) {
     CTestStats64 aa;
     CTestStats64 bb;
 
-    memset(&aa,0,sizeof(CTestStats64));
-    memset(&bb,0,sizeof(CTestStats64));
-    aa.a=1;
-    aa.b=2;
-    aa.c=0;
+    memset(&aa, 0, sizeof(CTestStats64));
+    memset(&bb, 0, sizeof(CTestStats64));
+    aa.a = 1;
+    aa.b = 2;
+    aa.c = 0;
 
-    bb.a=17;
-    bb.b=18;
-    bb.c=0;
+    bb.a = 17;
+    bb.b = 18;
+    bb.c = 0;
 
-    CGCountersUtl64 au((uint64_t*)&aa,sizeof(aa)/sizeof(uint64_t));
-    CGCountersUtl64 bu((uint64_t*)&bb,sizeof(bb)/sizeof(uint64_t));
+    CGCountersUtl64 au((uint64_t *)&aa, sizeof(aa) / sizeof(uint64_t));
+    CGCountersUtl64 bu((uint64_t *)&bb, sizeof(bb) / sizeof(uint64_t));
 
-    au+=bu;
-    printf(" %lu %lu \n",(ulong)aa.a,(ulong)aa.b);
+    au += bu;
+    printf(" %lu %lu \n", (ulong)aa.a, (ulong)aa.b);
 }
 
 TEST_F(gt_tcp, tst40) {
@@ -1567,18 +1329,18 @@ TEST_F(gt_tcp, tst40) {
     CTestStats64 aa;
     CTestStats64 bb;
 
-    memset(&aa,0,sizeof(CTestStats64));
-    memset(&bb,0,sizeof(CTestStats64));
-    aa.a=1;
-    aa.b=2;
-    aa.c=1;
+    memset(&aa, 0, sizeof(CTestStats64));
+    memset(&bb, 0, sizeof(CTestStats64));
+    aa.a = 1;
+    aa.b = 2;
+    aa.c = 1;
 
-    bb.a=17;
-    bb.b=18;
-    bb.c=1;
+    bb.a = 17;
+    bb.b = 18;
+    bb.c = 1;
 
-    CGCountersUtl64 au((uint64_t*)&aa,sizeof(aa)/sizeof(uint64_t));
-    CGCountersUtl64 bu((uint64_t*)&bb,sizeof(bb)/sizeof(uint64_t));
+    CGCountersUtl64 au((uint64_t *)&aa, sizeof(aa) / sizeof(uint64_t));
+    CGCountersUtl64 bu((uint64_t *)&bb, sizeof(bb) / sizeof(uint64_t));
 
     clm_aa.set_name("aa");
     clm_bb.set_name("bb");
@@ -1591,7 +1353,6 @@ TEST_F(gt_tcp, tst40) {
     lp->set_name("aa");
     lp->set_help("aa help");
     clm_aa.add_count(lp);
-
 
     lp = new CGSimpleRefCnt64(&aa.b);
     lp->set_name("bb");
@@ -1616,8 +1377,6 @@ TEST_F(gt_tcp, tst40) {
     lp->set_name("ERRORS");
     clm_bb.add_count(lp);
 
-
-
     lp = new CGSimpleRefCnt64(&aa.c);
     lp->set_name("cc");
     lp->set_help("cc help");
@@ -1635,92 +1394,84 @@ TEST_F(gt_tcp, tst40) {
     tbl.add(&clm_aa);
     tbl.add(&clm_bb);
 
-    tbl.dump_table(stdout,true,true);
+    tbl.dump_table(stdout, true, true);
 
-    tbl.dump_table(stdout,false,true);
+    tbl.dump_table(stdout, false, true);
 
     std::string json;
-    tbl.dump_as_json("my",json);
+    tbl.dump_as_json("my", json);
 
-    Json::Value  mjson;
-    tbl.dump_meta("my",mjson);
+    Json::Value mjson;
+    tbl.dump_meta("my", mjson);
     Json::StyledWriter writer;
-    std::string s=writer.write(mjson);
-    printf("%s \n",s.c_str());
+    std::string s = writer.write(mjson);
+    printf("%s \n", s.c_str());
 
-    tbl.dump_values("my",
-                     true,
-                     mjson);
+    tbl.dump_values("my", true, mjson);
 
-    s=writer.write(mjson);
-    printf("%s \n",s.c_str());
+    s = writer.write(mjson);
+    printf("%s \n", s.c_str());
 
-    tbl.dump_values("my",
-                     false,
-                     mjson);
+    tbl.dump_values("my", false, mjson);
 
-    s=writer.write(mjson);
-    printf("%s \n",s.c_str());
+    s = writer.write(mjson);
+    printf("%s \n", s.c_str());
 
-
-
-    printf("%s \n",json.c_str());
+    printf("%s \n", json.c_str());
 }
-
 
 /* reass test1  flow is not enabled */
 TEST_F(gt_tcp, tst42) {
-    CTcpPerThreadCtx       ctx;
-    CTcpFlow               flow;
-    ctx.Create(100,true);
+    CTcpPerThreadCtx ctx;
+    CTcpFlow flow;
+    ctx.Create(100, true);
     flow.Create(&ctx);
 
-    tcpcb * tp=&flow.m_tcp;
+    tcpcb *tp = &flow.m_tcp;
 
     tp->rcv_nxt = 0x1000; /* expect this seq in rcv */
 
     struct tcpiphdr ti;
-    memset(&ti,0,sizeof(struct tcpiphdr));
+    memset(&ti, 0, sizeof(struct tcpiphdr));
     ti.ih_len = 50;
-    ti.ti_seq = 0x1000+100;
+    ti.ti_seq = 0x1000 + 100;
 
-    int tiflags=0;
+    int tiflags = 0;
 
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     ti.ih_len = 100;
-    ti.ti_seq +=100 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    ti.ti_seq += 100;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     tp->m_tpc_reass->Dump(stdout);
 
     ti.ih_len = 100;
-    ti.ti_seq =0x1000 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
-
+    ti.ti_seq = 0x1000;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     ti.ih_len = 100;
-    ti.ti_seq =0x1000+1000 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    ti.ti_seq = 0x1000 + 1000;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     tp->m_tpc_reass->Dump(stdout);
 
     ti.ih_len = 100;
-    ti.ti_seq =0x1000+2000 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    ti.ti_seq = 0x1000 + 2000;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     tp->m_tpc_reass->Dump(stdout);
 
     ti.ih_len = 100;
-    ti.ti_seq =0x1000+3000 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    ti.ti_seq = 0x1000 + 3000;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     ti.ih_len = 100;
-    ti.ti_seq =0x1000+4000 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    ti.ti_seq = 0x1000 + 4000;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     ctx.get_tcpstat()->Dump(stdout);
-    printf(" tiflags:%x \n",tiflags);
+    printf(" tiflags:%x \n", tiflags);
 
     flow.Delete();
     ctx.Delete();
@@ -1729,252 +1480,225 @@ TEST_F(gt_tcp, tst42) {
 /* reass test1  flow is enabled by application*/
 
 TEST_F(gt_tcp, tst43) {
-    CTcpPerThreadCtx       ctx;
-    CTcpFlow               flow;
-    CEmulAppApiImpl         tcp_bh_api_impl_c;
-    ctx.Create(100,true);
+    CTcpPerThreadCtx ctx;
+    CTcpFlow flow;
+    CEmulAppApiImpl tcp_bh_api_impl_c;
+    ctx.Create(100, true);
     flow.Create(&ctx);
 
-    CEmulAppProgram * prog_s;
+    CEmulAppProgram *prog_s;
     prog_s = new CEmulAppProgram();
     CEmulAppCmd cmd;
 
     /* server program */
 
-    cmd.m_cmd =tcRX_BUFFER;
-    cmd.u.m_rx_cmd.m_flags =CEmulAppCmdRxBuffer::rxcmd_WAIT;
+    cmd.m_cmd = tcRX_BUFFER;
+    cmd.u.m_rx_cmd.m_flags = CEmulAppCmdRxBuffer::rxcmd_WAIT;
     cmd.u.m_rx_cmd.m_rx_bytes_wm = 1000;
 
     prog_s->add_cmd(cmd);
 
-
-    CEmulApp * app_c = &flow.m_app;
+    CEmulApp *app_c = &flow.m_app;
 
     app_c->set_program(prog_s);
     app_c->set_bh_api(&tcp_bh_api_impl_c);
-    app_c->set_flow_ctx(&ctx,&flow);
+    app_c->set_flow_ctx(&ctx, &flow);
     flow.set_app(app_c);
 
-
-    tcpcb * tp=&flow.m_tcp;
+    tcpcb *tp = &flow.m_tcp;
 
     tp->rcv_nxt = 0x1000; /* expect this seq in rcv */
 
     tp->t_state = TCPS_SYN_RECEIVED;
 
     struct tcpiphdr ti;
-    memset(&ti,0,sizeof(struct tcpiphdr));
+    memset(&ti, 0, sizeof(struct tcpiphdr));
     ti.ih_len = 50;
-    ti.ti_seq = 0x1000+100;
+    ti.ti_seq = 0x1000 + 100;
 
-    int tiflags=0;
+    int tiflags = 0;
 
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     ti.ih_len = 100;
-    ti.ti_seq +=100 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    ti.ti_seq += 100;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     tp->m_tpc_reass->Dump(stdout);
 
     ti.ih_len = 100;
-    ti.ti_seq =0x1000 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
-
+    ti.ti_seq = 0x1000;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     ti.ih_len = 100;
-    ti.ti_seq =0x1000+1000 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    ti.ti_seq = 0x1000 + 1000;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     tp->m_tpc_reass->Dump(stdout);
 
     ti.ih_len = 100;
-    ti.ti_seq =0x1000+2000 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    ti.ti_seq = 0x1000 + 2000;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     tp->m_tpc_reass->Dump(stdout);
 
     ti.ih_len = 100;
-    ti.ti_seq =0x1000+3000 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    ti.ti_seq = 0x1000 + 3000;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     ti.ih_len = 100;
-    ti.ti_seq =0x1000+4000 ;
-    tiflags = tcp_reass(&ctx,tp, &ti, (struct rte_mbuf *)0);
+    ti.ti_seq = 0x1000 + 4000;
+    tiflags = tcp_reass(&ctx, tp, &ti, (struct rte_mbuf *)0);
 
     ctx.get_tcpstat()->Dump(stdout);
-    printf(" tiflags:%x \n",tiflags);
+    printf(" tiflags:%x \n", tiflags);
 
     delete prog_s;
     flow.Delete();
     ctx.Delete();
 }
 
+int test_buffer(int pkt_size, int blk_size, int trim, int verbose) {
 
-
-
-int test_buffer(int pkt_size,
-                int blk_size,
-                int trim,
-                int verbose){
-
-    char * buf=utl_rte_pktmbuf_mem_fill(pkt_size,1);
-    struct rte_mbuf * m;
+    char *buf = utl_rte_pktmbuf_mem_fill(pkt_size, 1);
+    struct rte_mbuf *m;
     assert(buf);
-    m=utl_rte_pktmbuf_mem_to_pkt(buf,pkt_size,
-                                 blk_size,
-                                 tcp_pktmbuf_get_pool(0,blk_size));
+    m = utl_rte_pktmbuf_mem_to_pkt(buf, pkt_size, blk_size, tcp_pktmbuf_get_pool(0, blk_size));
     assert(m);
-    assert(utl_rte_pktmbuf_verify(m)==0);
+    assert(utl_rte_pktmbuf_verify(m) == 0);
 
-
-    if ( verbose ){
-        utl_rte_pktmbuf_dump_k12(stdout,m);
+    if (verbose) {
+        utl_rte_pktmbuf_dump_k12(stdout, m);
     }
 
-    if (trim>0){
-        assert(utl_rte_pktmbuf_trim_ex(m,trim)==0);
+    if (trim > 0) {
+        assert(utl_rte_pktmbuf_trim_ex(m, trim) == 0);
     }
-    assert(utl_rte_pktmbuf_verify(m)==0);
-    char  * p2= utl_rte_pktmbuf_to_mem(m);
+    assert(utl_rte_pktmbuf_verify(m) == 0);
+    char *p2 = utl_rte_pktmbuf_to_mem(m);
     assert(p2);
 
-    assert(m->pkt_len==(pkt_size-trim));
-    int res=memcmp(buf,p2,(pkt_size-trim));
+    assert(m->pkt_len == (pkt_size - trim));
+    int res = memcmp(buf, p2, (pkt_size - trim));
     rte_pktmbuf_free(m);
     free(p2);
     free(buf);
-    return(res);
+    return (res);
 }
 
 TEST_F(gt_tcp_long, tst50) {
     int i;
-    for (i=0; i<2047; i++) {
-        printf(" test : %d \n",(int)i);
-        assert(test_buffer(2048,512,i,0)==0);
+    for (i = 0; i < 2047; i++) {
+        printf(" test : %d \n", (int)i);
+        assert(test_buffer(2048, 512, i, 0) == 0);
     }
 }
 
+int test_buffer_adj(int pkt_size, int blk_size, int adj, int verbose) {
 
-int test_buffer_adj(int pkt_size,
-                    int blk_size,
-                    int adj,
-                    int verbose){
-
-    char * buf=utl_rte_pktmbuf_mem_fill(pkt_size,1);
-    struct rte_mbuf * m;
+    char *buf = utl_rte_pktmbuf_mem_fill(pkt_size, 1);
+    struct rte_mbuf *m;
     assert(buf);
-    m=utl_rte_pktmbuf_mem_to_pkt(buf,pkt_size,
-                                 blk_size,
-                                 tcp_pktmbuf_get_pool(0,blk_size));
+    m = utl_rte_pktmbuf_mem_to_pkt(buf, pkt_size, blk_size, tcp_pktmbuf_get_pool(0, blk_size));
     assert(m);
-    assert(utl_rte_pktmbuf_verify(m)==0);
+    assert(utl_rte_pktmbuf_verify(m) == 0);
 
-
-    if ( verbose ){
-        utl_rte_pktmbuf_dump_k12(stdout,m);
+    if (verbose) {
+        utl_rte_pktmbuf_dump_k12(stdout, m);
     }
 
-    if (adj>0){
-        assert(utl_rte_pktmbuf_adj_ex(m,adj)!=0);
+    if (adj > 0) {
+        assert(utl_rte_pktmbuf_adj_ex(m, adj) != 0);
     }
-    assert(utl_rte_pktmbuf_verify(m)==0);
+    assert(utl_rte_pktmbuf_verify(m) == 0);
 
-    char  * p2= utl_rte_pktmbuf_to_mem(m);
+    char *p2 = utl_rte_pktmbuf_to_mem(m);
     assert(p2);
 
-    assert(m->pkt_len==(pkt_size-adj));
-    int res=memcmp(buf+adj,p2,(pkt_size-adj));
+    assert(m->pkt_len == (pkt_size - adj));
+    int res = memcmp(buf + adj, p2, (pkt_size - adj));
     rte_pktmbuf_free(m);
     free(p2);
     free(buf);
-    return(res);
+    return (res);
 }
 
 TEST_F(gt_tcp_long, tst51) {
-    //assert(test_buffer(2048,512,1,0)==0);
-    assert(test_buffer(2048,512,512,0)==0);
+    // assert(test_buffer(2048,512,1,0)==0);
+    assert(test_buffer(2048, 512, 512, 0) == 0);
 
     int i;
-    for (i=0; i<2047; i++) {
-        printf(" test : %d \n",(int)i);
-        assert(test_buffer(2048,512,i,0)==0);
+    for (i = 0; i < 2047; i++) {
+        printf(" test : %d \n", (int)i);
+        assert(test_buffer(2048, 512, i, 0) == 0);
     }
 }
-
 
 TEST_F(gt_tcp_long, tst_adj) {
-    //assert(test_buffer(2048,512,1,0)==0);
-    assert(test_buffer_adj(2048,512,512,0)==0);
+    // assert(test_buffer(2048,512,1,0)==0);
+    assert(test_buffer_adj(2048, 512, 512, 0) == 0);
 
     int i;
-    for (i=0; i<2047; i++) {
-        printf(" test : %d \n",(int)i);
-        assert(test_buffer_adj(2048,512,i,0)==0);
+    for (i = 0; i < 2047; i++) {
+        printf(" test : %d \n", (int)i);
+        assert(test_buffer_adj(2048, 512, i, 0) == 0);
     }
 }
-
 
 #include "astf/astf_template_db.h"
 
 TEST_F(gt_tcp, tst52) {
-    CTupleGeneratorSmart  g_gen;
+    CTupleGeneratorSmart g_gen;
     ClientCfgDB g_dummy;
 
-    g_gen.Create(0,0);
-    g_gen.add_client_pool(cdSEQ_DIST,0x10000001,0x1000000f,64000, g_dummy, 0, 0);
-    g_gen.add_server_pool(cdSEQ_DIST,0x30000001,0x40000001,64000,false);
+    g_gen.Create(0, 0);
+    g_gen.add_client_pool(cdSEQ_DIST, 0x10000001, 0x1000000f, 64000, g_dummy, 0, 0);
+    g_gen.add_server_pool(cdSEQ_DIST, 0x30000001, 0x40000001, 64000, false);
 
     CAstfPerTemplateRO template_ro;
-    CAstfPerTemplateRO *lp=&template_ro;
+    CAstfPerTemplateRO *lp = &template_ro;
 
-    template_ro.m_dual_mask=0x01000000;
+    template_ro.m_dual_mask = 0x01000000;
 
-    lp->m_client_pool_idx=0;
-    lp->m_server_pool_idx=0;
-    lp->m_one_app_server =false;
-    lp->m_server_addr =0;
-    lp->m_dual_mask=0x01000000;
-    lp->m_w=1;
-    lp->m_k_cps=1;
-    lp->m_destination_port=80;
+    lp->m_client_pool_idx = 0;
+    lp->m_server_pool_idx = 0;
+    lp->m_one_app_server = false;
+    lp->m_server_addr = 0;
+    lp->m_dual_mask = 0x01000000;
+    lp->m_w = 1;
+    lp->m_k_cps = 1;
+    lp->m_destination_port = 80;
 
     CAstfPerTemplateRW t;
-    t.Create(&g_gen,0,0,lp,0);
+    t.Create(&g_gen, 0, 0, lp, 0);
     CTupleBase tuple;
     t.m_tuple_gen.GenerateTuple(tuple);
-    tuple.setServerPort(t.get_dest_port()) ;
+    tuple.setServerPort(t.get_dest_port());
 
-
-    printf(" %x %x %x %x \n",tuple.getClient(),
-                            tuple.getServer(),
-                            tuple.getClientPort(),
-                            tuple.getServerPort());
-
+    printf(" %x %x %x %x \n", tuple.getClient(), tuple.getServer(), tuple.getClientPort(), tuple.getServerPort());
 
     g_gen.Delete();
 }
 
-
-int test_prob(int intr,std::vector<double> & dist){
-    std::vector<int>     cnt;
+int test_prob(int intr, std::vector<double> &dist) {
+    std::vector<int> cnt;
     cnt.resize(dist.size());
 
     KxuLCRand rnd;
-    KxuNuRand * ru=new KxuNuRand(dist,&rnd);
+    KxuNuRand *ru = new KxuNuRand(dist, &rnd);
     int i;
 
-    for (i=0; i<intr; i++) {
-        uint32_t index=ru->getRandom();
+    for (i = 0; i < intr; i++) {
+        uint32_t index = ru->getRandom();
         cnt[index]++;
     }
-    for (i=0; i<cnt.size(); i++) {
-        double p= ((double)cnt[i]/(double)intr);
-        double pp=fabs((100.0*p/dist[i])-100.0);
-        printf(" %f %f\n",p,pp);
+    for (i = 0; i < cnt.size(); i++) {
+        double p = ((double)cnt[i] / (double)intr);
+        double pp = fabs((100.0 * p / dist[i]) - 100.0);
+        printf(" %f %f\n", p, pp);
     }
     delete ru;
-    return(0);
+    return (0);
 }
 
 #if 0
@@ -2052,11 +1776,11 @@ TEST_F(gt_tcp, tst54) {
     std::vector<double>  ndist;
     Kx_norm_prob(dist,ndist);
     Kx_dump_prob(ndist);
-    #ifdef _DEBUG
+#ifdef _DEBUG
         test_prob(1000,ndist);
-    #else
+#else
       test_prob(100000000,ndist);
-    #endif
+#endif
 }
 
 class CPerProbInfo {
@@ -2247,35 +1971,34 @@ TEST_F(gt_tcp, tst61) {
 }
 #endif
 
-double norm2_relativeError(std::vector<double> expected, std::vector<int> received){
+double norm2_relativeError(std::vector<double> expected, std::vector<int> received) {
     /* Returns the relative norm 2 distance between the two vectors, meaning
     || received - expected || / || received ||*/
     double difference_norm = 0;
     double received_norm = 0;
-    for (int i = 0; i < received.size(); i++){
-        difference_norm += pow(received[i]-expected[i], 2);
-        received_norm += pow(received[i],2);
+    for (int i = 0; i < received.size(); i++) {
+        difference_norm += pow(received[i] - expected[i], 2);
+        received_norm += pow(received[i], 2);
     }
     difference_norm = sqrt(difference_norm);
     received_norm = sqrt(received_norm);
-    assert (received_norm != 0);
-    return difference_norm/received_norm;
+    assert(received_norm != 0);
+    return difference_norm / received_norm;
 }
 
-bool test_KxUNuBin(double ratio, double error_percentage,
-                                int num_of_iterations) {
+bool test_KxUNuBin(double ratio, double error_percentage, int num_of_iterations) {
     /* Creates a binary distribution with @param rate. The function getRandom
     should return true with probability @param rate and return false with
     probability 1 - @param rate. This test checks this, it calls the function
     getRandom @param num_of_iterations times and checks that the number of times
     we received true is rate*num_of_iterations +- error_percentage. The function
     returns true if the test passes and false otherwise.*/
-    assert (ratio != 0);
+    assert(ratio != 0);
     KxuNuBinRand *bin = new KxuNuBinRand(ratio);
     int trues = 0;
     int falses = 0;
 
-    for (int i=0; i < num_of_iterations; i++) {
+    for (int i = 0; i < num_of_iterations; i++) {
         if (bin->getRandom()) {
             trues++;
         } else {
@@ -2286,10 +2009,10 @@ bool test_KxUNuBin(double ratio, double error_percentage,
     std::vector<int> received;
     received.push_back(trues);
     received.push_back(falses);
-    assert (trues + falses == num_of_iterations);
+    assert(trues + falses == num_of_iterations);
     std::vector<double> expected;
     expected.push_back(ratio * num_of_iterations);
-    expected.push_back((1-ratio)*num_of_iterations);
+    expected.push_back((1 - ratio) * num_of_iterations);
     double relative_error = norm2_relativeError(expected, received);
     if (100 * relative_error > error_percentage) {
         std::cout << "The test did not pass. The relative error is: " << 100 * relative_error << "%." << std::endl;
@@ -2300,7 +2023,7 @@ bool test_KxUNuBin(double ratio, double error_percentage,
 
 TEST_F(gt_tcp, tst62) {
     std::vector<double> dist;
-    for (int i=0; i < 650 ; i++) {
+    for (int i = 0; i < 650; i++) {
         dist.push_back(1);
     }
 
@@ -2312,19 +2035,17 @@ TEST_F(gt_tcp, tst62) {
 }
 
 TEST_F(gt_tcp, tst63) {
-    double error_percentage = 2; // set this as the error percentage allowed
+    double error_percentage = 2;   // set this as the error percentage allowed
     int num_of_iterations = 10000; /* set this as the amount of times you
     want the getRandom function to be called. It should be big according to the
     cental limit theorem. */
-    std::vector<double> ratios = {0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7,
-                                    0.75, 0.8, 0.9};
-    for (auto& ratio : ratios) {
-        assert (test_KxUNuBin(ratio, error_percentage,num_of_iterations));
+    std::vector<double> ratios = {0.05, 0.1, 0.2, 0.25, 0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9};
+    for (auto &ratio : ratios) {
+        assert(test_KxUNuBin(ratio, error_percentage, num_of_iterations));
     }
 }
 
-bool test_KxuNuRand(std::vector<double>& distributions, double error_percentage,
-                                                        int num_of_iterations) {
+bool test_KxuNuRand(std::vector<double> &distributions, double error_percentage, int num_of_iterations) {
 
     /* Receives a vector of distributions, from which it builds a non uniform random
     distribution object. It calls getRandom() on this object, @param num_of_iterations
@@ -2334,7 +2055,7 @@ bool test_KxuNuRand(std::vector<double>& distributions, double error_percentage,
     double sum = 0;
     bool passed = true;
     int number_of_distributions = distributions.size();
-    for (auto& dist : distributions){
+    for (auto &dist : distributions) {
         sum += dist;
     }
 
@@ -2348,7 +2069,7 @@ bool test_KxuNuRand(std::vector<double>& distributions, double error_percentage,
     }
 
     std::vector<double> expected;
-    for (int i = 0; i < number_of_distributions; i++){
+    for (int i = 0; i < number_of_distributions; i++) {
         expected.push_back((distributions[i] / sum) * num_of_iterations);
     }
     double relative_error = norm2_relativeError(expected, received_distributions);
@@ -2361,42 +2082,40 @@ bool test_KxuNuRand(std::vector<double>& distributions, double error_percentage,
 }
 
 TEST_F(gt_tcp, tst64) {
-    double error_percentage = 3; // error percentage
-    int num_of_iterations = 10000; /* set this as the amount of times you
-    want the getRandom function to be called. It should be big according to the
-    cental limit theorem. */
+    double error_percentage = 3;       // error percentage
+    int num_of_iterations = 10000;     /* set this as the amount of times you
+        want the getRandom function to be called. It should be big according to the
+        cental limit theorem. */
     std::vector<double> distributions; // this vector will hold the distributions
-    int number_of_distributions = 10; // number of distributions we are testing
+    int number_of_distributions = 10;  // number of distributions we are testing
 
     for (int i = 0; i < number_of_distributions; i++) {
         distributions.push_back(i);
     }
     assert(test_KxuNuRand(distributions, error_percentage, num_of_iterations));
-
 }
 
 TEST_F(gt_tcp, tst65) {
     // Uniform distribution of random size.
-    double error_percentage = 3; // error percentage
-    int num_of_iterations = 1000000; /* set this as the amount of times you
-    want the getRandom function to be called. It should be big according to the
-    cental limit theorem. */
-    std::vector<double> distributions; // this vector will hold the distributions
-    int number_of_distributions = rand() % 1000 ; // number of distributions
+    double error_percentage = 3;                 // error percentage
+    int num_of_iterations = 1000000;             /* set this as the amount of times you
+                want the getRandom function to be called. It should be big according to the
+                cental limit theorem. */
+    std::vector<double> distributions;           // this vector will hold the distributions
+    int number_of_distributions = rand() % 1000; // number of distributions
     for (int i = 0; i < number_of_distributions; i++) {
         distributions.push_back(1);
     }
     assert(test_KxuNuRand(distributions, error_percentage, num_of_iterations));
-
 }
 
 TEST_F(gt_tcp, tst66) {
     // 1000 random values in the distribution vector
-    double error_percentage = 3; // error percentage
-    int num_of_iterations = 1000000; /* set this as the amount of times you
-    want the getRandom function to be called. It should be big according to the
-    cental limit theorem. */
-    std::vector<double> distributions; // this vector will hold the distributions
+    double error_percentage = 3;        // error percentage
+    int num_of_iterations = 1000000;    /* set this as the amount of times you
+       want the getRandom function to be called. It should be big according to the
+       cental limit theorem. */
+    std::vector<double> distributions;  // this vector will hold the distributions
     int number_of_distributions = 1000; // number of distributions we are testing
 
     for (int i = 0; i < number_of_distributions; i++) {
@@ -2405,30 +2124,25 @@ TEST_F(gt_tcp, tst66) {
     assert(test_KxuNuRand(distributions, error_percentage, num_of_iterations));
 }
 
-
 TEST_F(gt_tcp, tst70) {
-    CSyncBarrier * a= new CSyncBarrier(2,0.01);
-    assert(a->sync_barrier(0)==-1);
-    assert(a->sync_barrier(1)==0);
+    CSyncBarrier *a = new CSyncBarrier(2, 0.01);
+    assert(a->sync_barrier(0) == -1);
+    assert(a->sync_barrier(1) == 0);
     delete a;
 }
 
-uint32_t utl_split_int(uint32_t val,
-                       int thread_id,
-                       int num_threads){
-    assert(thread_id<num_threads);
-    uint32_t s=val/num_threads;
-    uint32_t m=val%num_threads;
-    if (thread_id==0) {
-        s+=m;
+uint32_t utl_split_int(uint32_t val, int thread_id, int num_threads) {
+    assert(thread_id < num_threads);
+    uint32_t s = val / num_threads;
+    uint32_t m = val % num_threads;
+    if (thread_id == 0) {
+        s += m;
     }
-    if (s==0) {
-        s=1;
+    if (s == 0) {
+        s = 1;
     }
-    return(s);
+    return (s);
 }
-
-
 
 #if 0
 
@@ -2439,16 +2153,12 @@ uint8_t reverse_bits8(uint8_t b) {
    return b;
 }
 
-
-
-
-#define TOEPLITZ_KEYLEN_MAX	40
+#define TOEPLITZ_KEYLEN_MAX 40
 
 void	toeplitz_get_key(uint8_t *_key, int _keylen);
 void    toeplitz_init(uint8_t *key, int key_size);
 
-
-#define TOEPLITZ_INIT_KEYLEN	(TOEPLITZ_KEYSEED_CNT)
+#define TOEPLITZ_INIT_KEYLEN (TOEPLITZ_KEYSEED_CNT)
 
 static uint32_t	toeplitz_keyseeds[] =
 {0x6d, 0x5a, 0x56, 0xda, 0x25, 0x5b, 0x0e, 0xc2,
@@ -2756,14 +2466,14 @@ TEST_F(gt_tcp, tst76) {
          };
 
      assert(calc_toeplitz(port_rss_key,40,b,32+4)==0xdde51bbf);
-     #if 1
+#if 1
      int i;
      b[11]=0;
      for (i=0; i<255; i++) {
          b[35]=reverse_bits8(i);
          printf(" %x: %x \n",i,(calc_toeplitz(port_rss_keya,40,b,32+4)&0xff ) );
      }
-     #endif
+#endif
 }
 
 int rss_init(){
@@ -2771,38 +2481,29 @@ int rss_init(){
     return(0);
 }
 
-
 #endif
 
-int rss_calc(unsigned char* a, int b){
-    return(0);
-}
+int rss_calc(unsigned char *a, int b) { return (0); }
 
 TEST_F(gt_tcp, tst77) {
-  uint32_t hash[]={0x73e864a7,0xbd021303,0xeabcdebb,0xebb1bb23,0xb51d615e};
+    uint32_t hash[] = {0x73e864a7, 0xbd021303, 0xeabcdebb, 0xebb1bb23, 0xb51d615e};
 
-  int i;
-  for (i=0; i<sizeof(hash)/sizeof(uint32_t); i++) {
-      printf(" hash:%x %x \n",hash[i],(hash[i]&0x7f)%3);
-  }
+    int i;
+    for (i = 0; i < sizeof(hash) / sizeof(uint32_t); i++) {
+        printf(" hash:%x %x \n", hash[i], (hash[i] & 0x7f) % 3);
+    }
 }
-
-
-
-
 
 TEST_F(gt_tcp, tst78) {
 
-
     CMbufBuffer b1;
 
-    utl_mbuf_buffer_create_and_fill(0,&b1,2048,2050,true);
+    utl_mbuf_buffer_create_and_fill(0, &b1, 2048, 2050, true);
 
-    CMbufBuffer  b2;
-    utl_mbuf_buffer_create_and_fill(0,&b2,2048,2050,true);
+    CMbufBuffer b2;
+    utl_mbuf_buffer_create_and_fill(0, &b2, 2048, 2050, true);
 
     b1.Dump(stdout);
-
 
     CEmulTxQueue q;
 
@@ -2810,52 +2511,48 @@ TEST_F(gt_tcp, tst78) {
     q.add_buffer(&b2);
     CBufMbufRef res;
 
-    q.get_by_offset(0,res);
-    EXPECT_EQ(res.m_offset,0);
-    EXPECT_EQ(res.get_mbuf_size(),2048);
-    EXPECT_EQ(res.need_indirect_mbuf(5000),true);
+    q.get_by_offset(0, res);
+    EXPECT_EQ(res.m_offset, 0);
+    EXPECT_EQ(res.get_mbuf_size(), 2048);
+    EXPECT_EQ(res.need_indirect_mbuf(5000), true);
 
-
-    q.get_by_offset(res.get_mbuf_size(),res);
-    EXPECT_EQ(res.m_offset,0);
-    EXPECT_EQ(res.get_mbuf_size(),2);
-    EXPECT_EQ(res.need_indirect_mbuf(2048),true);
+    q.get_by_offset(res.get_mbuf_size(), res);
+    EXPECT_EQ(res.m_offset, 0);
+    EXPECT_EQ(res.get_mbuf_size(), 2);
+    EXPECT_EQ(res.need_indirect_mbuf(2048), true);
     res.Dump(stdout);
 
-    q.get_by_offset(res.get_mbuf_size(),res);
+    q.get_by_offset(res.get_mbuf_size(), res);
     res.Dump(stdout);
 
-    q.get_by_offset(2050,res);
+    q.get_by_offset(2050, res);
     res.Dump(stdout);
 
+    uint32_t tx_residue = 0;
+    bool is_next = q.on_bh_tx_acked(100, tx_residue, true);
+    EXPECT_EQ(is_next, false);
+    EXPECT_EQ(tx_residue, 100);
 
-    uint32_t tx_residue=0;
-    bool is_next=q.on_bh_tx_acked(100,tx_residue,true);
-    EXPECT_EQ(is_next,false);
-    EXPECT_EQ(tx_residue,100);
+    is_next = q.on_bh_tx_acked(2048 - 100, tx_residue, true);
+    EXPECT_EQ(is_next, false);
+    EXPECT_EQ(tx_residue, 2048 - 100);
 
-    is_next=q.on_bh_tx_acked(2048-100,tx_residue,true);
-    EXPECT_EQ(is_next,false);
-    EXPECT_EQ(tx_residue,2048-100);
-
-    is_next=q.on_bh_tx_acked(2,tx_residue,true);
-    EXPECT_EQ(is_next,false);
-    EXPECT_EQ(tx_residue,2);
-
+    is_next = q.on_bh_tx_acked(2, tx_residue, true);
+    EXPECT_EQ(is_next, false);
+    EXPECT_EQ(tx_residue, 2);
 
     b1.Delete();
     b2.Delete();
 }
-
 
 TEST_F(gt_tcp, tst79) {
 
     CMbufBuffer b1;
 
-    utl_mbuf_buffer_create_and_fill(0,&b1,2048,2050,true);
+    utl_mbuf_buffer_create_and_fill(0, &b1, 2048, 2050, true);
 
-    CMbufBuffer  b2;
-    utl_mbuf_buffer_create_and_fill(0,&b2,2048,2050,true);
+    CMbufBuffer b2;
+    utl_mbuf_buffer_create_and_fill(0, &b2, 2048, 2050, true);
 
     b1.Dump(stdout);
 
@@ -2865,105 +2562,97 @@ TEST_F(gt_tcp, tst79) {
     q.add_buffer(&b2);
     CBufMbufRef res;
 
-    q.get_by_offset(0,res);
-    EXPECT_EQ(res.m_offset,0);
-    EXPECT_EQ(res.get_mbuf_size(),2048);
-    EXPECT_EQ(res.need_indirect_mbuf(5000),true);
+    q.get_by_offset(0, res);
+    EXPECT_EQ(res.m_offset, 0);
+    EXPECT_EQ(res.get_mbuf_size(), 2048);
+    EXPECT_EQ(res.need_indirect_mbuf(5000), true);
 
-
-    q.get_by_offset(res.get_mbuf_size(),res);
-    EXPECT_EQ(res.m_offset,0);
-    EXPECT_EQ(res.get_mbuf_size(),2);
-    EXPECT_EQ(res.need_indirect_mbuf(2048),true);
+    q.get_by_offset(res.get_mbuf_size(), res);
+    EXPECT_EQ(res.m_offset, 0);
+    EXPECT_EQ(res.get_mbuf_size(), 2);
+    EXPECT_EQ(res.need_indirect_mbuf(2048), true);
     res.Dump(stdout);
 
-    q.get_by_offset(res.get_mbuf_size(),res);
+    q.get_by_offset(res.get_mbuf_size(), res);
     res.Dump(stdout);
 
-    q.get_by_offset(2050,res);
+    q.get_by_offset(2050, res);
     res.Dump(stdout);
 
     q.subtract_bytes(2060); //<< move the packet to buffer
 
-    uint32_t tx_residue=0;
-    bool is_next=q.on_bh_tx_acked(2060,tx_residue,true);
-    EXPECT_EQ(is_next,false);
-    EXPECT_EQ(tx_residue,2040);
+    uint32_t tx_residue = 0;
+    bool is_next = q.on_bh_tx_acked(2060, tx_residue, true);
+    EXPECT_EQ(is_next, false);
+    EXPECT_EQ(tx_residue, 2040);
 
-    q.get_by_offset(10,res);
-    EXPECT_EQ(res.get_mbuf_size(),2028);
+    q.get_by_offset(10, res);
+    EXPECT_EQ(res.get_mbuf_size(), 2028);
     res.Dump(stdout);
 
-    is_next=q.on_bh_tx_acked(1500,tx_residue,false);
-    EXPECT_EQ(is_next,false);
-    EXPECT_EQ(tx_residue,0);
+    is_next = q.on_bh_tx_acked(1500, tx_residue, false);
+    EXPECT_EQ(is_next, false);
+    EXPECT_EQ(tx_residue, 0);
 
     b1.Delete();
     b2.Delete();
 }
 
-static uint32_t get_queue_size(CEmulTxQueue *q,uint32_t max_size){
-    uint32_t sum=0;
+static uint32_t get_queue_size(CEmulTxQueue *q, uint32_t max_size) {
+    uint32_t sum = 0;
     CBufMbufRef res;
-    uint32_t offset=0;
+    uint32_t offset = 0;
 
-    while (max_size>sum) {
-        q->get_by_offset(offset,res);
-        sum+=res.get_mbuf_size();
-        offset+=res.get_mbuf_size();
+    while (max_size > sum) {
+        q->get_by_offset(offset, res);
+        sum += res.get_mbuf_size();
+        offset += res.get_mbuf_size();
     }
-    return(sum);
+    return (sum);
 }
 
-
-static int test_tx_queue(int num_buffers,
-                         int block_size,
-                         int buffer_size,
-                         int step
-                         ){
+static int test_tx_queue(int num_buffers, int block_size, int buffer_size, int step) {
     int i;
-    std::vector<CMbufBuffer *>  qm;
+    std::vector<CMbufBuffer *> qm;
     CEmulTxQueue q;
 
-    for (i=0;i<num_buffers; i++) {
-        CMbufBuffer * p=new CMbufBuffer();
-        utl_mbuf_buffer_create_and_fill(0,p,block_size,buffer_size,true);
+    for (i = 0; i < num_buffers; i++) {
+        CMbufBuffer *p = new CMbufBuffer();
+        utl_mbuf_buffer_create_and_fill(0, p, block_size, buffer_size, true);
         qm.push_back(p);
         q.add_buffer(p);
     }
 
-    uint32_t total= buffer_size*num_buffers;
-    uint32_t tx_residue=0;
+    uint32_t total = buffer_size * num_buffers;
+    uint32_t tx_residue = 0;
 
     while (total) {
-        int qsize=get_queue_size(&q,total);
-        EXPECT_EQ(qsize,total);
+        int qsize = get_queue_size(&q, total);
+        EXPECT_EQ(qsize, total);
 
-        (void)q.on_bh_tx_acked(step,tx_residue,true);
-        total-=step;
-        if (step>total) {
-            step=total;
+        (void)q.on_bh_tx_acked(step, tx_residue, true);
+        total -= step;
+        if (step > total) {
+            step = total;
         }
     }
 
-    for (i=0;i<num_buffers; i++) {
+    for (i = 0; i < num_buffers; i++) {
         qm[i]->Delete();
         delete qm[i];
     }
     qm.clear();
-    return(0);
+    return (0);
 }
 
 TEST_F(gt_tcp, tst80) {
 
-    //test_tx_queue(2,2048,2050,1);
+    // test_tx_queue(2,2048,2050,1);
     int i;
-    for (i=1; i<2048; i++) {
-        test_tx_queue(2,2048,2050+i,i);
+    for (i = 1; i < 2048; i++) {
+        test_tx_queue(2, 2048, 2050 + i, i);
     }
 }
-
-
 
 #if 0
 
@@ -2997,7 +2686,6 @@ TEST_F(gt_tcp, tst101) {
     //EXPECT_EQ(res,true);
     lpastf->free_instance();
 }
-
 
 #include "astf/astf_json_validator.h"
 
@@ -3057,11 +2745,7 @@ TEST_F(gt_tcp, tst202) {
     validator.Delete();
 }
 
-
 #endif
-
-
-
 
 #if 0
 class CExampleNode;

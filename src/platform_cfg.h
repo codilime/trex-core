@@ -30,39 +30,37 @@ limitations under the License.
 #include "tw_cfg.h"
 #include "trex_defs.h"
 
-
-#define CONST_NB_MBUF_2_10G  (16380/2)
+#define CONST_NB_MBUF_2_10G (16380 / 2)
 
 #define TIMESYNC_PERIOD_DEFAULT 60
 
-typedef enum {         MBUF_64        , // per dual port, per NUMA
+typedef enum {
+    MBUF_64, // per dual port, per NUMA
 
-                       MBUF_128       ,
-                       MBUF_256       ,
-                       MBUF_512       ,
-                       MBUF_1024      ,
-                       MBUF_2048      ,
-                       MBUF_4096      ,
-                       MBUF_9k        ,
+    MBUF_128,
+    MBUF_256,
+    MBUF_512,
+    MBUF_1024,
+    MBUF_2048,
+    MBUF_4096,
+    MBUF_9k,
 
+    // per NUMA
+    TRAFFIC_MBUF_64,
+    TRAFFIC_MBUF_128,
+    TRAFFIC_MBUF_256,
+    TRAFFIC_MBUF_512,
+    TRAFFIC_MBUF_1024,
+    TRAFFIC_MBUF_2048,
+    TRAFFIC_MBUF_4096,
+    TRAFFIC_MBUF_9k,
 
-                        // per NUMA
-                       TRAFFIC_MBUF_64       ,
-                       TRAFFIC_MBUF_128      ,
-                       TRAFFIC_MBUF_256      ,
-                       TRAFFIC_MBUF_512      ,
-                       TRAFFIC_MBUF_1024     ,
-                       TRAFFIC_MBUF_2048     ,
-                       TRAFFIC_MBUF_4096     ,
-                       TRAFFIC_MBUF_9k       ,
+    MBUF_DP_FLOWS,
+    MBUF_GLOBAL_FLOWS,
+    MBUF_ELM_SIZE
+} mbuf_sizes_t;
 
-
-                       MBUF_DP_FLOWS        ,
-                       MBUF_GLOBAL_FLOWS    ,
-                       MBUF_ELM_SIZE
-              } mbuf_sizes_t;
-
-const std::string * get_mbuf_names(void);
+const std::string *get_mbuf_names(void);
 
 /*
 #- port_limit      : 2         # this option can limit the number of port of the platform
@@ -98,11 +96,9 @@ const std::string * get_mbuf_names(void);
 
 */
 
-
-
 struct CMacYamlInfo {
-    std::vector     <uint8_t> m_dest_base;
-    std::vector     <uint8_t> m_src_base;
+    std::vector<uint8_t> m_dest_base;
+    std::vector<uint8_t> m_src_base;
     uint32_t m_def_gw;
     uint32_t m_ip;
     uint32_t m_mask;
@@ -116,12 +112,12 @@ struct CMacYamlInfo {
     uint32_t get_vlan();
     uint32_t get_mask();
 
-    void dump_mac_vector( std::vector<uint8_t> & v,FILE *fd){
+    void dump_mac_vector(std::vector<uint8_t> &v, FILE *fd) {
         int i;
-        for (i=0; i<5; i++) {
-            fprintf(fd,"%02x:",v[i]);
+        for (i = 0; i < 5; i++) {
+            fprintf(fd, "%02x:", v[i]);
         }
-        fprintf(fd,"%02x\n",v[5]);
+        fprintf(fd, "%02x\n", v[5]);
     }
 };
 
@@ -138,53 +134,43 @@ struct CMacYamlInfo {
 */
 
 struct CPlatformDualIfYamlInfo {
-public:
-    uint32_t              m_socket;
-    std::vector <uint8_t> m_threads;
-public:
+  public:
+    uint32_t m_socket;
+    std::vector<uint8_t> m_threads;
+
+  public:
     void Dump(FILE *fd);
 };
 
 struct CPlatformCoresYamlInfo {
-public:
+  public:
+    CPlatformCoresYamlInfo() { m_is_exists = false; }
+    bool m_is_exists;
+    uint32_t m_master_thread;
+    uint32_t m_rx_thread;
+    std::vector<CPlatformDualIfYamlInfo> m_dual_if;
 
-    CPlatformCoresYamlInfo(){
-        m_is_exists=false;
-    }
-    bool             m_is_exists;
-    uint32_t         m_master_thread;
-    uint32_t         m_rx_thread;
-    std::vector <CPlatformDualIfYamlInfo> m_dual_if;
-public:
+  public:
     void Dump(FILE *fd);
 };
 
-
-
 struct CPlatformMemoryYamlInfo {
 
+  public:
+    CPlatformMemoryYamlInfo() { reset(); }
+    uint32_t m_mbuf[MBUF_ELM_SIZE]; // relative to traffic norm to 2x10G ports
 
-public:
-
-    CPlatformMemoryYamlInfo(){
-        reset();
-    }
-    uint32_t         m_mbuf[MBUF_ELM_SIZE]; // relative to traffic norm to 2x10G ports
-
-public:
+  public:
     void Dump(FILE *fd);
     void reset();
     void limit_lowend();
 };
 
-
 struct CPlatformYamlInfo {
-public:
-    CPlatformYamlInfo(){
-        reset();
-    }
+  public:
+    CPlatformYamlInfo() { reset(); }
 
-    void reset(){
+    void reset() {
 
         m_if_mask.clear();
         m_mac_info.clear();
@@ -193,88 +179,83 @@ public:
         m_if_list_vdevs.clear();
 
         m_info_exist = false;
-        m_port_limit_exist=false;
-        m_port_limit=0xffffffff;
+        m_port_limit_exist = false;
+        m_port_limit = 0xffffffff;
 
-        m_if_mask_exist=false;
+        m_if_mask_exist = false;
 
-        m_enable_zmq_pub_exist=false;
-        m_enable_zmq_pub=true;
-        m_zmq_pub_port=4500;
+        m_enable_zmq_pub_exist = false;
+        m_enable_zmq_pub = true;
+        m_zmq_pub_port = 4500;
         m_zmq_rpc_port = 4501;
         m_is_lowend = false;
 
+        m_telnet_exist = false;
+        m_telnet_port = 4502;
 
-        m_telnet_exist=false;
-        m_telnet_port=4502  ;
-
-        m_mac_info_exist=false;
+        m_mac_info_exist = false;
         m_port_bandwidth_gb = 10;
         m_memory.reset();
-        m_prefix="";
-        m_limit_memory=""  ;
-        m_thread_per_dual_if=1;
+        m_prefix = "";
+        m_limit_memory = "";
+        m_thread_per_dual_if = 1;
         m_tw.reset();
-        m_rx_desc =0;
-        m_tx_desc =0;
+        m_rx_desc = 0;
+        m_tx_desc = 0;
 
         m_latency_measurement = "";
         m_timesync_method = "";
         m_timesync_period = TIMESYNC_PERIOD_DEFAULT;
     }
 
-    bool            m_info_exist; /* file exist ?*/
+    bool m_info_exist; /* file exist ?*/
 
-    bool            m_port_limit_exist;
-    uint32_t        m_port_limit;
+    bool m_port_limit_exist;
+    uint32_t m_port_limit;
 
+    bool m_if_mask_exist;
+    std::vector<std::string> m_if_mask;
 
-    bool                          m_if_mask_exist;
-    std::vector <std::string>     m_if_mask;
+    std::vector<std::string> m_if_list;
 
-    std::vector <std::string>     m_if_list;
+    std::vector<std::string> m_ext_dpdk;      /* extended DPDK options*/
+    std::vector<std::string> m_if_list_vdevs; /* look for explicit vdevs*/
 
-    std::vector<std::string>      m_ext_dpdk; /* extended DPDK options*/
-    std::vector<std::string>      m_if_list_vdevs; /* look for explicit vdevs*/
+    std::string m_prefix;
+    std::string m_limit_memory;
+    uint32_t m_thread_per_dual_if;
 
-    std::string                   m_prefix;
-    std::string                   m_limit_memory;
-    uint32_t                      m_thread_per_dual_if;
+    uint32_t m_port_bandwidth_gb;
 
-    uint32_t                      m_port_bandwidth_gb;
+    bool m_enable_zmq_pub_exist;
+    bool m_enable_zmq_pub;
+    uint16_t m_zmq_pub_port;
 
-    bool                          m_enable_zmq_pub_exist;
-    bool                          m_enable_zmq_pub;
-    uint16_t                      m_zmq_pub_port;
+    bool m_telnet_exist;
+    uint16_t m_telnet_port;
 
+    uint16_t m_rx_desc;
+    uint16_t m_tx_desc;
 
-    bool                          m_telnet_exist;
-    uint16_t                      m_telnet_port;
+    uint16_t m_zmq_rpc_port;
 
-    uint16_t                      m_rx_desc;
-    uint16_t                      m_tx_desc;
+    bool m_is_lowend;
+    std::string m_stack_type;
 
-    uint16_t                      m_zmq_rpc_port;
+    bool m_mac_info_exist;
+    std::vector<CMacYamlInfo> m_mac_info;
+    CPlatformMemoryYamlInfo m_memory;
+    CPlatformCoresYamlInfo m_platform;
+    CTimerWheelYamlInfo m_tw;
 
-    bool                          m_is_lowend;
-    std::string                   m_stack_type;
+    std::string m_latency_measurement;
+    std::string m_timesync_method;
+    uint32_t m_timesync_period;
 
-    bool                       m_mac_info_exist;
-    std::vector <CMacYamlInfo> m_mac_info;
-    CPlatformMemoryYamlInfo     m_memory;
-    CPlatformCoresYamlInfo      m_platform;
-    CTimerWheelYamlInfo         m_tw;
-
-    std::string                 m_latency_measurement;
-    std::string                 m_timesync_method;
-    uint32_t                    m_timesync_period;
-
-public:
+  public:
     std::string get_use_if_comma_seperated();
     void Dump(FILE *fd);
     int load_from_yaml_file(std::string file_name);
 };
-
-
 
 #endif

@@ -16,13 +16,9 @@ limitations under the License.
 
 #include "UdpHeader.h"
 
-
-void UDPHeader::dump(FILE *fd)
-{
+void UDPHeader::dump(FILE *fd) {
     fprintf(fd, "\nUDPHeader");
-    fprintf(fd, "\nSourcePort 0x%.4X, DestPort 0x%.4X",
-            getSourcePort(), getDestPort());
-    fprintf(fd, "\nLength : %d, Checksum : 0x%.4X",
-            getLength(), getChecksum());
-	fprintf(fd, "\n");
+    fprintf(fd, "\nSourcePort 0x%.4X, DestPort 0x%.4X", getSourcePort(), getDestPort());
+    fprintf(fd, "\nLength : %d, Checksum : 0x%.4X", getLength(), getChecksum());
+    fprintf(fd, "\n");
 }

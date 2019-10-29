@@ -34,7 +34,6 @@ class TrexPktBuffer;
 class TrexCpToDpMsgBase;
 class TrexCpToRxMsgBase;
 
-
 /**
  * describes a TRex (interactive) port
  *
@@ -43,21 +42,20 @@ class TrexPort {
     friend TrexDpPortEvents;
     friend TrexDpPortEvent;
 
-public:
-
+  public:
     /**
      * port state
      */
     enum port_state_e {
-        PORT_STATE_DOWN         = 1 << 0,
-        PORT_STATE_IDLE         = 1 << 1,
-        PORT_STATE_STREAMS      = 1 << 2,
-        PORT_STATE_TX           = 1 << 3,
-        PORT_STATE_PAUSE        = 1 << 4,
-        PORT_STATE_PCAP_TX      = 1 << 5,
-        PORT_STATE_ASTF_LOADED  = 1 << 6,
-        PORT_STATE_ASTF_PARSE   = 1 << 7,
-        PORT_STATE_ASTF_BUILD   = 1 << 8,
+        PORT_STATE_DOWN = 1 << 0,
+        PORT_STATE_IDLE = 1 << 1,
+        PORT_STATE_STREAMS = 1 << 2,
+        PORT_STATE_TX = 1 << 3,
+        PORT_STATE_PAUSE = 1 << 4,
+        PORT_STATE_PCAP_TX = 1 << 5,
+        PORT_STATE_ASTF_LOADED = 1 << 6,
+        PORT_STATE_ASTF_PARSE = 1 << 7,
+        PORT_STATE_ASTF_BUILD = 1 << 8,
         PORT_STATE_ASTF_CLEANUP = 1 << 9,
     };
 
@@ -76,22 +74,14 @@ public:
      */
     void release(void);
 
+    uint8_t get_port_id() { return m_port_id; }
 
-    uint8_t get_port_id() {
-        return m_port_id;
-    }
+    TrexDpPortEvents m_dp_events;
 
+    TrexDpPortEvents &get_dp_events() { return m_dp_events; }
 
-    TrexDpPortEvents       m_dp_events;
-
-    TrexDpPortEvents & get_dp_events() {
-        return m_dp_events;
-    }
-
-
-    TrexDpPortEvents & get_dp_events(uint32_t profile_id)
-    {
-        (void) profile_id;
+    TrexDpPortEvents &get_dp_events(uint32_t profile_id) {
+        (void)profile_id;
         return m_dp_events;
     }
 
@@ -99,10 +89,7 @@ public:
      * returns the number of DP cores linked to this port
      *
      */
-    uint8_t get_dp_core_count() {
-        return m_cores_id_list.size();
-    }
-
+    uint8_t get_dp_core_count() { return m_cores_id_list.size(); }
 
     /**
      * get port speed in bits per second
@@ -110,11 +97,7 @@ public:
      */
     uint64_t get_port_speed_bps() const;
 
-
-    TrexOwner & get_owner() {
-        return m_owner;
-    }
-
+    TrexOwner &get_owner() { return m_owner; }
 
     /**
      * start RX queueing of packets
@@ -132,7 +115,6 @@ public:
      */
     void stop_rx_queue();
 
-
     /**
      * set the port to state of proxyifying traffic between STF TRex and WLC
      *
@@ -140,14 +122,14 @@ public:
      *      pair_port_id  - pair port to pass the traffic to
      *      is_wireless_side - is port connected to STF TRex
      */
-    void start_capwap_proxy(uint8_t pair_port_id, bool is_wireless_side, const Json::Value &capwap_map, uint32_t wlc_ip);
+    void start_capwap_proxy(uint8_t pair_port_id, bool is_wireless_side, const Json::Value &capwap_map,
+                            uint32_t wlc_ip);
 
     /**
      * stop proxyifying traffic between STF TRex and WLC
      *
      */
     void stop_capwap_proxy();
-
 
     /**
      * fetch the RX queue packets from the queue
@@ -164,7 +146,7 @@ public:
     bool has_fast_stack(void);
 
     // get name of stack to print in error message
-    std::string& get_stack_name(void);
+    std::string &get_stack_name(void);
 
     // run pending tasks of stack, need to poll results with ticket
     uint64_t run_rx_cfg_tasks_async(bool rpc);
@@ -203,14 +185,13 @@ public:
      */
     void conf_ipv6_async(bool enabled, const std::string &src_ipv6);
 
-
     /* move json batch as a command to rx. marshal it to string */
     void set_name_space_batch_async(const std::string &json_cmds);
 
     /**
      * Enable capture port for this port
      */
-    bool start_capture_port(const std::string&  filter, const std::string& endpoint, std::string &err);
+    bool start_capture_port(const std::string &filter, const std::string &endpoint, std::string &err);
 
     /**
      * Disable capture port for this port
@@ -220,7 +201,7 @@ public:
     /**
      * Change BPF filter for the capture port
      */
-    void set_capture_port_bpf_filter(const std::string& filter);
+    void set_capture_port_bpf_filter(const std::string &filter);
 
     /**
      * configure VLAN
@@ -254,29 +235,24 @@ public:
     /**
      * return the port attribute object (speed, prom etc.)
      */
-    TRexPortAttr *getPortAttrObj() {
-        return get_platform_api().getPortAttrObj(m_port_id);
-    }
+    TRexPortAttr *getPortAttrObj() { return get_platform_api().getPortAttrObj(m_port_id); }
 
     /**
      * simply a const version
      */
-    const TRexPortAttr *getPortAttrObj() const {
-        return get_platform_api().getPortAttrObj(m_port_id);
-    }
+    const TRexPortAttr *getPortAttrObj() const { return get_platform_api().getPortAttrObj(m_port_id); }
 
     /**
      * get port source MAC
      *
      */
-    const uint8_t * get_src_mac() const;
+    const uint8_t *get_src_mac() const;
 
     /**
      * get port dst MAC
      *
      */
-    const uint8_t * get_dst_mac() const;
-
+    const uint8_t *get_dst_mac() const;
 
     /**
      * is port active
@@ -284,14 +260,11 @@ public:
      */
     bool is_active() const;
 
-
-      /**
+    /**
      * get the port state
      *
      */
-    port_state_e get_state() const {
-        return m_port_state;
-    }
+    port_state_e get_state() const { return m_port_state; }
 
     /**
      * port state as string
@@ -302,13 +275,9 @@ public:
     /**
      * RX caps
      */
-    uint16_t get_rx_caps() const {
-        return m_rx_caps;
-    }
+    uint16_t get_rx_caps() const { return m_rx_caps; }
 
-    const std::vector<uint8_t> get_core_id_list () {
-        return m_cores_id_list;
-    }
+    const std::vector<uint8_t> get_core_id_list() { return m_cores_id_list; }
 
     /**
      * encode stats of the port
@@ -316,15 +285,13 @@ public:
      */
     void encode_stats(Json::Value &port);
 
-
     /**
      * implemented by dervied
      *
      */
     virtual bool is_service_mode_on() const = 0;
 
-protected:
-
+  protected:
     /**
      * verify the state of the port for a command
      *
@@ -335,13 +302,11 @@ protected:
      */
     bool verify_state(int state, const char *cmd_name, bool should_throw = true) const;
 
-
     /**
      * change the state
      * to a new state
      */
     virtual void change_state(port_state_e new_state);
-
 
     /**
      * return true if specific core is active
@@ -379,33 +344,28 @@ protected:
     void send_message_to_rx(TrexCpToRxMsgBase *msg);
 
     // run RX core config tasks with given ticket ID
-    void run_rx_cfg_tasks_internal_async(uint64_t ticket_id,bool rpc);
-
-
+    void run_rx_cfg_tasks_internal_async(uint64_t ticket_id, bool rpc);
 
     /* port id */
-    uint8_t                m_port_id;
+    uint8_t m_port_id;
 
     /* port state */
-    port_state_e           m_port_state;
+    port_state_e m_port_state;
 
     /* holds the DP cores associated with this port */
-    std::vector<uint8_t>   m_cores_id_list;
+    std::vector<uint8_t> m_cores_id_list;
 
-    int                    m_pending_async_stop_event;
+    int m_pending_async_stop_event;
 
     /* owner information */
-    TrexOwner              m_owner;
-
+    TrexOwner m_owner;
 
     /* caching some RX info */
-    uint16_t               m_rx_caps;
-    uint16_t               m_rx_count_num;
-    uint16_t               m_ip_id_base;
-    uint16_t               m_stack_caps;
-    bool                   m_synced_stack_caps;
+    uint16_t m_rx_caps;
+    uint16_t m_rx_count_num;
+    uint16_t m_ip_id_base;
+    uint16_t m_stack_caps;
+    bool m_synced_stack_caps;
 };
 
-
 #endif /* __TREX_PORT_H__ */
-

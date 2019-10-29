@@ -26,47 +26,38 @@ limitations under the License.
 #include "utl_yaml.h"
 #include "inet_pton.h"
 
-
-bool utl_yaml_read_ip_addr(const YAML::Node& node,
-                           const std::string &name,
-                           uint32_t & val){
+bool utl_yaml_read_ip_addr(const YAML::Node &node, const std::string &name, uint32_t &val) {
     std::string tmp;
     uint32_t ip;
-    bool res=false;
-    if ( node.FindValue(name) ) {
-        node[name] >> tmp ;
-        if ( my_inet_pton4((char *)tmp.c_str(), (unsigned char *)&ip) ){
-            val=PKT_NTOHL(ip);
-            res=true;
-        }else{
-            printf(" Error: non valid ip %s \n",(char *)tmp.c_str());
+    bool res = false;
+    if (node.FindValue(name)) {
+        node[name] >> tmp;
+        if (my_inet_pton4((char *)tmp.c_str(), (unsigned char *)&ip)) {
+            val = PKT_NTOHL(ip);
+            res = true;
+        } else {
+            printf(" Error: non valid ip %s \n", (char *)tmp.c_str());
             exit(1);
         }
     }
     return (res);
 }
 
-bool utl_yaml_read_uint32(const YAML::Node& node,
-                          const std::string &name,
-                          uint32_t & val){
-    bool res=false;
-    if ( node.FindValue(name) ) {
-        node[name] >> val ;
-        res=true;
+bool utl_yaml_read_uint32(const YAML::Node &node, const std::string &name, uint32_t &val) {
+    bool res = false;
+    if (node.FindValue(name)) {
+        node[name] >> val;
+        res = true;
     }
     return (res);
 }
 
-bool utl_yaml_read_uint16(const YAML::Node& node,
-                          const std::string &name,
-                          uint16_t & val, uint16_t min, uint16_t max) {
+bool utl_yaml_read_uint16(const YAML::Node &node, const std::string &name, uint16_t &val, uint16_t min, uint16_t max) {
     bool res = utl_yaml_read_uint16(node, name, val);
 
     if (res) {
         if ((val < min) || (val > max)) {
-            fprintf(stderr
-                    , "Parsing error: value of field '%s' must be between %d and %d\n"
-                    , name.c_str(), min, max);
+            fprintf(stderr, "Parsing error: value of field '%s' must be between %d and %d\n", name.c_str(), min, max);
             exit(1);
         }
     }
@@ -74,31 +65,27 @@ bool utl_yaml_read_uint16(const YAML::Node& node,
     return res;
 }
 
-bool utl_yaml_read_uint16(const YAML::Node& node,
-                          const std::string &name,
-                          uint16_t & val){
+bool utl_yaml_read_uint16(const YAML::Node &node, const std::string &name, uint16_t &val) {
     uint32_t val_tmp;
-    bool res=false;
-    if ( node.FindValue(name) ) {
-        node[name] >> val_tmp ;
+    bool res = false;
+    if (node.FindValue(name)) {
+        node[name] >> val_tmp;
         val = (uint16_t)val_tmp;
-        res=true;
+        res = true;
     }
 
     return (res);
 }
 
-
 /************************
  * YAML Parser Wrapper
  *
  ***********************/
-void
-YAMLParserWrapper::load(YAML::Node &root) {
+void YAMLParserWrapper::load(YAML::Node &root) {
     std::stringstream ss;
 
     /* first check file exists */
-    if (!utl_is_file_exists(m_filename)){
+    if (!utl_is_file_exists(m_filename)) {
         ss << "file '" << m_filename << "' does not exists";
         throw std::runtime_error(ss.str());
     }
@@ -114,8 +101,7 @@ YAMLParserWrapper::load(YAML::Node &root) {
     }
 }
 
-bool
-YAMLParserWrapper::parse_bool(const YAML::Node &node, const std::string &name, bool def) {
+bool YAMLParserWrapper::parse_bool(const YAML::Node &node, const std::string &name, bool def) {
     if (!node.FindValue(name)) {
         return def;
     }
@@ -123,8 +109,7 @@ YAMLParserWrapper::parse_bool(const YAML::Node &node, const std::string &name, b
     return parse_bool(node, name);
 }
 
-bool
-YAMLParserWrapper::parse_bool(const YAML::Node &node, const std::string &name) {
+bool YAMLParserWrapper::parse_bool(const YAML::Node &node, const std::string &name) {
     try {
         bool val;
         node[name] >> val;
@@ -140,8 +125,7 @@ YAMLParserWrapper::parse_bool(const YAML::Node &node, const std::string &name) {
     assert(0);
 }
 
-const YAML::Node &
-YAMLParserWrapper::parse_list(const YAML::Node &node, const std::string &name) {
+const YAML::Node &YAMLParserWrapper::parse_list(const YAML::Node &node, const std::string &name) {
 
     try {
         const YAML::Node &val = node[name];
@@ -160,8 +144,7 @@ YAMLParserWrapper::parse_list(const YAML::Node &node, const std::string &name) {
     assert(0);
 }
 
-const YAML::Node &
-YAMLParserWrapper::parse_map(const YAML::Node &node, const std::string &name) {
+const YAML::Node &YAMLParserWrapper::parse_map(const YAML::Node &node, const std::string &name) {
 
     try {
         const YAML::Node &val = node[name];
@@ -180,11 +163,10 @@ YAMLParserWrapper::parse_map(const YAML::Node &node, const std::string &name) {
     assert(0);
 }
 
-uint32_t
-YAMLParserWrapper::parse_ip(const YAML::Node &node, const std::string &name) {
+uint32_t YAMLParserWrapper::parse_ip(const YAML::Node &node, const std::string &name) {
     try {
         std::string ip_str;
-        uint32_t    ip_num;
+        uint32_t ip_num;
 
         node[name] >> ip_str;
         int rc = my_inet_pton4((char *)ip_str.c_str(), (unsigned char *)&ip_num);
@@ -204,8 +186,7 @@ YAMLParserWrapper::parse_ip(const YAML::Node &node, const std::string &name) {
     assert(0);
 }
 
-void
-YAMLParserWrapper::parse_ipv6(const YAML::Node &node, const std::string &name, unsigned char *ip_num) {
+void YAMLParserWrapper::parse_ipv6(const YAML::Node &node, const std::string &name, unsigned char *ip_num) {
     try {
         std::string ip_str;
 
@@ -217,7 +198,7 @@ YAMLParserWrapper::parse_ipv6(const YAML::Node &node, const std::string &name, u
 
         // we want host order
         for (int i = 0; i < 8; i++) {
-            ((uint16_t *) ip_num)[i] = PKT_NTOHS(((uint16_t *) ip_num)[i]);
+            ((uint16_t *)ip_num)[i] = PKT_NTOHS(((uint16_t *)ip_num)[i]);
         }
         return;
 
@@ -231,8 +212,7 @@ YAMLParserWrapper::parse_ipv6(const YAML::Node &node, const std::string &name, u
     assert(0);
 }
 
-uint64_t
-YAMLParserWrapper::parse_mac_addr(const YAML::Node &node, const std::string &name, uint64_t def) {
+uint64_t YAMLParserWrapper::parse_mac_addr(const YAML::Node &node, const std::string &name, uint64_t def) {
     if (!node.FindValue(name)) {
         return def;
     }
@@ -240,11 +220,10 @@ YAMLParserWrapper::parse_mac_addr(const YAML::Node &node, const std::string &nam
     return parse_mac_addr(node, name);
 }
 
-uint64_t
-YAMLParserWrapper::parse_mac_addr(const YAML::Node &node, const std::string &name) {
+uint64_t YAMLParserWrapper::parse_mac_addr(const YAML::Node &node, const std::string &name) {
 
     std::string mac_str;
-    uint64_t    mac_num;
+    uint64_t mac_num;
 
     try {
 
@@ -263,11 +242,11 @@ YAMLParserWrapper::parse_mac_addr(const YAML::Node &node, const std::string &nam
     }
 
     assert(0);
-    return(0);
+    return (0);
 }
 
-uint64_t
-YAMLParserWrapper::parse_uint(const YAML::Node &node, const std::string &name, uint64_t low, uint64_t high, uint64_t def) {
+uint64_t YAMLParserWrapper::parse_uint(const YAML::Node &node, const std::string &name, uint64_t low, uint64_t high,
+                                       uint64_t def) {
     if (!node.FindValue(name)) {
         return def;
     }
@@ -275,15 +254,14 @@ YAMLParserWrapper::parse_uint(const YAML::Node &node, const std::string &name, u
     return parse_uint(node, name, low, high);
 }
 
-uint64_t
-YAMLParserWrapper::parse_uint(const YAML::Node &node, const std::string &name, uint64_t low, uint64_t high) {
+uint64_t YAMLParserWrapper::parse_uint(const YAML::Node &node, const std::string &name, uint64_t low, uint64_t high) {
 
     try {
 
         uint64_t val;
         node[name] >> val;
 
-        if ( (val < low) || (val > high) ) {
+        if ((val < low) || (val > high)) {
             std::stringstream ss;
             ss << "valid range for field '" << name << "' is: [" << low << " - " << high << "]";
             parse_err(ss.str(), node[name]);
@@ -301,8 +279,7 @@ YAMLParserWrapper::parse_uint(const YAML::Node &node, const std::string &name, u
     assert(0);
 }
 
-void
-YAMLParserWrapper::parse_err(const std::string &err, const YAML::Node &node) const {
+void YAMLParserWrapper::parse_err(const std::string &err, const YAML::Node &node) const {
     std::stringstream ss;
 
     ss << "'" << m_filename << "' - YAML parsing error at line " << node.GetMark().line << ": ";
@@ -311,8 +288,7 @@ YAMLParserWrapper::parse_err(const std::string &err, const YAML::Node &node) con
     throw std::runtime_error(ss.str());
 }
 
-void
-YAMLParserWrapper::parse_err(const std::string &err) const {
+void YAMLParserWrapper::parse_err(const std::string &err) const {
     std::stringstream ss;
 
     ss << "'" << m_filename << "' - YAML parsing error: " << err;

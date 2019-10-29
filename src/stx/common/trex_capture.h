@@ -29,32 +29,23 @@ limitations under the License.
 #include "trex_capture_rc.h"
 #include "bpf_api.h"
 
-
 /**
  * a class to handle BPF filter
  *
  */
 class BPFFilter {
-public:
-
+  public:
     /* CTOR */
-    BPFFilter() {
-        m_bpf_h = BPF_H_NONE;
-    }
-
+    BPFFilter() { m_bpf_h = BPF_H_NONE; }
 
     /* DTOR */
-    ~BPFFilter() {
-        release();
-    }
-
+    ~BPFFilter() { release(); }
 
     /* Copy CTOR - do not copy object, only pattern */
     BPFFilter(const BPFFilter &other) {
         m_bpf_filter = other.m_bpf_filter;
-        m_bpf_h      = BPF_H_NONE;
+        m_bpf_h = BPF_H_NONE;
     }
-
 
     /**
      * relase compiled object
@@ -63,11 +54,11 @@ public:
     void release() {
         if (m_bpf_h != BPF_H_NONE) {
 
-            #ifdef TREX_USE_BPFJIT
-                bpfjit_destroy(m_bpf_h);
-            #else
-                bpf_destroy(m_bpf_h);
-            #endif
+#ifdef TREX_USE_BPFJIT
+            bpfjit_destroy(m_bpf_h);
+#else
+            bpf_destroy(m_bpf_h);
+#endif
 
             m_bpf_h = BPF_H_NONE;
         }
@@ -82,18 +73,14 @@ public:
         m_bpf_filter = bpf_filter;
     }
 
-
-     /**
+    /**
      * returns the pattern asso
      *
      * @author imarom (7/13/2017)
      *
      * @return const std::string&
      */
-    const std::string & get_filter() const {
-        return m_bpf_filter;
-    }
-
+    const std::string &get_filter() const { return m_bpf_filter; }
 
     /**
      * compile the capture BPF filter
@@ -102,22 +89,19 @@ public:
         /* cleanup if recompiled */
         release();
 
-        /* JIT or regular */
-        #ifdef TREX_USE_BPFJIT
-            m_bpf_h = bpfjit_compile(m_bpf_filter.c_str());
-        #else
-            m_bpf_h = bpf_compile(m_bpf_filter.c_str());
-        #endif
-
+/* JIT or regular */
+#ifdef TREX_USE_BPFJIT
+        m_bpf_h = bpfjit_compile(m_bpf_filter.c_str());
+#else
+        m_bpf_h = bpf_compile(m_bpf_filter.c_str());
+#endif
 
         /* should never fail - caller should verify */
         assert(m_bpf_h);
     }
 
-
-
     /* assignment operator */
-    BPFFilter& operator=(const BPFFilter &other) {
+    BPFFilter &operator=(const BPFFilter &other) {
 
         release();
         m_bpf_filter = other.m_bpf_filter;
@@ -125,15 +109,14 @@ public:
         return *this;
     }
 
-
     /**
      * combine BPF filters
      *
      */
-    BPFFilter& operator +=(const BPFFilter &other) {
+    BPFFilter &operator+=(const BPFFilter &other) {
 
         /* if any filter is empty the result is an empty filter (OR operator) */
-        if ( (m_bpf_filter == "") || (other.m_bpf_filter == "") ) {
+        if ((m_bpf_filter == "") || (other.m_bpf_filter == "")) {
             /* match everything */
             set_filter("");
         } else {
@@ -148,24 +131,22 @@ public:
         assert(m_bpf_h);
 
         const char *buffer = rte_pktmbuf_mtod(m, char *);
-        uint32_t len       = rte_pktmbuf_pkt_len(m);
+        uint32_t len = rte_pktmbuf_pkt_len(m);
 
-        #ifdef TREX_USE_BPFJIT
-            int rc = bpfjit_run(m_bpf_h, buffer, len);
-        #else
-            int rc = bpf_run(m_bpf_h, buffer, len);
-        #endif
+#ifdef TREX_USE_BPFJIT
+        int rc = bpfjit_run(m_bpf_h, buffer, len);
+#else
+        int rc = bpf_run(m_bpf_h, buffer, len);
+#endif
 
         return (rc != 0);
     }
 
-private:
+  private:
     /* BPF pattern and a BPF compiled object handler */
-    std::string  m_bpf_filter;
-    bpf_h        m_bpf_h;
-
+    std::string m_bpf_filter;
+    bpf_h m_bpf_h;
 };
-
 
 /**************************************
  * Capture Filter
@@ -173,20 +154,19 @@ private:
  * specify which ports to capture and if TX/RX or both
  *************************************/
 class CaptureFilter {
-public:
-
+  public:
     /* CTOR */
     CaptureFilter() {
-        m_tx_active  = 0;
-        m_rx_active  = 0;
+        m_tx_active = 0;
+        m_rx_active = 0;
     }
 
     /* Copy CTOR */
     CaptureFilter(const CaptureFilter &other) {
         /* copy those fields */
-        m_tx_active   = other.m_tx_active;
-        m_rx_active   = other.m_rx_active;
-        m_bpf         = other.m_bpf;
+        m_tx_active = other.m_tx_active;
+        m_rx_active = other.m_rx_active;
+        m_bpf = other.m_bpf;
     }
 
     /**
@@ -194,30 +174,22 @@ public:
      *
      * by default, match all
      */
-    void set_bpf_filter(const std::string &bpf_filter) {
-        m_bpf.set_filter(bpf_filter);
-    }
+    void set_bpf_filter(const std::string &bpf_filter) { m_bpf.set_filter(bpf_filter); }
 
     /**
      * compile the capture BPF filter
      */
-    void compile() {
-        m_bpf.compile();
-    }
+    void compile() { m_bpf.compile(); }
 
     /**
      * add a port to the active TX port list
      */
-    void add_tx(uint8_t port_id) {
-        m_tx_active |= (1LL << port_id);
-    }
+    void add_tx(uint8_t port_id) { m_tx_active |= (1LL << port_id); }
 
     /**
      * add a port to the active RX port list
      */
-    void add_rx(uint8_t port_id) {
-        m_rx_active |= (1LL << port_id);
-    }
+    void add_rx(uint8_t port_id) { m_rx_active |= (1LL << port_id); }
 
     /**
      * add a port to both directions
@@ -249,9 +221,7 @@ public:
     /**
      * return true if 'port_id' is being monitored at all
      */
-    bool in_any(uint8_t port_id) const {
-        return ( in_tx(port_id) || in_rx(port_id) );
-    }
+    bool in_any(uint8_t port_id) const { return (in_tx(port_id) || in_rx(port_id)); }
 
     /**
      * match a packet against the filter
@@ -269,7 +239,7 @@ public:
      * updates the current filter with another filter
      * the result is the aggregation of TX /RX active lists
      */
-    CaptureFilter& operator +=(const CaptureFilter &other) {
+    CaptureFilter &operator+=(const CaptureFilter &other) {
         m_tx_active |= other.m_tx_active;
         m_rx_active |= other.m_rx_active;
 
@@ -279,32 +249,24 @@ public:
         return *this;
     }
 
-
     Json::Value to_json() const {
         Json::Value output = Json::objectValue;
-        output["tx"]     = Json::UInt64(m_tx_active);
-        output["rx"]     = Json::UInt64(m_rx_active);
-        output["bpf"]    = m_bpf.get_filter();
+        output["tx"] = Json::UInt64(m_tx_active);
+        output["rx"] = Json::UInt64(m_rx_active);
+        output["bpf"] = m_bpf.get_filter();
         return output;
     }
 
-    uint64_t get_tx_active_map() const {
-        return m_tx_active;
-    }
+    uint64_t get_tx_active_map() const { return m_tx_active; }
 
-    uint64_t get_rx_active_map() const {
-        return m_rx_active;
-    }
+    uint64_t get_rx_active_map() const { return m_rx_active; }
 
-private:
+  private:
+    uint64_t m_tx_active;
+    uint64_t m_rx_active;
 
-
-    uint64_t     m_tx_active;
-    uint64_t     m_rx_active;
-
-    BPFFilter    m_bpf;
+    BPFFilter m_bpf;
 };
-
 
 /**************************************
  * Capture
@@ -312,17 +274,13 @@ private:
  * A single instance of a capture
  *************************************/
 class TrexCapture {
-public:
-
+  public:
     enum state_e {
         STATE_ACTIVE,
         STATE_STOPPED,
     };
 
-    TrexCapture(capture_id_t id,
-                         uint64_t limit,
-                         const CaptureFilter &filter,
-                         TrexPktBuffer::mode_e mode);
+    TrexCapture(capture_id_t id, uint64_t limit, const CaptureFilter &filter, TrexPktBuffer::mode_e mode);
 
     ~TrexCapture();
 
@@ -331,51 +289,35 @@ public:
      */
     void handle_pkt(const rte_mbuf_t *m, int port, TrexPkt::origin_e origin);
 
+    uint64_t get_id() const { return m_id; }
 
-    uint64_t get_id() const {
-        return m_id;
-    }
-
-    const CaptureFilter & get_filter() const {
-        return m_filter;
-    }
-
+    const CaptureFilter &get_filter() const { return m_filter; }
 
     /**
      * stop the capture - from now on all packets will be ignored
      *
      * @author imarom (1/24/2017)
      */
-    void stop() {
-        m_state = STATE_STOPPED;
-    }
+    void stop() { m_state = STATE_STOPPED; }
 
-    TrexPktBuffer * fetch(uint32_t pkt_limit, uint32_t &pending);
+    TrexPktBuffer *fetch(uint32_t pkt_limit, uint32_t &pending);
 
-    bool is_active() const {
-        return m_state == STATE_ACTIVE;
-    }
+    bool is_active() const { return m_state == STATE_ACTIVE; }
 
-    uint32_t get_pkt_count() const {
-        return m_pkt_buffer->get_element_count();
-    }
+    uint32_t get_pkt_count() const { return m_pkt_buffer->get_element_count(); }
 
-    dsec_t get_start_ts() const {
-        return m_start_ts;
-    }
-
+    dsec_t get_start_ts() const { return m_start_ts; }
 
     Json::Value to_json() const;
 
-private:
-    state_e          m_state;
-    TrexPktBuffer   *m_pkt_buffer;
-    dsec_t           m_start_ts;
-    CaptureFilter    m_filter;
-    uint64_t         m_id;
-    uint64_t         m_pkt_index;
+  private:
+    state_e m_state;
+    TrexPktBuffer *m_pkt_buffer;
+    dsec_t m_start_ts;
+    CaptureFilter m_filter;
+    uint64_t m_id;
+    uint64_t m_pkt_index;
 };
-
 
 /**************************************
  * Capture Manager
@@ -386,25 +328,16 @@ private:
  *************************************/
 class TrexCaptureMngr {
 
-public:
-
+  public:
     static TrexCaptureMngr g_instance;
-    static TrexCaptureMngr& getInstance() {
-        return g_instance;
-    }
+    static TrexCaptureMngr &getInstance() { return g_instance; }
 
-
-    ~TrexCaptureMngr() {
-        reset();
-    }
+    ~TrexCaptureMngr() { reset(); }
 
     /**
      * starts a new capture
      */
-    void start(const CaptureFilter &filter,
-               uint64_t limit,
-               TrexPktBuffer::mode_e mode,
-               TrexCaptureRCStart &rc);
+    void start(const CaptureFilter &filter, uint64_t limit, TrexPktBuffer::mode_e mode, TrexCaptureRCStart &rc);
 
     /**
      * stops an existing capture
@@ -424,13 +357,11 @@ public:
      */
     void remove(capture_id_t capture_id, TrexCaptureRCRemove &rc);
 
-
     /**
      * removes all captures
      *
      */
     void reset();
-
 
     /**
      * return true if any filter is active
@@ -440,17 +371,13 @@ public:
      *
      * @return bool
      */
-    bool is_active(uint8_t port) const {
-        return m_global_filter.in_any(port);
-    }
+    bool is_active(uint8_t port) const { return m_global_filter.in_any(port); }
 
     /**
      * return true if port is being monitored
      * on rx only
      */
-    bool is_rx_active(uint8_t port) const {
-        return m_global_filter.in_rx(port);
-    }
+    bool is_rx_active(uint8_t port) const { return m_global_filter.in_rx(port); }
 
     /**
      * handle packet on TX side
@@ -472,7 +399,6 @@ public:
         }
 
         ulock.unlock();
-
     }
 
     /* handle ASTF case where packets are in dp core */
@@ -492,7 +418,6 @@ public:
         }
 
         ulock.unlock();
-
     }
 
     /**
@@ -516,20 +441,17 @@ public:
         }
 
         handle_pkt_slow_path(m, port, TrexPkt::ORIGIN_RX);
-
     }
 
     Json::Value to_json();
 
-private:
-
+  private:
     TrexCaptureMngr() {
         /* init this to 1 */
         m_id_counter = 1;
     }
 
-
-    TrexCapture * lookup(capture_id_t capture_id) const;
+    TrexCapture *lookup(capture_id_t capture_id) const;
     int lookup_index(capture_id_t capture_id) const;
 
     void handle_pkt_slow_path(const rte_mbuf_t *m, int port, TrexPkt::origin_e origin);
@@ -544,11 +466,9 @@ private:
     CaptureFilter m_global_filter;
 
     /* slow path lock*/
-    std::mutex    m_lock;
+    std::mutex m_lock;
 
     static const int MAX_CAPTURE_SIZE = 10;
-
 };
 
 #endif /* __TREX_CAPTURE_H__ */
-

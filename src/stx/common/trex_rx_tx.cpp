@@ -28,18 +28,15 @@
  * @author imarom (8/20/2017)
  *
  */
-void
-TXQueue::create(CRxCore *rx, uint32_t capacity) {
-    m_rx         = rx;
-    m_capacity   = capacity;
+void TXQueue::create(CRxCore *rx, uint32_t capacity) {
+    m_rx = rx;
+    m_capacity = capacity;
 }
-
 
 /**
  * remove all packets from the queue
  */
-void
-TXQueue::destroy() {
+void TXQueue::destroy() {
     while (!m_heap.empty()) {
 
         TXPacket *pkt = m_heap.top();
@@ -49,13 +46,11 @@ TXQueue::destroy() {
     }
 }
 
-
 /**
  * add a packet to the queue
  * if capacity is met - return false o.w true
  */
-bool
-TXQueue::push(int port_id, const std::string &raw, double ts_sec) {
+bool TXQueue::push(int port_id, const std::string &raw, double ts_sec) {
 
     /* do we have space ? */
     if (is_full()) {
@@ -72,8 +67,7 @@ TXQueue::push(int port_id, const std::string &raw, double ts_sec) {
  * slow path tick
  *
  */
-void
-TXQueue::_tick() {
+void TXQueue::_tick() {
 
     int pkts_sent = 0;
 
@@ -95,6 +89,5 @@ TXQueue::_tick() {
             /* next packet is in the future - exit */
             break;
         }
-   }
+    }
 }
-

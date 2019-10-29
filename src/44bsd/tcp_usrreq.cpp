@@ -46,11 +46,10 @@
 #include "tcp_debug.h"
 #include "tcp_socket.h"
 
-
 /*
  * TCP protocol interface to socket abstraction.
  */
-extern  char *tcpstates[];
+extern char *tcpstates[];
 
 #if 0
 /*
@@ -520,6 +519,5 @@ tcp_usrclosed(tp)
         soisdisconnected(tp->t_inpcb->inp_socket);
     return (tp);
 }
-
 
 #endif

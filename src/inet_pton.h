@@ -20,7 +20,7 @@
 #include <string.h>
 
 typedef unsigned char u_char;
-typedef unsigned int  u_int;
+typedef unsigned int u_int;
 
 int my_inet_pton4(const char *src, u_char *dst);
 int my_inet_pton6(const char *src, u_char *dst);

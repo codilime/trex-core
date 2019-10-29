@@ -13,13 +13,10 @@
 /**
  * Hook callback to trace rte_eth_rx_burst() calls.
  */
-uint16_t
-profile_hook_rx_burst_cb(
-	__rte_unused uint16_t port_id, __rte_unused uint16_t queue_id,
-	__rte_unused struct rte_mbuf *pkts[], uint16_t nb_pkts,
-	__rte_unused uint16_t max_pkts, __rte_unused void *user_param)
-{
-	return nb_pkts;
+uint16_t profile_hook_rx_burst_cb(__rte_unused uint16_t port_id, __rte_unused uint16_t queue_id,
+                                  __rte_unused struct rte_mbuf *pkts[], uint16_t nb_pkts,
+                                  __rte_unused uint16_t max_pkts, __rte_unused void *user_param) {
+    return nb_pkts;
 }
 
 /**
@@ -35,28 +32,22 @@ profile_hook_rx_burst_cb(
  *  - On success, zero.
  *  - On failure, a negative value.
  */
-static inline int
-vtune_profile_rx_init(uint16_t port_id, uint8_t rx_queue_num)
-{
-	uint16_t q_id;
+static inline int vtune_profile_rx_init(uint16_t port_id, uint8_t rx_queue_num) {
+    uint16_t q_id;
 
-	for (q_id = 0; q_id < rx_queue_num; ++q_id) {
-		if (!rte_eth_add_rx_callback(
-			port_id, q_id, profile_hook_rx_burst_cb, NULL)) {
-			return -rte_errno;
-		}
-	}
+    for (q_id = 0; q_id < rx_queue_num; ++q_id) {
+        if (!rte_eth_add_rx_callback(port_id, q_id, profile_hook_rx_burst_cb, NULL)) {
+            return -rte_errno;
+        }
+    }
 
-	return 0;
+    return 0;
 }
 #endif /* RTE_ETHDEV_PROFILE_WITH_VTUNE */
 
-int
-__rte_eth_dev_profile_init(__rte_unused uint16_t port_id,
-	__rte_unused struct rte_eth_dev *dev)
-{
+int __rte_eth_dev_profile_init(__rte_unused uint16_t port_id, __rte_unused struct rte_eth_dev *dev) {
 #ifdef RTE_ETHDEV_PROFILE_WITH_VTUNE
-	return vtune_profile_rx_init(port_id, dev->data->nb_rx_queues);
+    return vtune_profile_rx_init(port_id, dev->data->nb_rx_queues);
 #endif
-	return 0;
+    return 0;
 }

@@ -31,40 +31,34 @@ limitations under the License.
   DP quit
  ************************/
 
-bool TrexDpQuit::handle(TrexDpCore *dp_core){
+bool TrexDpQuit::handle(TrexDpCore *dp_core) {
 
     /* quit  */
     dp_core->stop();
     return (true);
 }
 
-
-TrexCpToDpMsgBase *
-TrexDpQuit::clone(){
+TrexCpToDpMsgBase *TrexDpQuit::clone() {
 
     TrexCpToDpMsgBase *new_msg = new TrexDpQuit();
 
     return new_msg;
 }
 
-
-
 /*************************
   DP can quit
  ************************/
 
-bool TrexDpCanQuit::handle(TrexDpCore *dp_core){
+bool TrexDpCanQuit::handle(TrexDpCore *dp_core) {
 
-    if ( dp_core->are_all_ports_idle() ){
+    if (dp_core->are_all_ports_idle()) {
         /* if all ports are idle quit now */
         set_quit(true);
     }
     return (true);
 }
 
-
-TrexCpToDpMsgBase *
-TrexDpCanQuit::clone(){
+TrexCpToDpMsgBase *TrexDpCanQuit::clone() {
 
     TrexCpToDpMsgBase *new_msg = new TrexDpCanQuit();
 
@@ -75,29 +69,25 @@ TrexDpCanQuit::clone(){
   barrier message
  ************************/
 
-bool
-TrexDpBarrier::handle(TrexDpCore *dp_core) {
+bool TrexDpBarrier::handle(TrexDpCore *dp_core) {
     dp_core->barrier(m_port_id, m_profile_id, m_event_id);
     return true;
 }
 
-TrexCpToDpMsgBase *
-TrexDpBarrier::clone() {
+TrexCpToDpMsgBase *TrexDpBarrier::clone() {
 
     TrexCpToDpMsgBase *new_msg = new TrexDpBarrier(m_port_id, m_profile_id, m_event_id);
 
     return new_msg;
 }
 
-
 /************************* messages from DP to CP **********************/
 
-bool
-TrexDpPortEventMsg::handle() {
+bool TrexDpPortEventMsg::handle() {
     TrexPort *port = get_stx()->get_port_by_id(m_port_id);
 
-    if ( get_is_stateless() ) {
-        TrexStatelessPort *stl_port = (TrexStatelessPort*) port;
+    if (get_is_stateless()) {
+        TrexStatelessPort *stl_port = (TrexStatelessPort *)port;
         stl_port->get_dp_events(m_profile_id).on_core_reporting_in(m_event_id, m_thread_id, get_status());
     } else {
         port->get_dp_events().on_core_reporting_in(m_event_id, m_thread_id, get_status());
@@ -106,15 +96,12 @@ TrexDpPortEventMsg::handle() {
     return (true);
 }
 
-
-bool
-TrexDpCoreStopped::handle(void) {
+bool TrexDpCoreStopped::handle(void) {
     get_stx()->dp_core_finished(m_thread_id, m_profile_id);
     return true;
 }
 
-bool
-TrexDpCoreError::handle(void) {
+bool TrexDpCoreError::handle(void) {
     get_stx()->dp_core_error(m_thread_id, m_profile_id, m_err);
     return true;
 }
@@ -137,15 +124,12 @@ bool TrexRxDisableLatency::handle (CRxCore *rx_core) {
 
 #endif
 
-
-bool TrexRxQuit::handle (CRxCore *rx_core) {
+bool TrexRxQuit::handle(CRxCore *rx_core) {
     rx_core->quit();
     return true;
 }
 
-
-bool
-TrexRxCaptureStart::handle(CRxCore *rx_core) {
+bool TrexRxCaptureStart::handle(CRxCore *rx_core) {
 
     TrexCaptureRCStart start_rc;
 
@@ -157,8 +141,7 @@ TrexRxCaptureStart::handle(CRxCore *rx_core) {
     return true;
 }
 
-bool
-TrexRxCaptureStop::handle(CRxCore *rx_core) {
+bool TrexRxCaptureStop::handle(CRxCore *rx_core) {
 
     TrexCaptureRCStop stop_rc;
 
@@ -170,8 +153,7 @@ TrexRxCaptureStop::handle(CRxCore *rx_core) {
     return true;
 }
 
-bool
-TrexRxCaptureFetch::handle(CRxCore *rx_core) {
+bool TrexRxCaptureFetch::handle(CRxCore *rx_core) {
 
     TrexCaptureRCFetch fetch_rc;
 
@@ -183,8 +165,7 @@ TrexRxCaptureFetch::handle(CRxCore *rx_core) {
     return true;
 }
 
-bool
-TrexRxCaptureStatus::handle(CRxCore *rx_core) {
+bool TrexRxCaptureStatus::handle(CRxCore *rx_core) {
 
     TrexCaptureRCStatus status_rc;
 
@@ -196,8 +177,7 @@ TrexRxCaptureStatus::handle(CRxCore *rx_core) {
     return true;
 }
 
-bool
-TrexRxCaptureRemove::handle(CRxCore *rx_core) {
+bool TrexRxCaptureRemove::handle(CRxCore *rx_core) {
 
     TrexCaptureRCRemove remove_rc;
 
@@ -209,9 +189,7 @@ TrexRxCaptureRemove::handle(CRxCore *rx_core) {
     return true;
 }
 
-
-bool
-TrexRxStartQueue::handle(CRxCore *rx_core) {
+bool TrexRxStartQueue::handle(CRxCore *rx_core) {
     rx_core->start_queue(m_port_id, m_size);
 
     /* mark as done */
@@ -220,21 +198,19 @@ TrexRxStartQueue::handle(CRxCore *rx_core) {
     return true;
 }
 
-bool
-TrexRxStopQueue::handle(CRxCore *rx_core) {
+bool TrexRxStopQueue::handle(CRxCore *rx_core) {
     rx_core->stop_queue(m_port_id);
 
     return true;
 }
 
-bool
-TrexRxStartCapwapProxy::handle(CRxCore *rx_core) {
+bool TrexRxStartCapwapProxy::handle(CRxCore *rx_core) {
 
     if (rx_core->get_rx_port_mngr(m_port_id).is_feature_set(RXPortManager::CAPWAP_PROXY)) {
         m_reply.set_reply("CAPWAP proxy mode is already active at port " + std::to_string(m_port_id) + " !");
 
     } else {
-        if ( rx_core->start_capwap_proxy(m_port_id, m_pair_port_id, m_is_wireless_side, m_capwap_map, m_wlc_ip) ) {
+        if (rx_core->start_capwap_proxy(m_port_id, m_pair_port_id, m_is_wireless_side, m_capwap_map, m_wlc_ip)) {
             m_reply.set_reply("");
         } else {
             m_reply.set_reply("Could not start CAPWAP proxy on port " + std::to_string(m_port_id) + " !");
@@ -244,9 +220,7 @@ TrexRxStartCapwapProxy::handle(CRxCore *rx_core) {
     return true;
 }
 
-
-bool
-TrexRxStopCapwapProxy::handle(CRxCore *rx_core) {
+bool TrexRxStopCapwapProxy::handle(CRxCore *rx_core) {
 
     if (rx_core->get_rx_port_mngr(m_port_id).is_feature_set(RXPortManager::CAPWAP_PROXY)) {
         rx_core->stop_capwap_proxy(m_port_id);
@@ -259,9 +233,7 @@ TrexRxStopCapwapProxy::handle(CRxCore *rx_core) {
     return true;
 }
 
-
-bool
-TrexRxQueueGetPkts::handle(CRxCore *rx_core) {
+bool TrexRxQueueGetPkts::handle(CRxCore *rx_core) {
     const TrexPktBuffer *pkt_buffer = rx_core->get_rx_queue_pkts(m_port_id);
 
     /* set the reply */
@@ -270,9 +242,7 @@ TrexRxQueueGetPkts::handle(CRxCore *rx_core) {
     return true;
 }
 
-CStackBase* get_stack(CRxCore *rx_core, uint8_t port_id) {
-    return rx_core->get_rx_port_mngr(port_id).get_stack();
-}
+CStackBase *get_stack(CRxCore *rx_core, uint8_t port_id) { return rx_core->get_rx_port_mngr(port_id).get_stack(); }
 
 bool TrexPortAttrToJson::handle(CRxCore *rx_core) {
     get_stack(rx_core, m_port_id)->attr_to_json(m_attr_res);
@@ -298,7 +268,7 @@ bool TrexRxSetL2Mode::handle(CRxCore *rx_core) {
     node->set_l2_mode(true);
     node->conf_dst_mac_async(m_dst_mac);
     node->set_dst_mac_valid_async();
-    if ( rx_core->has_port(m_dst_mac) ) {
+    if (rx_core->has_port(m_dst_mac)) {
         node->set_is_loopback_async();
     } else {
         node->set_not_loopback();
@@ -310,12 +280,12 @@ bool TrexRxSetL3Mode::handle(CRxCore *rx_core) {
     CNodeBase *node = get_stack(rx_core, m_port_id)->get_port_node();
     node->set_l2_mode(false);
     node->conf_ip4_async(m_src_ipv4, m_dst_ipv4);
-    if ( m_dst_mac.size() ) {
+    if (m_dst_mac.size()) {
         node->conf_dst_mac_async(m_dst_mac);
         node->set_dst_mac_valid_async();
-        if ( rx_core->has_port(m_dst_mac) ) {
+        if (rx_core->has_port(m_dst_mac)) {
             node->set_is_loopback_async();
-        } else  {
+        } else {
             node->set_not_loopback();
         }
     } else {
@@ -325,15 +295,12 @@ bool TrexRxSetL3Mode::handle(CRxCore *rx_core) {
     return true;
 }
 
-
-
-bool TrexRxConfNsBatch::handle(CRxCore *rx_core){
-    CStackBase  * stack = get_stack(rx_core, m_port_id);
+bool TrexRxConfNsBatch::handle(CRxCore *rx_core) {
+    CStackBase *stack = get_stack(rx_core, m_port_id);
     stack->conf_name_space_batch_async(m_json_cmds);
     /* async result */
     return true;
 }
-
 
 bool TrexRxConfIPv6::handle(CRxCore *rx_core) {
     CNodeBase *node = get_stack(rx_core, m_port_id)->get_port_node();
@@ -343,8 +310,8 @@ bool TrexRxConfIPv6::handle(CRxCore *rx_core) {
 }
 
 bool TrexRxGetPortNode::handle(CRxCore *rx_core) {
-    CStackBase* stack = get_stack(rx_core, m_port_id);
-    if ( stack->is_running_tasks() ) {
+    CStackBase *stack = get_stack(rx_core, m_port_id);
+    if (stack->is_running_tasks()) {
         m_err = "Interface stack is in the middle of configuration";
     } else {
         m_node = *stack->get_port_node(); // copy the node
@@ -366,7 +333,7 @@ bool TrexRxIsDstMacValid::handle(CRxCore *rx_core) {
 }
 
 bool TrexRxCancelCfgTasks::handle(CRxCore *rx_core) {
-    CStackBase* stack = get_stack(rx_core, m_port_id);
+    CStackBase *stack = get_stack(rx_core, m_port_id);
     stack->cancel_running_tasks();
     stack->cancel_pending_tasks();
     return true;
@@ -379,7 +346,7 @@ bool TrexRxSetVLAN::handle(CRxCore *rx_core) {
 }
 
 bool TrexRxRunCfgTasks::handle(CRxCore *rx_core) {
-    get_stack(rx_core, m_port_id)->run_pending_tasks_async(m_ticket_id,m_rpc);
+    get_stack(rx_core, m_port_id)->run_pending_tasks_async(m_ticket_id, m_rpc);
     return true;
 }
 
@@ -389,9 +356,8 @@ bool TrexRxIsRunningTasks::handle(CRxCore *rx_core) {
     return true;
 }
 
-
 bool TrexRxGetTasksResultsEx::handle(CRxCore *rx_core) {
-    CStackBase* stack = get_stack(rx_core, m_port_id);
+    CStackBase *stack = get_stack(rx_core, m_port_id);
     TrexStackResultsRC rc;
     bool found = stack->get_tasks_results(m_ticket_id, m_results);
     stack->get_rpc_cmds(rc);
@@ -401,14 +367,13 @@ bool TrexRxGetTasksResultsEx::handle(CRxCore *rx_core) {
 }
 
 bool TrexRxGetTasksResults::handle(CRxCore *rx_core) {
-    CStackBase* stack = get_stack(rx_core, m_port_id);
+    CStackBase *stack = get_stack(rx_core, m_port_id);
     bool found = stack->get_tasks_results(m_ticket_id, m_results);
     m_reply.set_reply(found);
     return true;
 }
 
-bool
-TrexRxTXPkts::handle(CRxCore *rx_core) {
+bool TrexRxTXPkts::handle(CRxCore *rx_core) {
     uint32_t sent = rx_core->tx_pkts(m_port_id, m_pkts, m_ipg_usec);
 
     m_reply.set_reply(sent);
@@ -416,22 +381,19 @@ TrexRxTXPkts::handle(CRxCore *rx_core) {
     return true;
 }
 
-bool
-TrexRxStartCapturePort::handle(CRxCore *rx_core) {
+bool TrexRxStartCapturePort::handle(CRxCore *rx_core) {
     bool rc = rx_core->get_rx_port_mngr(m_port_id).start_capture_port(m_filter, m_endpoint, m_err);
     m_reply.set_reply(rc);
     return true;
 }
 
-bool
-TrexRxStopCapturePort::handle(CRxCore *rx_core) {
+bool TrexRxStopCapturePort::handle(CRxCore *rx_core) {
     bool rc = rx_core->get_rx_port_mngr(m_port_id).stop_capture_port(m_err);
     m_reply.set_reply(rc);
     return true;
 }
 
-bool
-TrexRxSetCapturePortBPF::handle(CRxCore *rx_core) {
+bool TrexRxSetCapturePortBPF::handle(CRxCore *rx_core) {
     rx_core->get_rx_port_mngr(m_port_id).set_capture_port_bpf_filter(m_filter);
     return true;
 }

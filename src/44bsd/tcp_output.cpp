@@ -48,8 +48,7 @@
 
 #include <assert.h>
 
-#define MAX_TCPOPTLEN   32  /* max # bytes that go in options */
-
+#define MAX_TCPOPTLEN 32 /* max # bytes that go in options */
 
 /*
  * Flags used when sending segments in tcp_output.
@@ -57,105 +56,95 @@
  * determined by state, with the proviso that TH_FIN is sent only
  * if all data queued for output is included in the segment.
  */
-const u_char    tcp_outflags[TCP_NSTATES] = {
-    TH_RST|TH_ACK, 0, TH_SYN, TH_SYN|TH_ACK,
-    TH_ACK, TH_ACK,
-    TH_FIN|TH_ACK, TH_FIN|TH_ACK, TH_FIN|TH_ACK, TH_ACK, TH_ACK,
+const u_char tcp_outflags[TCP_NSTATES] = {
+    TH_RST | TH_ACK, 0,      TH_SYN, TH_SYN | TH_ACK, TH_ACK, TH_ACK, TH_FIN | TH_ACK, TH_FIN | TH_ACK,
+    TH_FIN | TH_ACK, TH_ACK, TH_ACK,
 };
 
 static const char *tcpstates[] = {
-    "CLOSED",   "LISTEN",   "SYN_SENT", "SYN_RCVD",
-    "ESTABLISHED",  "CLOSE_WAIT",   "FIN_WAIT_1",   "CLOSING",
-    "LAST_ACK", "FIN_WAIT_2",   "TIME_WAIT",
+    "CLOSED",     "LISTEN",  "SYN_SENT", "SYN_RCVD",   "ESTABLISHED", "CLOSE_WAIT",
+    "FIN_WAIT_1", "CLOSING", "LAST_ACK", "FIN_WAIT_2", "TIME_WAIT",
 };
 
-const char ** tcp_get_tcpstate(){
-    return (tcpstates);
-}
+const char **tcp_get_tcpstate() { return (tcpstates); }
 
+static inline void tcp_pkt_update_len(CFlowTemplate *ftp, struct tcpcb *tp, CTcpPkt &pkt, uint32_t dlen,
+                                      uint16_t tcphlen) {
 
-static inline void tcp_pkt_update_len(CFlowTemplate *ftp,
-                                      struct tcpcb *tp,
-                                      CTcpPkt &pkt,
-                                      uint32_t dlen,
-                                      uint16_t tcphlen){
+    uint32_t tcp_h_pyld = dlen + tcphlen;
+    char *p = pkt.get_header_ptr();
 
-    uint32_t tcp_h_pyld=dlen+tcphlen;
-    char *p=pkt.get_header_ptr();
+    if (ftp->m_offload_flags & OFFLOAD_TX_CHKSUM) {
 
-    if (ftp->m_offload_flags & OFFLOAD_TX_CHKSUM){
+        rte_mbuf_t *m = pkt.m_buf;
 
-        rte_mbuf_t   * m=pkt.m_buf;
-
-        if (!ftp->m_is_ipv6){
-            uint16_t tlen=ftp->m_offset_l4-ftp->m_offset_ip+tcp_h_pyld;
+        if (!ftp->m_is_ipv6) {
+            uint16_t tlen = ftp->m_offset_l4 - ftp->m_offset_ip + tcp_h_pyld;
             m->l2_len = ftp->m_offset_ip;
-            m->l3_len = ftp->m_offset_l4-ftp->m_offset_ip;
+            m->l3_len = ftp->m_offset_l4 - ftp->m_offset_ip;
             m->ol_flags |= (PKT_TX_IPV4 | PKT_TX_IP_CKSUM | PKT_TX_TCP_CKSUM);
-            IPHeader * ipv4=(IPHeader *)(p+ftp->m_offset_ip);
+            IPHeader *ipv4 = (IPHeader *)(p + ftp->m_offset_ip);
             ipv4->ClearCheckSum();
-            TCPHeader *  tcp=(TCPHeader *)(p+ftp->m_offset_l4);
+            TCPHeader *tcp = (TCPHeader *)(p + ftp->m_offset_l4);
             /* must be before checksum calculation */
-            bool tso_done=false;
-            if ( tp->is_tso() ) {
+            bool tso_done = false;
+            if (tp->is_tso()) {
                 uint16_t seg_size = tp->t_maxseg - pkt.m_optlen;
-                if ( dlen>seg_size ){
-                    m->ol_flags |=PKT_TX_TCP_SEG;
+                if (dlen > seg_size) {
+                    m->ol_flags |= PKT_TX_TCP_SEG;
                     m->tso_segsz = seg_size;
-                    m->l4_len = pkt.m_optlen+TCP_HEADER_LEN;
-                    tso_done=true;
+                    m->l4_len = pkt.m_optlen + TCP_HEADER_LEN;
+                    tso_done = true;
                 }
             }
-            if (tso_done){
+            if (tso_done) {
                 /* in case of TSO the len is auto calculated */
                 ipv4->setTotalLength(20);
                 tcp->setChecksumRaw(ftp->m_l4_pseudo_checksum);
-            }else{
+            } else {
                 ipv4->setTotalLength(tlen);
-                tcp->setChecksumRaw(pkt_AddInetChecksumRaw(ftp->m_l4_pseudo_checksum ,PKT_NTOHS(tlen-20)));
+                tcp->setChecksumRaw(pkt_AddInetChecksumRaw(ftp->m_l4_pseudo_checksum, PKT_NTOHS(tlen - 20)));
             }
 
-
-        }else{
-            uint16_t tlen=tcp_h_pyld;
+        } else {
+            uint16_t tlen = tcp_h_pyld;
             m->l2_len = ftp->m_offset_ip;
-            m->l3_len = ftp->m_offset_l4-ftp->m_offset_ip;
-            m->ol_flags |= ( PKT_TX_IPV6 | PKT_TX_TCP_CKSUM);
-            IPv6Header * ipv6=(IPv6Header *)(p+ftp->m_offset_ip);
-            TCPHeader *  tcp=(TCPHeader *)(p+ftp->m_offset_l4);
+            m->l3_len = ftp->m_offset_l4 - ftp->m_offset_ip;
+            m->ol_flags |= (PKT_TX_IPV6 | PKT_TX_TCP_CKSUM);
+            IPv6Header *ipv6 = (IPv6Header *)(p + ftp->m_offset_ip);
+            TCPHeader *tcp = (TCPHeader *)(p + ftp->m_offset_l4);
 
-            bool tso_done=false;
-            if ( tp->is_tso() ) {
+            bool tso_done = false;
+            if (tp->is_tso()) {
                 uint16_t seg_size = tp->t_maxseg - pkt.m_optlen;
-                if ( dlen>seg_size ){
-                    m->ol_flags |=PKT_TX_TCP_SEG;
+                if (dlen > seg_size) {
+                    m->ol_flags |= PKT_TX_TCP_SEG;
                     m->tso_segsz = seg_size;
-                    m->l4_len = pkt.m_optlen+TCP_HEADER_LEN;
-                    tso_done=true;
+                    m->l4_len = pkt.m_optlen + TCP_HEADER_LEN;
+                    tso_done = true;
                 }
             }
-            if (tso_done){
+            if (tso_done) {
                 /* in case of TSO the len is auto calculated */
                 ipv6->setPayloadLen(0);
                 tcp->setChecksumRaw(ftp->m_l4_pseudo_checksum);
-            }else{
+            } else {
                 ipv6->setPayloadLen(tlen);
-                tcp->setChecksumRaw(pkt_AddInetChecksumRaw(ftp->m_l4_pseudo_checksum ,PKT_NTOHS(tlen)));
+                tcp->setChecksumRaw(pkt_AddInetChecksumRaw(ftp->m_l4_pseudo_checksum, PKT_NTOHS(tlen)));
             }
         }
-    }else{
-        if (!ftp->m_is_ipv6){
-            uint16_t tlen=ftp->m_offset_l4-ftp->m_offset_ip+tcp_h_pyld;
-            IPHeader * lpv4=(IPHeader *)(p+ftp->m_offset_ip);
+    } else {
+        if (!ftp->m_is_ipv6) {
+            uint16_t tlen = ftp->m_offset_l4 - ftp->m_offset_ip + tcp_h_pyld;
+            IPHeader *lpv4 = (IPHeader *)(p + ftp->m_offset_ip);
             lpv4->setTotalLength(tlen);
             lpv4->updateCheckSumFast();
-        }else{
+        } else {
             uint16_t tlen = tcp_h_pyld;
-            IPv6Header * Ipv6=(IPv6Header *)(p+ftp->m_offset_ip);
+            IPv6Header *Ipv6 = (IPv6Header *)(p + ftp->m_offset_ip);
             Ipv6->setPayloadLen(tlen);
         }
     }
-
 }
 
 /**
@@ -168,53 +157,42 @@ static inline void tcp_pkt_update_len(CFlowTemplate *ftp,
  *
  * @return
  */
-static inline int _tcp_build_cpkt(CPerProfileCtx * pctx,
-                                  CFlowTemplate *ftp,
-                                  struct tcpcb *tp,
-                                  uint16_t tcphlen,
-                                  CTcpPkt &pkt){
-    int len= ftp->m_offset_l4+tcphlen;
-    rte_mbuf_t * m;
-    m=tp->pktmbuf_alloc(len);
-    pkt.m_buf=m;
-    if (m==0) {
+static inline int _tcp_build_cpkt(CPerProfileCtx *pctx, CFlowTemplate *ftp, struct tcpcb *tp, uint16_t tcphlen,
+                                  CTcpPkt &pkt) {
+    int len = ftp->m_offset_l4 + tcphlen;
+    rte_mbuf_t *m;
+    m = tp->pktmbuf_alloc(len);
+    pkt.m_buf = m;
+    if (m == 0) {
         INC_STAT(pctx, tp->m_flow->m_tg_id, tcps_nombuf);
         /* drop the packet */
-        return(-1);
+        return (-1);
     }
     rte_mbuf_set_as_core_local(m);
-    char *p=rte_pktmbuf_append(m,len);
+    char *p = rte_pktmbuf_append(m, len);
 
     /* copy template */
-    memcpy(p,ftp->m_template_pkt,len);
-    pkt.lpTcp =(TCPHeader    *)(p+ftp->m_offset_l4);
+    memcpy(p, ftp->m_template_pkt, len);
+    pkt.lpTcp = (TCPHeader *)(p + ftp->m_offset_l4);
 
-
-    return(0);
+    return (0);
 }
 
-int tcp_build_cpkt(CPerProfileCtx * pctx,
-                   struct tcpcb *tp,
-                   uint16_t tcphlen,
-                   CTcpPkt &pkt){
+int tcp_build_cpkt(CPerProfileCtx *pctx, struct tcpcb *tp, uint16_t tcphlen, CTcpPkt &pkt) {
     assert(tp->m_flow);
-    CFlowTemplate *ftp=&tp->m_flow->m_template;
+    CFlowTemplate *ftp = &tp->m_flow->m_template;
 
-   int res=_tcp_build_cpkt(pctx,ftp,tp,tcphlen,pkt);
-   if (res==0){
-       tcp_pkt_update_len(ftp,tp,pkt,0,tcphlen) ;
-   }
-   return(res);
+    int res = _tcp_build_cpkt(pctx, ftp, tp, tcphlen, pkt);
+    if (res == 0) {
+        tcp_pkt_update_len(ftp, tp, pkt, 0, tcphlen);
+    }
+    return (res);
 }
 
+static inline uint16_t update_next_mbuf(rte_mbuf_t *mi, CBufMbufRef &rb, rte_mbuf_t *&lastm, uint16_t dlen) {
 
-static inline uint16_t update_next_mbuf(rte_mbuf_t   *mi,
-                                        CBufMbufRef &rb,
-                                        rte_mbuf_t * &lastm,
-                                        uint16_t dlen){
-
-    uint16_t bsize = bsd_umin(rb.get_mbuf_size(),dlen);
-    uint16_t trim=rb.get_mbuf_size()-bsize;
+    uint16_t bsize = bsd_umin(rb.get_mbuf_size(), dlen);
+    uint16_t trim = rb.get_mbuf_size() - bsize;
     if (rb.m_offset) {
         rte_pktmbuf_adj(mi, rb.m_offset);
     }
@@ -222,11 +200,10 @@ static inline uint16_t update_next_mbuf(rte_mbuf_t   *mi,
         rte_pktmbuf_trim(mi, trim);
     }
 
-    lastm->next =mi;
-    lastm=mi;
-    return(bsize);
+    lastm->next = mi;
+    lastm = mi;
+    return (bsize);
 }
-
 
 /**
  * build packet from socket buffer
@@ -240,97 +217,87 @@ static inline uint16_t update_next_mbuf(rte_mbuf_t   *mi,
  *
  * @return
  */
-static inline int tcp_build_dpkt_(CPerProfileCtx * pctx,
-                                  CFlowTemplate *ftp,
-                                  struct tcpcb *tp,
-                                  uint32_t offset,
-                                  uint32_t dlen,
-                                  uint16_t tcphlen,
-                                  CTcpPkt &pkt){
+static inline int tcp_build_dpkt_(CPerProfileCtx *pctx, CFlowTemplate *ftp, struct tcpcb *tp, uint32_t offset,
+                                  uint32_t dlen, uint16_t tcphlen, CTcpPkt &pkt) {
 
-    int res=_tcp_build_cpkt(pctx,ftp,tp,tcphlen,pkt);
-    if (res<0) {
-        return(res);
+    int res = _tcp_build_cpkt(pctx, ftp, tp, tcphlen, pkt);
+    if (res < 0) {
+        return (res);
     }
-    if (dlen==0) {
+    if (dlen == 0) {
         return 0;
     }
-    rte_mbuf_t   * m=pkt.m_buf;
-    rte_mbuf_t   * lastm=m;
+    rte_mbuf_t *m = pkt.m_buf;
+    rte_mbuf_t *lastm = m;
 
-    uint16_t       bsize;
+    uint16_t bsize;
 
     m->pkt_len += dlen;
 
-    CTcpSockBuf *lptxs=&tp->m_socket.so_snd;
-    while (dlen>0) {
+    CTcpSockBuf *lptxs = &tp->m_socket.so_snd;
+    while (dlen > 0) {
         /* get blocks from socket buffer */
-        CBufMbufRef  rb;
-        lptxs->get_by_offset(&tp->m_socket,offset,rb);
-        assert(rb.get_mbuf_size()>0);
+        CBufMbufRef rb;
+        lptxs->get_by_offset(&tp->m_socket, offset, rb);
+        assert(rb.get_mbuf_size() > 0);
 
-        rte_mbuf_t   * mn=rb.m_mbuf;
-        if (rb.m_type==MO_CONST) {
+        rte_mbuf_t *mn = rb.m_mbuf;
+        if (rb.m_type == MO_CONST) {
 
-            if (unlikely(!rb.need_indirect_mbuf(dlen))){
+            if (unlikely(!rb.need_indirect_mbuf(dlen))) {
                 /* last one */
-                rte_pktmbuf_refcnt_update(mn,1);
-                lastm->next =mn;
+                rte_pktmbuf_refcnt_update(mn, 1);
+                lastm->next = mn;
                 bsize = rb.get_mbuf_size();
-            }else{
+            } else {
                 /* need to allocate indirect */
-                rte_mbuf_t   * mi=tp->pktmbuf_alloc_small();
-                if (mi==0) {
+                rte_mbuf_t *mi = tp->pktmbuf_alloc_small();
+                if (mi == 0) {
                     INC_STAT(pctx, tp->m_flow->m_tg_id, tcps_nombuf);
                     rte_pktmbuf_free(m);
-                    return(-1);
+                    return (-1);
                 }
                 rte_mbuf_set_as_core_local(mi);
                 /* inc mn ref count */
-                rte_pktmbuf_attach(mi,mn);
+                rte_pktmbuf_attach(mi, mn);
 
-                bsize = update_next_mbuf(mi,rb,lastm,dlen);
+                bsize = update_next_mbuf(mi, rb, lastm, dlen);
             }
-        }else{
-            //rb.m_type==MO_RW not supported right now
-            if (rb.m_type==MO_RW) {
+        } else {
+            // rb.m_type==MO_RW not supported right now
+            if (rb.m_type == MO_RW) {
                 /* assume mbuf with one seg */
-                assert(mn->nb_segs==1);
+                assert(mn->nb_segs == 1);
 
-                bsize = update_next_mbuf(mn,rb,lastm,dlen);
+                bsize = update_next_mbuf(mn, rb, lastm, dlen);
 
                 m->nb_segs += 1;
-            }else{
+            } else {
                 assert(0);
             }
         }
 
         m->nb_segs += 1;
-        dlen-=bsize;
-        offset+=bsize;
+        dlen -= bsize;
+        offset += bsize;
     }
 
-    return(0);
+    return (0);
 }
 
 /* len : if TSO==true, it is the TSO packet size (before segmentation),
          else it is the packet size */
-int tcp_build_dpkt(CPerProfileCtx * pctx,
-                   struct tcpcb *tp,
-                   uint32_t offset,
-                   uint32_t dlen,
-                   uint16_t tcphlen,
-                   CTcpPkt &pkt){
+int tcp_build_dpkt(CPerProfileCtx *pctx, struct tcpcb *tp, uint32_t offset, uint32_t dlen, uint16_t tcphlen,
+                   CTcpPkt &pkt) {
     assert(tp->m_flow);
-    CFlowTemplate *ftp=&tp->m_flow->m_template;
+    CFlowTemplate *ftp = &tp->m_flow->m_template;
 
-    int res = tcp_build_dpkt_(pctx,ftp,tp,offset,dlen,tcphlen,pkt);
-    if (res==0){
-        tcp_pkt_update_len(ftp,tp,pkt,dlen,tcphlen) ;
+    int res = tcp_build_dpkt_(pctx, ftp, tp, offset, dlen, tcphlen, pkt);
+    if (res == 0) {
+        tcp_pkt_update_len(ftp, tp, pkt, dlen, tcphlen);
     }
-    return(res);
+    return (res);
 }
-
 
 /*
  * Send a single message to the TCP at address specified by
@@ -345,45 +312,38 @@ int tcp_build_dpkt(CPerProfileCtx * pctx,
  * In any case the ack and sequence number of the transmitted
  * segment are as specified by the parameters.
  */
-void tcp_respond(CPerProfileCtx * pctx,
-            struct tcpcb *tp,
-            tcp_seq ack,
-            tcp_seq seq,
-            int flags){
+void tcp_respond(CPerProfileCtx *pctx, struct tcpcb *tp, tcp_seq ack, tcp_seq seq, int flags) {
     assert(tp);
     uint32_t win = sbspace(&tp->m_socket.so_rcv);
-    CTcpPerThreadCtx * ctx = pctx->m_ctx;
+    CTcpPerThreadCtx *ctx = pctx->m_ctx;
 
     CTcpPkt pkt;
-    if (tcp_build_cpkt(pctx,tp,TCP_HEADER_LEN,pkt)!=0){
+    if (tcp_build_cpkt(pctx, tp, TCP_HEADER_LEN, pkt) != 0) {
         return;
     }
-    TCPHeader * ti=pkt.lpTcp;
+    TCPHeader *ti = pkt.lpTcp;
 
     ti->setSeqNumber(seq);
     ti->setAckNumber(ack);
     ti->setFlag(flags);
-    ti->setWindowSize((uint16_t) (win >> tp->rcv_scale));
+    ti->setWindowSize((uint16_t)(win >> tp->rcv_scale));
 
-    ctx->m_cb->on_tx(ctx,tp,pkt.m_buf);
+    ctx->m_cb->on_tx(ctx, tp, pkt.m_buf);
 }
-
-
-
 
 /*
  * Tcp output routine: figure out what should be sent and send it.
  */
-HOT_FUNC int tcp_output(CPerProfileCtx * pctx,struct tcpcb *tp) {
+HOT_FUNC int tcp_output(CPerProfileCtx *pctx, struct tcpcb *tp) {
 
     struct tcp_socket *so = &tp->m_socket;
-    int32_t len ;
+    int32_t len;
     uint32_t win;
-    int32_t off, flags, error=0;
+    int32_t off, flags, error = 0;
     u_char opt[MAX_TCPOPTLEN];
     unsigned optlen, hdrlen;
     int idle, sendalot;
-    CTcpPerThreadCtx * ctx = pctx->m_ctx;
+    CTcpPerThreadCtx *ctx = pctx->m_ctx;
 
     /*
      * Determine length of data that should be transmitted,
@@ -392,7 +352,7 @@ HOT_FUNC int tcp_output(CPerProfileCtx * pctx,struct tcpcb *tp) {
      * to send, then transmit; otherwise, investigate further.
      */
     idle = (tp->snd_max == tp->snd_una);
-    if (idle && tp->t_idle >= tp->t_rxtcur){
+    if (idle && tp->t_idle >= tp->t_rxtcur) {
         /*
          * We have been idle for "a while" and no acks are
          * expected to clock out any data we send --
@@ -403,7 +363,7 @@ HOT_FUNC int tcp_output(CPerProfileCtx * pctx,struct tcpcb *tp) {
 again:
     sendalot = 0;
     off = tp->snd_nxt - tp->snd_una;
-    assert(off>=0);
+    assert(off >= 0);
     win = bsd_umin(tp->snd_wnd, tp->snd_cwnd);
 
     flags = tcp_outflags[tp->t_state];
@@ -460,7 +420,7 @@ again:
         }
     }
 
-    bool tso=false;
+    bool tso = false;
     uint16_t max_seg = tp->get_maxseg_tso(tso);
     if (len > max_seg) {
         len = max_seg;
@@ -484,8 +444,7 @@ again:
     if (len) {
         if ((len >= tp->t_maxseg))
             goto send;
-        if ((idle || tp->t_flags & TF_NODELAY) &&
-            len + off >= so->so_snd.sb_cc)
+        if ((idle || tp->t_flags & TF_NODELAY) && len + off >= so->so_snd.sb_cc)
             goto send;
         if (tp->t_force)
             goto send;
@@ -508,12 +467,11 @@ again:
          * taking into account that we are limited by
          * TCP_MAXWIN << tp->rcv_scale.
          */
-        int32_t adv = bsd_umin(win, (int32_t)TCP_MAXWIN << tp->rcv_scale) -
-            (tp->rcv_adv - tp->rcv_nxt);
+        int32_t adv = bsd_umin(win, (int32_t)TCP_MAXWIN << tp->rcv_scale) - (tp->rcv_adv - tp->rcv_nxt);
 
-        if (adv >= (int32_t) (2 * tp->t_maxseg))
+        if (adv >= (int32_t)(2 * tp->t_maxseg))
             goto send;
-        if ((int32_t)(2 * adv) >= (int32_t) so->so_rcv.sb_hiwat)
+        if ((int32_t)(2 * adv) >= (int32_t)so->so_rcv.sb_hiwat)
             goto send;
     }
 
@@ -522,7 +480,7 @@ again:
      */
     if (tp->t_flags & TF_ACKNOW)
         goto send;
-    if (flags & (TH_SYN|TH_RST))
+    if (flags & (TH_SYN | TH_RST))
         goto send;
     if (SEQ_GT(tp->snd_up, tp->snd_una))
         goto send;
@@ -531,8 +489,7 @@ again:
      * and we have not yet done so, or we're retransmitting the FIN,
      * then we need to send.
      */
-    if (flags & TH_FIN &&
-        ((tp->t_flags & TF_SENTFIN) == 0 || tp->snd_nxt == tp->snd_una))
+    if (flags & TH_FIN && ((tp->t_flags & TF_SENTFIN) == 0 || tp->snd_nxt == tp->snd_una))
         goto send;
 
     /*
@@ -557,10 +514,9 @@ again:
      * if window is nonzero, transmit what we can,
      * otherwise force out a byte.
      */
-    if (so->so_snd.sb_cc && tp->t_timer[TCPT_REXMT] == 0 &&
-        tp->t_timer[TCPT_PERSIST] == 0) {
+    if (so->so_snd.sb_cc && tp->t_timer[TCPT_REXMT] == 0 && tp->t_timer[TCPT_PERSIST] == 0) {
         tp->t_rxtshift = 0;
-        tcp_setpersist(pctx,tp);
+        tcp_setpersist(pctx, tp);
     }
 
     /*
@@ -570,8 +526,8 @@ again:
 
 send:
 
-    CTcpPkt     pkt;
-    TCPHeader * ti;
+    CTcpPkt pkt;
+    TCPHeader *ti;
 
     /*
      * Before ESTABLISHED, force sending of initial options
@@ -590,18 +546,13 @@ send:
 
             opt[0] = TCPOPT_MAXSEG;
             opt[1] = 4;
-            mss = bsd_htons((u_short) tcp_mss(pctx,tp, 0));
-            *(uint16_t*)(opt + 2)=mss;
+            mss = bsd_htons((u_short)tcp_mss(pctx, tp, 0));
+            *(uint16_t *)(opt + 2) = mss;
             optlen = 4;
 
-            if ((tp->t_flags & TF_REQ_SCALE) &&
-                ((flags & TH_ACK) == 0 ||
-                (tp->t_flags & TF_RCVD_SCALE))) {
-                *((uint32_t *) (opt + optlen)) = bsd_htonl(
-                    TCPOPT_NOP << 24 |
-                    TCPOPT_WINDOW << 16 |
-                    TCPOLEN_WINDOW << 8 |
-                    tp->request_r_scale);
+            if ((tp->t_flags & TF_REQ_SCALE) && ((flags & TH_ACK) == 0 || (tp->t_flags & TF_RCVD_SCALE))) {
+                *((uint32_t *)(opt + optlen)) =
+                    bsd_htonl(TCPOPT_NOP << 24 | TCPOPT_WINDOW << 16 | TCPOLEN_WINDOW << 8 | tp->request_r_scale);
                 optlen += 4;
             }
         }
@@ -612,16 +563,14 @@ send:
      * wants to use timestamps (TF_REQ_TSTMP is set) or both our side
      * and our peer have sent timestamps in our SYN's.
      */
-    if ((tp->t_flags & (TF_REQ_TSTMP|TF_NOOPT)) == TF_REQ_TSTMP &&
-         (flags & TH_RST) == 0 &&
-        ((flags & (TH_SYN|TH_ACK)) == TH_SYN ||
-         (tp->t_flags & TF_RCVD_TSTMP))) {
+    if ((tp->t_flags & (TF_REQ_TSTMP | TF_NOOPT)) == TF_REQ_TSTMP && (flags & TH_RST) == 0 &&
+        ((flags & (TH_SYN | TH_ACK)) == TH_SYN || (tp->t_flags & TF_RCVD_TSTMP))) {
         uint32_t *lp = (uint32_t *)(opt + optlen);
 
         /* Form timestamp option as shown in appendix A of RFC 1323. */
         *lp++ = bsd_htonl(TCPOPT_TSTAMP_HDR);
         *lp++ = bsd_htonl(ctx->tcp_now);
-        *lp   = bsd_htonl(tp->ts_recent);
+        *lp = bsd_htonl(tp->ts_recent);
         optlen += TCPOLEN_TSTAMP_APPA;
     }
 
@@ -631,25 +580,24 @@ send:
      * Adjust data length if insertion of options will
      * bump the packet length beyond the t_maxseg length.
      */
-    pkt.m_optlen  = optlen; /* for TSO- current segment, will be replicate, so need to update max_seg  */
+    pkt.m_optlen = optlen; /* for TSO- current segment, will be replicate, so need to update max_seg  */
     if (!tso) {
         if (len > tp->t_maxseg - optlen) {
             len = tp->t_maxseg - optlen;
             sendalot = 1;
             flags &= ~TH_FIN;
         }
-    }else {
-        if (len > tp->t_maxseg - optlen ){
+    } else {
+        if (len > tp->t_maxseg - optlen) {
             if (optlen) {
-                if ((len%tp->t_maxseg)==0) {
-                    len -= (len/tp->t_maxseg)*optlen; /* reduce the optlen from all packets*/
+                if ((len % tp->t_maxseg) == 0) {
+                    len -= (len / tp->t_maxseg) * optlen; /* reduce the optlen from all packets*/
                     sendalot = 1;
                     flags &= ~TH_FIN;
                 }
             }
         }
     }
-
 
     /*
      * Grab a header mbuf, attaching a copy of data to
@@ -658,17 +606,17 @@ send:
      */
     uint16_t tg_id = tp->m_flow->m_tg_id;
     if (len) {
-        if (tp->t_force && len == 1){
+        if (tp->t_force && len == 1) {
             INC_STAT(pctx, tg_id, tcps_sndprobe);
         } else if (SEQ_LT(tp->snd_nxt, tp->snd_max)) {
             INC_STAT(pctx, tg_id, tcps_sndrexmitpack);
-            INC_STAT_CNT(pctx, tg_id, tcps_sndrexmitbyte,len);
+            INC_STAT_CNT(pctx, tg_id, tcps_sndrexmitbyte, len);
         } else {
             INC_STAT(pctx, tg_id, tcps_sndpack);
-            INC_STAT_CNT(pctx, tg_id, tcps_sndbyte_ok,len); /* better to be handle by application layer */
+            INC_STAT_CNT(pctx, tg_id, tcps_sndbyte_ok, len); /* better to be handle by application layer */
         }
 
-        if (tcp_build_dpkt(pctx,tp,off,len,hdrlen,pkt)!=0){
+        if (tcp_build_dpkt(pctx, tp, off, len, hdrlen, pkt) != 0) {
             error = ENOBUFS;
             goto out;
         }
@@ -683,17 +631,17 @@ send:
         if ((off + len == so->so_snd.sb_cc) || (tp->t_flags & TF_NODELAY))
             flags |= TH_PUSH;
     } else {
-        if (tp->t_flags & TF_ACKNOW){
+        if (tp->t_flags & TF_ACKNOW) {
             INC_STAT(pctx, tg_id, tcps_sndacks);
-        } else if (flags & (TH_SYN|TH_FIN|TH_RST)){
+        } else if (flags & (TH_SYN | TH_FIN | TH_RST)) {
             INC_STAT(pctx, tg_id, tcps_sndctrl);
-        } else if (SEQ_GT(tp->snd_up, tp->snd_una)){
+        } else if (SEQ_GT(tp->snd_up, tp->snd_una)) {
             INC_STAT(pctx, tg_id, tcps_sndurg);
-        } else{
+        } else {
             INC_STAT(pctx, tg_id, tcps_sndwinup);
         }
 
-        if ( tcp_build_cpkt(pctx,tp,hdrlen,pkt)!=0){
+        if (tcp_build_cpkt(pctx, tp, hdrlen, pkt) != 0) {
             error = ENOBUFS;
             goto out;
         }
@@ -706,8 +654,7 @@ send:
      * window for use in delaying messages about window sizes.
      * If resending a FIN, be sure not to use a new sequence number.
      */
-    if (flags & TH_FIN && tp->t_flags & TF_SENTFIN &&
-        tp->snd_nxt == tp->snd_max)
+    if (flags & TH_FIN && tp->t_flags & TF_SENTFIN && tp->snd_nxt == tp->snd_max)
         tp->snd_nxt--;
     /*
      * If we are doing retransmissions, then snd_nxt will
@@ -722,23 +669,23 @@ send:
      * case, since we know we aren't doing a retransmission.
      * (retransmit and persist are mutually exclusive...)
      */
-    if (len || (flags & (TH_SYN|TH_FIN)) || tp->t_timer[TCPT_PERSIST]){
+    if (len || (flags & (TH_SYN | TH_FIN)) || tp->t_timer[TCPT_PERSIST]) {
         ti->setSeqNumber(tp->snd_nxt);
-    }else{
+    } else {
         ti->setSeqNumber(tp->snd_max);
     }
 
     ti->setAckNumber(tp->rcv_nxt);
     if (optlen) {
-        memcpy((char *)ti->getOptionPtr(),opt,  optlen);
-        ti->setHeaderLength(TCP_HEADER_LEN+optlen);
+        memcpy((char *)ti->getOptionPtr(), opt, optlen);
+        ti->setHeaderLength(TCP_HEADER_LEN + optlen);
     }
     ti->setFlag(flags);
     /*
      * Calculate receive window.  Don't shrink window,
      * but avoid silly window syndrome.
      */
-    if ( (win < (so->so_rcv.sb_hiwat / 4)) && (win < (uint32_t)tp->t_maxseg) ){
+    if ((win < (so->so_rcv.sb_hiwat / 4)) && (win < (uint32_t)tp->t_maxseg)) {
         win = 0;
     }
     if (win < (uint32_t)(tp->rcv_adv - tp->rcv_nxt))
@@ -746,21 +693,20 @@ send:
     if (win > (uint32_t)TCP_MAXWIN << tp->rcv_scale)
         win = (uint32_t)TCP_MAXWIN << tp->rcv_scale;
 
-    ti->setWindowSize( (u_short) (win>>tp->rcv_scale));
+    ti->setWindowSize((u_short)(win >> tp->rcv_scale));
     if (SEQ_GT(tp->snd_up, tp->snd_nxt)) {
         /* not support this for now - hhaim*/
-        //ti->ti_urp = bsd_htons((u_short)(tp->snd_up - tp->snd_nxt));
-        //ti->ti_flags |= TH_URG;
-    } else{
+        // ti->ti_urp = bsd_htons((u_short)(tp->snd_up - tp->snd_nxt));
+        // ti->ti_flags |= TH_URG;
+    } else {
         /*
          * If no urgent pointer to send, then we pull
          * the urgent pointer to the left edge of the send window
          * so that it doesn't drift into the send window on sequence
          * number wraparound.
          */
-        tp->snd_up = tp->snd_una;       /* drag it along */
+        tp->snd_up = tp->snd_una; /* drag it along */
     }
-
 
     /*
      * In transmit state, time the transmission and arrange for
@@ -772,7 +718,7 @@ send:
         /*
          * Advance snd_nxt over sequence space of this segment.
          */
-        if (flags & (TH_SYN|TH_FIN)) {
+        if (flags & (TH_SYN | TH_FIN)) {
             if (flags & TH_SYN)
                 tp->snd_nxt++;
             if (flags & TH_FIN) {
@@ -802,35 +748,32 @@ send:
          * Initialize shift counter which is used for backoff
          * of retransmit time.
          */
-        if (tp->t_timer[TCPT_REXMT] == 0 &&
-            tp->snd_nxt != tp->snd_una) {
+        if (tp->t_timer[TCPT_REXMT] == 0 && tp->snd_nxt != tp->snd_una) {
             tp->t_timer[TCPT_REXMT] = tp->t_rxtcur;
             if (tp->t_timer[TCPT_PERSIST]) {
                 tp->t_timer[TCPT_PERSIST] = 0;
                 tp->t_rxtshift = 0;
             }
         }
-    } else
-        if (SEQ_GT(tp->snd_nxt + len, tp->snd_max))
-            tp->snd_max = tp->snd_nxt + len;
+    } else if (SEQ_GT(tp->snd_nxt + len, tp->snd_max))
+        tp->snd_max = tp->snd_nxt + len;
 
     /*
      * Trace.
      */
-    if (so->so_options & US_SO_DEBUG){
-        tcp_trace(pctx,TA_OUTPUT, tp->t_state, tp, (struct tcpiphdr *)0, ti,len);
+    if (so->so_options & US_SO_DEBUG) {
+        tcp_trace(pctx, TA_OUTPUT, tp->t_state, tp, (struct tcpiphdr *)0, ti, len);
     }
 
-    error = ctx->m_cb->on_tx(ctx,tp,pkt.m_buf);
+    error = ctx->m_cb->on_tx(ctx, tp, pkt.m_buf);
 
     if (error) {
-out:
+    out:
         if (error == ENOBUFS) {
             tcp_quench(tp);
             return (0);
         }
-        if ((error == EHOSTUNREACH || error == ENETDOWN)
-            && TCPS_HAVERCVDSYN(tp->t_state)) {
+        if ((error == EHOSTUNREACH || error == ENETDOWN) && TCPS_HAVERCVDSYN(tp->t_state)) {
             tp->t_softerror = error;
             return (0);
         }
@@ -844,32 +787,26 @@ out:
      * then remember the size of the advertised window.
      * Any pending ACK has now been sent.
      */
-    if (win > 0 && SEQ_GT(tp->rcv_nxt+win, tp->rcv_adv))
+    if (win > 0 && SEQ_GT(tp->rcv_nxt + win, tp->rcv_adv))
         tp->rcv_adv = tp->rcv_nxt + win;
     tp->last_ack_sent = tp->rcv_nxt;
-    tp->t_flags &= ~(TF_ACKNOW|TF_DELACK);
+    tp->t_flags &= ~(TF_ACKNOW | TF_DELACK);
     if (sendalot)
         goto again;
     return (0);
 }
 
-void tcp_setpersist(CPerProfileCtx * pctx,
-                    struct tcpcb *tp){
+void tcp_setpersist(CPerProfileCtx *pctx, struct tcpcb *tp) {
     int16_t t = ((tp->t_srtt >> 2) + tp->t_rttvar) >> 1;
 
-    assert(tp->t_timer[TCPT_REXMT]==0);
+    assert(tp->t_timer[TCPT_REXMT] == 0);
 
     /*
      * Start/restart persistance timer.
      */
-    TCPT_RANGESET(tp->t_timer[TCPT_PERSIST],
-        t * tcp_backoff[tp->t_rxtshift],
-        TCPTV_PERSMIN, TCPTV_PERSMAX);
+    TCPT_RANGESET(tp->t_timer[TCPT_PERSIST], t * tcp_backoff[tp->t_rxtshift], TCPTV_PERSMIN, TCPTV_PERSMAX);
 
-    if (tp->t_rxtshift < TCP_MAXRXTSHIFT){
+    if (tp->t_rxtshift < TCP_MAXRXTSHIFT) {
         tp->t_rxtshift++;
     }
 }
-
-
-

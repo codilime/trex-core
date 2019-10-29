@@ -29,15 +29,14 @@ limitations under the License.
  *
  * @author imarom (11-Aug-15)
  */
-class TrexRpcServerReqRes : public TrexRpcServerInterface  {
-public:
-
+class TrexRpcServerReqRes : public TrexRpcServerInterface {
+  public:
     TrexRpcServerReqRes(const TrexRpcServerConfig &cfg);
 
     /* for test purposes - bypass the ZMQ and inject a message */
     std::string test_inject_request(const std::string &req);
 
-protected:
+  protected:
     void error(const std::string &msg, bool abnormal = false);
     void _prepare();
     void _rpc_thread_cb() noexcept;
@@ -52,8 +51,8 @@ protected:
 
     void handle_server_error(const std::string &specific_err);
 
-    void               *m_context;
-    void               *m_socket;
+    void *m_context;
+    void *m_socket;
     static const uint32_t MAX_RPC_MSG_LEN = 999999;
 };
 
@@ -64,16 +63,12 @@ protected:
  */
 class TrexRpcServerReqResMock : public TrexRpcServerReqRes {
 
-public:
+  public:
     TrexRpcServerReqResMock(const TrexRpcServerConfig &cfg);
 
     /* override the interface functions */
     virtual void start();
     virtual void stop();
-
-
 };
 
-
 #endif /* __TREX_RPC_REQ_RESP_API_H__ */
-

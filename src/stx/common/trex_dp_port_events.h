@@ -35,11 +35,11 @@ class TrexDpPortEvents;
 class TrexDpPortEvent {
     friend TrexDpPortEvents;
 
-public:
+  public:
     TrexDpPortEvent();
     virtual ~TrexDpPortEvent() {}
 
-protected:
+  protected:
     /**
      * what to do when an event has been completed (all cores
      * reported in
@@ -57,21 +57,19 @@ protected:
      */
     virtual void on_error(int thread_id) = 0;
 
-    TrexPort *get_port() {
-        return m_port;
-    }
+    TrexPort *get_port() { return m_port; }
 
-private:
+  private:
     void init(TrexPort *port, int event_id, int timeout_ms);
     bool on_core_reporting_in(int thread_id, bool status = true);
     bool is_core_pending_on_event(int thread_id);
 
-    std::unordered_map<int, bool>  m_signal;
-    int                            m_pending_cnt;
+    std::unordered_map<int, bool> m_signal;
+    int m_pending_cnt;
 
-    TrexPort                      *m_port;
-    int                            m_event_id;
-    int                            m_expire_limit_ms;
+    TrexPort *m_port;
+    int m_event_id;
+    int m_expire_limit_ms;
 };
 
 /**
@@ -79,7 +77,7 @@ private:
  *
  */
 class TrexDpPortEvents {
-public:
+  public:
     friend class TrexDpPortEvent;
 
     static const int INVALID_ID = -1;
@@ -117,7 +115,7 @@ public:
      */
     bool is_core_pending_on_event(int event_id, int thread_id);
 
-private:
+  private:
     TrexDpPortEvent *lookup(int event_id);
 
     static const int EVENT_ID_INVALID = -1;
@@ -125,7 +123,6 @@ private:
     int m_event_id_counter;
 
     TrexPort *m_port;
-
 };
 
 #endif /* __TREX_DP_PORT_EVENTS_H__ */

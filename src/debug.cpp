@@ -34,37 +34,20 @@
 #include "main_dpdk.h"
 #include "debug.h"
 
-const uint8_t udp_pkt[] = {
-    0x00,0x00,0x00,0x01,0x00,0x00,
-    0x00,0x00,0x00,0x01,0x00,0x00,
-    0x08,0x00,
+const uint8_t udp_pkt[] = {0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x08, 0x00,
 
-    0x45,0x00,0x00,0x81,
-    0xaf,0x7e,0x00,0x00,
-    0xfe,0x06,0xd9,0x23,
-    0x01,0x01,0x01,0x01,
-    0x3d,0xad,0x72,0x1b,
+                           0x45, 0x00, 0x00, 0x81, 0xaf, 0x7e, 0x00, 0x00, 0xfe, 0x06, 0xd9, 0x23, 0x01, 0x01, 0x01,
+                           0x01, 0x3d, 0xad, 0x72, 0x1b,
 
-    0x11,0x11,
-    0x11,0x11,
-    0x00,0x6d,
-    0x00,0x00,
+                           0x11, 0x11, 0x11, 0x11, 0x00, 0x6d, 0x00, 0x00,
 
-    0x64,0x31,0x3a,0x61,
-    0x64,0x32,0x3a,0x69,0x64,
-    0x32,0x30,0x3a,0xd0,0x0e,
-    0xa1,0x4b,0x7b,0xbd,0xbd,
-    0x16,0xc6,0xdb,0xc4,0xbb,0x43,
-    0xf9,0x4b,0x51,0x68,0x33,0x72,
-    0x20,0x39,0x3a,0x69,0x6e,0x66,0x6f,
-    0x5f,0x68,0x61,0x73,0x68,0x32,0x30,0x3a,0xee,0xc6,0xa3,
-    0xd3,0x13,0xa8,0x43,0x06,0x03,0xd8,0x9e,0x3f,0x67,0x6f,
-    0xe7,0x0a,0xfd,0x18,0x13,0x8d,0x65,0x31,0x3a,0x71,0x39,
-    0x3a,0x67,0x65,0x74,0x5f,0x70,0x65,0x65,0x72,0x73,0x31,
-    0x3a,0x74,0x38,0x3a,0x3d,0xeb,0x0c,0xbf,0x0d,0x6a,0x0d,
-    0xa5,0x31,0x3a,0x79,0x31,0x3a,0x71,0x65,0x87,0xa6,0x7d,
-    0xe7
-};
+                           0x64, 0x31, 0x3a, 0x61, 0x64, 0x32, 0x3a, 0x69, 0x64, 0x32, 0x30, 0x3a, 0xd0, 0x0e, 0xa1,
+                           0x4b, 0x7b, 0xbd, 0xbd, 0x16, 0xc6, 0xdb, 0xc4, 0xbb, 0x43, 0xf9, 0x4b, 0x51, 0x68, 0x33,
+                           0x72, 0x20, 0x39, 0x3a, 0x69, 0x6e, 0x66, 0x6f, 0x5f, 0x68, 0x61, 0x73, 0x68, 0x32, 0x30,
+                           0x3a, 0xee, 0xc6, 0xa3, 0xd3, 0x13, 0xa8, 0x43, 0x06, 0x03, 0xd8, 0x9e, 0x3f, 0x67, 0x6f,
+                           0xe7, 0x0a, 0xfd, 0x18, 0x13, 0x8d, 0x65, 0x31, 0x3a, 0x71, 0x39, 0x3a, 0x67, 0x65, 0x74,
+                           0x5f, 0x70, 0x65, 0x65, 0x72, 0x73, 0x31, 0x3a, 0x74, 0x38, 0x3a, 0x3d, 0xeb, 0x0c, 0xbf,
+                           0x0d, 0x6a, 0x0d, 0xa5, 0x31, 0x3a, 0x79, 0x31, 0x3a, 0x71, 0x65, 0x87, 0xa6, 0x7d, 0xe7};
 
 CTrexDebug::CTrexDebug(CPhyEthIF m_ports_arg[12], int max_ports, uint32_t rx_q_num) {
     m_test = NULL;
@@ -74,17 +57,17 @@ CTrexDebug::CTrexDebug(CPhyEthIF m_ports_arg[12], int max_ports, uint32_t rx_q_n
 }
 
 int CTrexDebug::rcv_send(int port, int queue_id) {
-    CPhyEthIF * lp = &m_ports[port];
-    rte_mbuf_t * rx_pkts[32];
-    printf(" test rx port:%d queue:%d \n",port,queue_id);
+    CPhyEthIF *lp = &m_ports[port];
+    rte_mbuf_t *rx_pkts[32];
+    printf(" test rx port:%d queue:%d \n", port, queue_id);
     printf(" --------------\n");
-    uint16_t cnt = lp->rx_burst(queue_id,rx_pkts,32);
+    uint16_t cnt = lp->rx_burst(queue_id, rx_pkts, 32);
     int i;
 
-    for (i=0; i < (int)cnt; i++) {
-        rte_mbuf_t * m = rx_pkts[i];
+    for (i = 0; i < (int)cnt; i++) {
+        rte_mbuf_t *m = rx_pkts[i];
         int pkt_size = rte_pktmbuf_pkt_len(m);
-        char *p = rte_pktmbuf_mtod(m, char*);
+        char *p = rte_pktmbuf_mtod(m, char *);
         utl_DumpBuffer(stdout, p, pkt_size, 0);
         rte_pktmbuf_free(m);
     }
@@ -94,8 +77,8 @@ int CTrexDebug::rcv_send(int port, int queue_id) {
 // receive packets on queue_id
 int CTrexDebug::rcv_send_all(int queue_id) {
     int i;
-    for (i=0; i<m_max_ports; i++) {
-        rcv_send(i,queue_id);
+    for (i = 0; i < m_max_ports; i++) {
+        rcv_send(i, queue_id);
     }
     return 0;
 }
@@ -121,8 +104,7 @@ rte_mbuf_t *CTrexDebug::create_test_pkt(int ip_ver, uint16_t l4_proto, uint8_t t
 }
 
 #else
-rte_mbuf_t *CTrexDebug::create_test_pkt(int ip_ver, uint16_t l4_proto, uint8_t ttl
-                                        , uint32_t ip_id, uint16_t flags) {
+rte_mbuf_t *CTrexDebug::create_test_pkt(int ip_ver, uint16_t l4_proto, uint8_t ttl, uint32_t ip_id, uint16_t flags) {
     int pkt_size;
     char *pkt;
     rte_mbuf_t *m;
@@ -151,7 +133,7 @@ rte_mbuf_t *CTrexDebug::create_test_pkt(int ip_ver, uint16_t l4_proto, uint8_t t
     */
 
     m = CGlobalInfo::pktmbuf_alloc_by_port(0, pkt_size);
-    if ( unlikely(m == 0) )  {
+    if (unlikely(m == 0)) {
         printf("ERROR no packets \n");
         return (NULL);
     }
@@ -166,7 +148,7 @@ rte_mbuf_t *CTrexDebug::create_test_pkt(int ip_ver, uint16_t l4_proto, uint8_t t
 
 rte_mbuf_t *CTrexDebug::create_pkt(uint8_t *pkt, int pkt_size) {
     rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_by_port(0, pkt_size);
-    if ( unlikely(m == 0) ) {
+    if (unlikely(m == 0)) {
         printf("ERROR no packets \n");
         return 0;
     }
@@ -178,7 +160,7 @@ rte_mbuf_t *CTrexDebug::create_pkt(uint8_t *pkt, int pkt_size) {
     return m;
 }
 
-rte_mbuf_t *CTrexDebug::create_pkt_indirect(rte_mbuf_t *m, uint32_t new_pkt_size){
+rte_mbuf_t *CTrexDebug::create_pkt_indirect(rte_mbuf_t *m, uint32_t new_pkt_size) {
     rte_mbuf_t *d = CGlobalInfo::pktmbuf_alloc_by_port(0, 60);
     assert(d);
 
@@ -190,25 +172,25 @@ rte_mbuf_t *CTrexDebug::create_pkt_indirect(rte_mbuf_t *m, uint32_t new_pkt_size
 
 rte_mbuf_t *CTrexDebug::create_udp_9k_pkt() {
     rte_mbuf_t *m;
-    uint16_t pkt_size = 9*1024+21;
-    uint8_t *p = (uint8_t *)malloc(9*1024+22);
+    uint16_t pkt_size = 9 * 1024 + 21;
+    uint8_t *p = (uint8_t *)malloc(9 * 1024 + 22);
     assert(p);
     memset(p, 0x55, pkt_size);
-    memcpy(p, (uint8_t*)udp_pkt, sizeof(udp_pkt));
+    memcpy(p, (uint8_t *)udp_pkt, sizeof(udp_pkt));
     m = create_pkt(p, pkt_size);
     free(p);
     return m;
 }
 
 int CTrexDebug::test_send_pkts(rte_mbuf_t *m, uint16_t queue_id, int num_pkts, int port) {
-    CPhyEthIF * lp = &m_ports[port];
-    rte_mbuf_t * tx_pkts[32];
+    CPhyEthIF *lp = &m_ports[port];
+    rte_mbuf_t *tx_pkts[32];
     if (num_pkts > 32) {
         num_pkts = 32;
     }
 
     int i;
-    for (i=0; i < num_pkts; i++) {
+    for (i = 0; i < num_pkts; i++) {
         rte_mbuf_refcnt_update(m, 1);
         tx_pkts[i] = m;
     }
@@ -219,12 +201,12 @@ int CTrexDebug::test_send_pkts(rte_mbuf_t *m, uint16_t queue_id, int num_pkts, i
     return (0);
 }
 
-int  CTrexDebug::set_promisc_all(bool enable) {
+int CTrexDebug::set_promisc_all(bool enable) {
     int i;
-    for (i=0; i < m_max_ports; i++) {
+    for (i = 0; i < m_max_ports; i++) {
         if (enable) {
             rte_eth_promiscuous_enable(i);
-        }else{
+        } else {
             rte_eth_promiscuous_disable(i);
         }
     }
@@ -246,7 +228,7 @@ static void rte_stat_dump_array(const uint64_t *c, const char *name, int size) {
     printf("%s:", name);
     for (i = 0; i < size; i++) {
         if (((i % 32) == 0) && (size > 32)) {
-            printf ("\n  %4d:", i);
+            printf("\n  %4d:", i);
         }
         printf(" %2ld", c[i]);
     }
@@ -278,9 +260,9 @@ extern const uint32_t FLOW_STAT_PAYLOAD_IP_ID;
 
 typedef enum debug_expected_q_t_ {
     ZERO, // always queue 0
-    ONE, // always queue 1
-    STL, // queue 1 on stateless. 0 on stateful
-    STF // queue 1 on stateful. 0 on stateless
+    ONE,  // always queue 1
+    STL,  // queue 1 on stateless. 0 on stateful
+    STF   // queue 1 on stateful. 0 on stateless
 } debug_expected_q_t;
 
 struct pkt_params {
@@ -347,12 +329,12 @@ struct pkt_params test_pkts[] = {
 // for stateless: --send-debug-pkt 100 -i
 int CTrexDebug::verify_hw_rules(bool recv_all) {
     rte_mbuf_t *m = NULL;
-    CPhyEthIF * lp;
-    rte_mbuf_t * rx_pkts[32];
-    int sent_num = 8;   /* reduce the size, there are driver that can handle only burst of 8 in QUEUE 0 */
+    CPhyEthIF *lp;
+    rte_mbuf_t *rx_pkts[32];
+    int sent_num = 8; /* reduce the size, there are driver that can handle only burst of 8 in QUEUE 0 */
     int ret = 0;
 
-    for (int pkt_num = 0; pkt_num < sizeof(test_pkts) / sizeof (test_pkts[0]); pkt_num++) {
+    for (int pkt_num = 0; pkt_num < sizeof(test_pkts) / sizeof(test_pkts[0]); pkt_num++) {
         uint8_t ip_ver = test_pkts[pkt_num].ip_ver;
         uint16_t l4_proto = test_pkts[pkt_num].l4_proto;
         uint8_t ttl = test_pkts[pkt_num].ttl;
@@ -371,7 +353,7 @@ int CTrexDebug::verify_hw_rules(bool recv_all) {
                 exp_q = MAIN_DPDK_RX_Q;
                 break;
             case STL:
-                if ( get_is_stateless() ) {
+                if (get_is_stateless()) {
                     exp_q = MAIN_DPDK_RX_Q;
                     pkt_flags |= DPF_TOS_1;
                 } else {
@@ -379,7 +361,7 @@ int CTrexDebug::verify_hw_rules(bool recv_all) {
                 }
                 break;
             case STF:
-                if ( get_is_stateless() ) {
+                if (get_is_stateless()) {
                     exp_q = MAIN_DPDK_DROP_Q;
                 } else {
                     exp_q = MAIN_DPDK_RX_Q;
@@ -402,13 +384,13 @@ int CTrexDebug::verify_hw_rules(bool recv_all) {
         memset(pkt_per_q, 0, sizeof(pkt_per_q));
         // We don't know which interfaces connected where, so sum all queue 1 and all queue 0
         for (int port = 0; port < m_max_ports; port++) {
-            for(int queue_id = 0; queue_id < m_rx_q_num; queue_id++) {
+            for (int queue_id = 0; queue_id < m_rx_q_num; queue_id++) {
                 lp = &m_ports[port];
                 uint16_t cnt = lp->rx_burst(queue_id, rx_pkts, 32);
                 pkt_per_q[queue_id] += cnt;
 
                 for (int i = 0; i < (int)cnt; i++) {
-                    rte_mbuf_t * m = rx_pkts[i];
+                    rte_mbuf_t *m = rx_pkts[i];
                     rte_pktmbuf_free(m);
                 }
             }
@@ -418,10 +400,9 @@ int CTrexDebug::verify_hw_rules(bool recv_all) {
             printf("Error:");
             ret = 1;
         } else {
-            printf ("OK:");
+            printf("OK:");
         }
         printf("%s q0: %d, q1:%d\n", test_pkts[pkt_num].name, pkt_per_q[0], pkt_per_q[1]);
-
     }
     return ret;
 }
@@ -438,7 +419,7 @@ int CTrexDebug::test_send(uint pkt_type) {
         return verify_hw_rules(true);
     }
 
-    if (! (pkt_type >= 1 && pkt_type <= 5) && !(pkt_type >= 61 && pkt_type <= 63)) {
+    if (!(pkt_type >= 1 && pkt_type <= 5) && !(pkt_type >= 61 && pkt_type <= 63)) {
         printf("Unsupported packet type %d\n", pkt_type);
         printf("Supported packet types are: %d(ICMP), %d(UDP), %d(TCP) %d(9k UDP)\n", 1, 2, 3, 4);
         printf("                            IPv6: %d(ICMP), %d(UDP), %d(TCP)\n", 61, 62, 63);
@@ -447,8 +428,8 @@ int CTrexDebug::test_send(uint pkt_type) {
 
     if (pkt_type == D_PKT_TYPE_9k_UDP) {
         m = create_udp_9k_pkt();
-        assert (m);
-        d = create_pkt_indirect(m, 9*1024+18);
+        assert(m);
+        d = create_pkt_indirect(m, 9 * 1024 + 18);
     } else {
         uint16_t l4_proto;
         int ip_ver;
@@ -464,7 +445,7 @@ int CTrexDebug::test_send(uint pkt_type) {
             exit(1);
         }
 
-        switch(pkt_type) {
+        switch (pkt_type) {
         default:
         case D_PKT_TYPE_ICMP:
             l4_proto = IPPROTO_ICMP;
@@ -478,7 +459,7 @@ int CTrexDebug::test_send(uint pkt_type) {
             break;
         case D_PKT_TYPE_ARP:
             ip_ver = 1;
-            l4_proto = IPPROTO_TCP; //just to prevenet compilation warning. Not used in this case.
+            l4_proto = IPPROTO_TCP; // just to prevenet compilation warning. Not used in this case.
             break;
         }
         d = create_test_pkt(ip_ver, l4_proto, 254, FLOW_STAT_PAYLOAD_IP_ID, 0);
@@ -489,7 +470,7 @@ int CTrexDebug::test_send(uint pkt_type) {
     }
 
     for (port_id = 0; port_id < m_max_ports; port_id++) {
-        CPhyEthIF * lp=&m_ports[port_id];
+        CPhyEthIF *lp = &m_ports[port_id];
         lp->reset_hw_flow_stats();
     }
 
@@ -505,7 +486,7 @@ int CTrexDebug::test_send(uint pkt_type) {
             char *p = rte_pktmbuf_append(mb[src], d->pkt_len);
             assert(p);
             memcpy(p, p_d, d->pkt_len);
-            ip = (IPHeader *) (p + 14);
+            ip = (IPHeader *)(p + 14);
             ip->updateIpDst(src + 1);
             ip->updateIpSrc(src + 5);
             test_send_pkts(mb[src], 0, 1, 0);
@@ -518,7 +499,7 @@ int CTrexDebug::test_send(uint pkt_type) {
     rte_pktmbuf_free(d);
     delay(1000);
 
-    int j=0;
+    int j = 0;
     for (j = 0; j < m_rx_q_num; j++) {
         printf(" =========\n");
         printf(" rx queue %d \n", j);
@@ -531,7 +512,7 @@ int CTrexDebug::test_send(uint pkt_type) {
 
     struct rte_eth_stats stats;
     for (port_id = 0; port_id < m_max_ports; port_id++) {
-        CPhyEthIF * lp=&m_ports[port_id];
+        CPhyEthIF *lp = &m_ports[port_id];
         std::cout << "=====================\n";
         std::cout << "Statistics for port " << port_id << std::endl;
         std::cout << "=====================\n";
@@ -557,7 +538,6 @@ int CTrexDebug::test_send(uint pkt_type) {
             rte_stat_dump_array(fdir_stat_64, "FDIR stat", MAX_FLOW_STATS);
         }
     }
-
 
     return (0);
 }

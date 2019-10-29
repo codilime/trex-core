@@ -14,19 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 #include "EthernetHeader.h"
 
-void    EthernetHeader::dump(FILE*  fd)
-{
-    fprintf(fd,"EthernetHeader\n");
-    fprintf(fd,"Destination : ");
-    myDestination.dump(fd);;
-    fprintf(fd,"Source      : ");
-    mySource.dump(fd);;
-    fprintf(fd,"Protocol      : 0x%04x \n",getNextProtocol());
+void EthernetHeader::dump(FILE *fd) {
+    fprintf(fd, "EthernetHeader\n");
+    fprintf(fd, "Destination : ");
+    myDestination.dump(fd);
+    ;
+    fprintf(fd, "Source      : ");
+    mySource.dump(fd);
+    ;
+    fprintf(fd, "Protocol      : 0x%04x \n", getNextProtocol());
 }
-
-
-
-

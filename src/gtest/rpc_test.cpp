@@ -34,25 +34,21 @@ uint16_t gtest_get_mock_server_port();
 
 class RpcTest : public testing::Test {
 
-protected:
-
-    void set_verbose(bool verbose) {
-        m_verbose = verbose;
-    }
+  protected:
+    void set_verbose(bool verbose) { m_verbose = verbose; }
 
     virtual void SetUp() {
 
         m_verbose = false;
 
-        m_context = zmq_ctx_new ();
-        m_socket = zmq_socket (m_context, ZMQ_REQ);
+        m_context = zmq_ctx_new();
+        m_socket = zmq_socket(m_context, ZMQ_REQ);
 
         std::stringstream ss;
         ss << "tcp://localhost:";
         ss << gtest_get_mock_server_port();
 
-        zmq_connect (m_socket, ss.str().c_str());
-
+        zmq_connect(m_socket, ss.str().c_str());
     }
 
     virtual void TearDown() {
@@ -60,15 +56,13 @@ protected:
         zmq_term(m_context);
     }
 
-public:
-
+  public:
     void create_request(Json::Value &request, const string &method, int id = 1) {
         request.clear();
 
         request["jsonrpc"] = "2.0";
         request["id"] = id;
         request["method"] = method;
-
     }
 
     void send_request(const Json::Value &request, Json::Value &response) {
@@ -97,7 +91,7 @@ public:
     string send_msg(const string &msg) {
         char buffer[1024 * 20];
 
-        zmq_send (m_socket, msg.c_str(), msg.size(), 0);
+        zmq_send(m_socket, msg.c_str(), msg.size(), 0);
         int len = zmq_recv(m_socket, buffer, sizeof(buffer), 0);
 
         return string(buffer, len);
@@ -110,9 +104,8 @@ public:
 };
 
 class RpcTestOwned : public RpcTest {
-public:
-
-    void create_request(Json::Value &request, const string &method, int id = 1, int port_id = 1, bool owned = true)  {
+  public:
+    void create_request(Json::Value &request, const string &method, int id = 1, int port_id = 1, bool owned = true) {
         RpcTest::create_request(request, method, id);
         if (owned) {
             request["params"]["port_id"] = port_id;
@@ -120,16 +113,14 @@ public:
         }
     }
 
-protected:
-
+  protected:
     virtual void SetUp() {
         RpcTest::SetUp();
 
-        for (int i = 0 ; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             m_ownership_handler[i] = take_ownership(i);
         }
     }
-
 
     string take_ownership(uint8_t port_id) {
         Json::Value request;
@@ -213,8 +204,6 @@ TEST_F(RpcTest, basic_rpc_negative_cases) {
 
     EXPECT_TRUE(reader.parse(resp_str, response, false));
     EXPECT_TRUE(response == Json::Value::null);
-
-
 }
 
 TEST_F(RpcTest, test_add_command) {
@@ -254,7 +243,6 @@ TEST_F(RpcTest, test_add_command) {
 
     EXPECT_EQ(response["jsonrpc"], "2.0");
     EXPECT_EQ(response["result"], -34353902);
-
 }
 
 TEST_F(RpcTest, batch_rpc_test) {
@@ -318,8 +306,7 @@ TEST_F(RpcTest, ping) {
     EXPECT_TRUE(response["result"] == "ACK");
 }
 
-static bool
-find_member_in_array(const Json::Value &array, const string &member) {
+static bool find_member_in_array(const Json::Value &array, const string &member) {
     for (auto x : array) {
         if (x == member) {
             return true;
@@ -373,7 +360,6 @@ TEST_F(RpcTest, get_system_info) {
     EXPECT_TRUE(response["result"]["ports"].isArray());
 
     const Json::Value &ports = response["result"]["ports"];
-
 
     for (int i = 0; i < ports.size(); i++) {
         EXPECT_TRUE(ports[i]["index"] == i);
@@ -445,12 +431,11 @@ TEST_F(RpcTest, get_owner_acquire_release) {
     EXPECT_TRUE(response["result"] == "ACK");
 }
 
-
-static void
-create_simple_stream(Json::Value &obj) {
+static void create_simple_stream(Json::Value &obj) {
     obj["mode"]["type"] = "continuous";
     obj["mode"]["pps"] = (rand() % 1000 + 1) * 0.99;
-    obj["isg"] = (rand() % 100 + 1) * 0.99;;
+    obj["isg"] = (rand() % 100 + 1) * 0.99;
+    ;
     obj["enabled"] = true;
     obj["self_start"] = true;
     obj["next_stream_id"] = -1;
@@ -466,10 +451,7 @@ create_simple_stream(Json::Value &obj) {
     obj["flow_stats"]["enabled"] = false;
 }
 
-static bool
-compare_streams(const Json::Value &s1, const Json::Value &s2) {
-    return s1 == s2;
-}
+static bool compare_streams(const Json::Value &s1, const Json::Value &s2) { return s1 == s2; }
 
 TEST_F(RpcTestOwned, add_remove_stream) {
     Json::Value request;
@@ -522,15 +504,13 @@ TEST_F(RpcTestOwned, add_remove_stream) {
     send_request(request, response);
 
     EXPECT_EQ(response["error"]["code"], -32000);
-
 }
-
 
 TEST_F(RpcTestOwned, get_stream_id_list) {
     Json::Value request;
     Json::Value response;
 
-     /* add stream 1 */
+    /* add stream 1 */
     create_request(request, "add_stream", 1);
     request["params"]["port_id"] = 1;
 
@@ -550,7 +530,6 @@ TEST_F(RpcTestOwned, get_stream_id_list) {
     request["params"]["stream_id"] = 19;
     send_request(request, response);
     EXPECT_EQ(response["result"], "ACK");
-
 
     create_request(request, "get_stream_list");
     request["params"]["port_id"] = 1;
@@ -583,7 +562,6 @@ TEST_F(RpcTestOwned, get_stream_id_list) {
     EXPECT_TRUE(response["result"].size() == 0);
 }
 
-
 TEST_F(RpcTestOwned, start_stop_traffic) {
     Json::Value request;
     Json::Value response;
@@ -614,7 +592,6 @@ TEST_F(RpcTestOwned, start_stop_traffic) {
     send_request(request, response);
 
     EXPECT_EQ(response["result"], "ACK");
-
 
     /* start port 3 */
     create_request(request, "start_traffic", 1, 3);
@@ -656,7 +633,7 @@ TEST_F(RpcTestOwned, start_stop_traffic) {
     EXPECT_EQ(response["error"]["code"], -32000);
 
     /* stop traffic on port #1 */
-    create_request(request, "stop_traffic",1 ,1);
+    create_request(request, "stop_traffic", 1, 1);
     send_request(request, response);
     EXPECT_EQ(response["result"], "ACK");
 
@@ -665,8 +642,6 @@ TEST_F(RpcTestOwned, start_stop_traffic) {
     send_request(request, response);
     EXPECT_EQ(response["result"], "ACK");
 }
-
-
 
 TEST_F(RpcTestOwned, states_check) {
     Json::Value request;
@@ -729,7 +704,6 @@ TEST_F(RpcTestOwned, states_check) {
     send_request(request, response);
     EXPECT_EQ(response["result"], "ACK");
 
-
     create_request(request, "remove_stream", 1, 1);
     request["params"]["stream_id"] = 15;
     send_request(request, response);
@@ -739,7 +713,6 @@ TEST_F(RpcTestOwned, states_check) {
     create_request(request, "pause_traffic", 1, 1);
     send_request(request, response);
     EXPECT_EQ(response["error"]["code"], -32000);
-
 
     /* start */
     create_request(request, "start_traffic", 1, 1);
@@ -756,6 +729,4 @@ TEST_F(RpcTestOwned, states_check) {
     create_request(request, "resume_traffic", 1, 1);
     send_request(request, response);
     EXPECT_EQ(response["result"], "ACK");
-
-
 }

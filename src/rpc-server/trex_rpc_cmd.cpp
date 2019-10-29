@@ -33,25 +33,20 @@ TrexRpcComponent::~TrexRpcComponent() {
     m_cmds.clear();
 }
 
-
 /**
  * method name and params
  *
  */
-TrexRpcCommand::TrexRpcCommand(const std::string &method_name,
-                               TrexRpcComponent *component,
-                               bool needs_api,
+TrexRpcCommand::TrexRpcCommand(const std::string &method_name, TrexRpcComponent *component, bool needs_api,
                                bool needs_ownership) {
 
-    m_name            = method_name;
-    m_component       = component;
-    m_needs_api       = needs_api;
+    m_name = method_name;
+    m_component = component;
+    m_needs_api = needs_api;
     m_needs_ownership = needs_ownership;
 }
 
-
-trex_rpc_cmd_rc_e
-TrexRpcCommand::run(const Json::Value &params, Json::Value &result) {
+trex_rpc_cmd_rc_e TrexRpcCommand::run(const Json::Value &params, Json::Value &result) {
     trex_rpc_cmd_rc_e rc;
 
     /* the internal run can throw a parser error / other error */
@@ -67,10 +62,10 @@ TrexRpcCommand::run(const Json::Value &params, Json::Value &result) {
             verify_ownership(params, result);
         }
 
-        if (!params.isObject()){
-          std::stringstream ss;
-          ss << "JSON-RPC2 params should be object in TRex case ";
-          generate_execute_err(result, ss.str());
+        if (!params.isObject()) {
+            std::stringstream ss;
+            ss << "JSON-RPC2 params should be object in TRex case ";
+            generate_execute_err(result, ss.str());
         }
 
         /* run the command itself*/
@@ -83,8 +78,7 @@ TrexRpcCommand::run(const Json::Value &params, Json::Value &result) {
     return (rc);
 }
 
-void
-TrexRpcCommand::verify_ownership(const Json::Value &params, Json::Value &result) {
+void TrexRpcCommand::verify_ownership(const Json::Value &params, Json::Value &result) {
     std::string handler = parse_string(params, "handler", result);
     uint8_t port_id = parse_port(params, result);
 
@@ -100,19 +94,20 @@ TrexRpcCommand::verify_ownership(const Json::Value &params, Json::Value &result)
 }
 
 void TrexRpcCommand::verify_fast_stack(const Json::Value &params, Json::Value &result, uint8_t port_id) {
-    if ( !get_stx()->get_rx()->is_active() ) { // we don't have RX core
+    if (!get_stx()->get_rx()->is_active()) { // we don't have RX core
         return;
     }
     TrexPort *port = get_stx()->get_port_by_id(port_id);
     const bool block = parse_bool(params, "block", result, true);
 
-    if ( block && !port->has_fast_stack() ) {
-        generate_parse_err(result, "Current stack \"" + port->get_stack_name() + "\" does not support blocking operations. Switch to another or use newer client");
+    if (block && !port->has_fast_stack()) {
+        generate_parse_err(result,
+                           "Current stack \"" + port->get_stack_name() +
+                               "\" does not support blocking operations. Switch to another or use newer client");
     }
 }
 
-void
-TrexRpcCommand::verify_api_handler(const Json::Value &params, Json::Value &result) {
+void TrexRpcCommand::verify_api_handler(const Json::Value &params, Json::Value &result) {
 
     std::string api_handler = parse_string(params, "api_h", result);
 
@@ -123,27 +118,24 @@ TrexRpcCommand::verify_api_handler(const Json::Value &params, Json::Value &resul
     }
 }
 
-uint8_t
-TrexRpcCommand::parse_port(const Json::Value &params, Json::Value &result) {
+uint8_t TrexRpcCommand::parse_port(const Json::Value &params, Json::Value &result) {
     uint8_t port_id = parse_byte(params, "port_id", result);
     validate_port_id(port_id, result);
 
     return (port_id);
 }
 
-std::string
-TrexRpcCommand::parse_profile(const Json::Value &params, Json::Value &result, std::string default_value){
+std::string TrexRpcCommand::parse_profile(const Json::Value &params, Json::Value &result, std::string default_value) {
     if (params["profile_id"] == Json::Value::null) {
         return default_value;
     }
     return params["profile_id"].asString();
 }
 
-std::string
-TrexRpcCommand::parse_ipv6(const Json::Value &parent, const std::string &param, Json::Value &result){
+std::string TrexRpcCommand::parse_ipv6(const Json::Value &parent, const std::string &param, Json::Value &result) {
     string src_ipv6 = parse_string(parent, param, result);
     char buf[16];
-    if ( inet_pton(AF_INET6, src_ipv6.c_str(), buf) != 1 ) {
+    if (inet_pton(AF_INET6, src_ipv6.c_str(), buf) != 1) {
         stringstream ss;
         ss << "invalid source IPv6 address: '" << src_ipv6 << "'";
         generate_parse_err(result, ss.str());
@@ -152,45 +144,42 @@ TrexRpcCommand::parse_ipv6(const Json::Value &parent, const std::string &param, 
     return (src_ipv6);
 }
 
-std::string
-TrexRpcCommand::parse_ipv4(const Json::Value &parent,const std::string &param, Json::Value &result, const std::string &def){
+std::string TrexRpcCommand::parse_ipv4(const Json::Value &parent, const std::string &param, Json::Value &result,
+                                       const std::string &def) {
     if (parent[param] == Json::Value::null) {
-            return def;
+        return def;
     }
     return parse_ipv4(parent, param, result);
 }
 
-std::string
-TrexRpcCommand::parse_ipv4(const Json::Value &parent,const std::string &param, Json::Value &result){
+std::string TrexRpcCommand::parse_ipv4(const Json::Value &parent, const std::string &param, Json::Value &result) {
 
-     std::string ipv4 = parse_string(parent, param, result);
+    std::string ipv4 = parse_string(parent, param, result);
 
-     char buf[4];
+    char buf[4];
 
-     if ( inet_pton(AF_INET, ipv4.c_str(), buf) != 1 ) {
-         stringstream ss;
-         ss << "invalid source IPv4 address: '" << ipv4 << "'";
-         generate_parse_err(result, ss.str());
-     }
-     string ip4_buf(buf, 4);
-     return ip4_buf;
- }
+    if (inet_pton(AF_INET, ipv4.c_str(), buf) != 1) {
+        stringstream ss;
+        ss << "invalid source IPv4 address: '" << ipv4 << "'";
+        generate_parse_err(result, ss.str());
+    }
+    string ip4_buf(buf, 4);
+    return ip4_buf;
+}
 
-void
-TrexRpcCommand::validate_port_id(uint8_t port_id, Json::Value &result) {
+void TrexRpcCommand::validate_port_id(uint8_t port_id, Json::Value &result) {
     const stx_port_map_t &port_map = get_stx()->get_port_map();
-    if ( port_map.find(port_id) == port_map.end() ) {
+    if (port_map.find(port_id) == port_map.end()) {
         std::stringstream ss;
         ss << "invalid port id - should be:";
-        for ( auto &port:port_map ) {
+        for (auto &port : port_map) {
             ss << " " << port.first;
         }
         generate_execute_err(result, ss.str());
     }
 }
 
-const char *
-TrexRpcCommand::type_to_str(field_type_e type) {
+const char *TrexRpcCommand::type_to_str(field_type_e type) {
     switch (type) {
     case FIELD_TYPE_BYTE:
         return "byte";
@@ -220,10 +209,9 @@ TrexRpcCommand::type_to_str(field_type_e type) {
     }
 }
 
-const char *
-TrexRpcCommand::json_type_to_name(const Json::Value &value) {
+const char *TrexRpcCommand::json_type_to_name(const Json::Value &value) {
 
-    switch(value.type()) {
+    switch (value.type()) {
     case Json::nullValue:
         return "null";
     case Json::intValue:
@@ -244,18 +232,16 @@ TrexRpcCommand::json_type_to_name(const Json::Value &value) {
     default:
         return "UNKNOWN";
     }
-
 }
 
 /**
  * for index element (array)
  */
-void
-TrexRpcCommand::check_field_type(const Json::Value &parent, int index, field_type_e type, Json::Value &result) {
+void TrexRpcCommand::check_field_type(const Json::Value &parent, int index, field_type_e type, Json::Value &result) {
 
     /* should never get here without parent being array */
     if (!parent.isArray()) {
-      generate_parse_err(result, "parent field is missing");
+        generate_parse_err(result, "parent field is missing");
     }
 
     const Json::Value &field = parent[index];
@@ -265,15 +251,15 @@ TrexRpcCommand::check_field_type(const Json::Value &parent, int index, field_typ
     check_field_type_common(field, ss.str(), type, result);
 }
 
-void
-TrexRpcCommand::check_field_type(const Json::Value &parent, const std::string &name, field_type_e type, Json::Value &result) {
+void TrexRpcCommand::check_field_type(const Json::Value &parent, const std::string &name, field_type_e type,
+                                      Json::Value &result) {
 
     /* is the parent missing ? */
     if (parent == Json::Value::null) {
         generate_parse_err(result, "field '" + name + "' is missing");
     }
 
-     /* should never get here without parent being object */
+    /* should never get here without parent being object */
     if (!parent.isObject()) {
         generate_parse_err(result, "parent field '" + name + "' is missing");
     }
@@ -282,8 +268,8 @@ TrexRpcCommand::check_field_type(const Json::Value &parent, const std::string &n
     check_field_type_common(field, name, type, result);
 }
 
-void
-TrexRpcCommand::check_field_type_common(const Json::Value &field, const std::string &name, field_type_e type, Json::Value &result) {
+void TrexRpcCommand::check_field_type_common(const Json::Value &field, const std::string &name, field_type_e type,
+                                             Json::Value &result) {
     std::string specific_err;
 
     /* first check if field exists */
@@ -293,7 +279,8 @@ TrexRpcCommand::check_field_type_common(const Json::Value &field, const std::str
     }
 
     bool rc = true;
-    specific_err = "is '" + std::string(json_type_to_name(field)) + "', expecting '" + std::string(type_to_str(type)) + "'";
+    specific_err =
+        "is '" + std::string(json_type_to_name(field)) + "', expecting '" + std::string(type_to_str(type)) + "'";
 
     switch (type) {
     case FIELD_TYPE_BYTE:
@@ -351,7 +338,7 @@ TrexRpcCommand::check_field_type_common(const Json::Value &field, const std::str
         if (!field.isDouble()) {
             rc = false;
         } else if (field.asDouble() < 0) {
-            specific_err =  "has negative value.";
+            specific_err = "has negative value.";
             rc = false;
         }
         break;
@@ -377,55 +364,51 @@ TrexRpcCommand::check_field_type_common(const Json::Value &field, const std::str
     default:
         throw TrexRpcException("unhandled type");
         break;
-
     }
     if (!rc) {
-        generate_parse_err(result, "error at offset: " + std::to_string(field.getOffsetStart()) + " - '" + name + "' " + specific_err);
+        generate_parse_err(result, "error at offset: " + std::to_string(field.getOffsetStart()) + " - '" + name + "' " +
+                                       specific_err);
     }
-
 }
 
-void
-TrexRpcCommand::generate_parse_err(Json::Value &result, const std::string &msg) {
+void TrexRpcCommand::generate_parse_err(Json::Value &result, const std::string &msg) {
     result["specific_err"] = msg;
-    throw (TrexRpcCommandException(TREX_RPC_CMD_PARSE_ERR,msg));
+    throw(TrexRpcCommandException(TREX_RPC_CMD_PARSE_ERR, msg));
 }
 
-void
-TrexRpcCommand::generate_internal_err(Json::Value &result, const std::string &msg) {
+void TrexRpcCommand::generate_internal_err(Json::Value &result, const std::string &msg) {
     result["specific_err"] = msg;
-    throw (TrexRpcCommandException(TREX_RPC_CMD_INTERNAL_ERR,msg));
+    throw(TrexRpcCommandException(TREX_RPC_CMD_INTERNAL_ERR, msg));
 }
 
-void
-TrexRpcCommand::generate_execute_err(Json::Value &result, const std::string &msg) {
+void TrexRpcCommand::generate_execute_err(Json::Value &result, const std::string &msg) {
     result["specific_err"] = msg;
-    throw (TrexRpcCommandException(TREX_RPC_CMD_EXECUTE_ERR,msg));
+    throw(TrexRpcCommandException(TREX_RPC_CMD_EXECUTE_ERR, msg));
 }
 
 void TrexRpcCommand::generate_try_again(Json::Value &result, const std::string &msg) {
     result["specific_err"] = msg;
-    throw (TrexRpcCommandException(TREX_RPC_CMD_TRY_AGAIN_ERR, ""));
+    throw(TrexRpcCommandException(TREX_RPC_CMD_TRY_AGAIN_ERR, ""));
 }
 
 void TrexRpcCommand::generate_try_again(Json::Value &result) {
     result["specific_err"] = "";
-    throw (TrexRpcCommandException(TREX_RPC_CMD_TRY_AGAIN_ERR, ""));
+    throw(TrexRpcCommandException(TREX_RPC_CMD_TRY_AGAIN_ERR, ""));
 }
 
 void TrexRpcCommand::generate_async_wip(Json::Value &result, uint64_t ticket_id) {
     result["specific_err"] = std::to_string(ticket_id);
-    throw (TrexRpcCommandException(TREX_RPC_CMD_ASYNC_WIP_ERR, ""));
+    throw(TrexRpcCommandException(TREX_RPC_CMD_ASYNC_WIP_ERR, ""));
 }
 
 void TrexRpcCommand::generate_async_no_results(Json::Value &result, const std::string &msg) {
     result["specific_err"] = msg;
-    throw (TrexRpcCommandException(TREX_RPC_CMD_ASYNC_NO_RESULTS_ERR, ""));
+    throw(TrexRpcCommandException(TREX_RPC_CMD_ASYNC_NO_RESULTS_ERR, ""));
 }
 
 void TrexRpcCommand::generate_async_no_results(Json::Value &result) {
     result["specific_err"] = "";
-    throw (TrexRpcCommandException(TREX_RPC_CMD_ASYNC_NO_RESULTS_ERR, ""));
+    throw(TrexRpcCommandException(TREX_RPC_CMD_ASYNC_NO_RESULTS_ERR, ""));
 }
 
 /**
@@ -433,4 +416,3 @@ void TrexRpcCommand::generate_async_no_results(Json::Value &result) {
  */
 bool TrexRpcCommand::g_test_override_ownership = false;
 bool TrexRpcCommand::g_test_override_api = false;
-

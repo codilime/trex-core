@@ -38,8 +38,9 @@
   since we always insert at the end, with increasing timestamp.
 */
 
-std::ostream& operator<<(std::ostream& os, const CNatData &cn) {
-    os << "(" << &cn << ")" << "data:" << cn.m_data << " time:" << cn.m_timestamp;
+std::ostream &operator<<(std::ostream &os, const CNatData &cn) {
+    os << "(" << &cn << ")"
+       << "data:" << cn.m_data << " time:" << cn.m_timestamp;
     os << " prev:" << cn.m_prev << " next:" << cn.m_next;
     return os;
 }
@@ -91,7 +92,7 @@ bool CNatCheckFlowTableMap::verify(uint32_t *arr, int size) {
     return true;
 }
 
-CNatData * CNatCheckFlowTableMap::insert(uint64_t key, uint32_t val, double time) {
+CNatData *CNatCheckFlowTableMap::insert(uint64_t key, uint32_t val, double time) {
     CNatData *elem = new CNatData;
     assert(elem);
     elem->set_data(val);
@@ -107,7 +108,7 @@ CNatData * CNatCheckFlowTableMap::insert(uint64_t key, uint32_t val, double time
     }
 }
 
-std::ostream& operator<<(std::ostream& os, const CNatCheckFlowTableMap& cf) {
+std::ostream &operator<<(std::ostream &os, const CNatCheckFlowTableMap &cf) {
     nat_check_flow_map_iter_t it;
 
     os << "NAT check flow table map:\n";
@@ -192,13 +193,13 @@ bool CNatCheckFlowTableList::verify(uint32_t *arr, int size) {
     return true;
 }
 
-std::ostream& operator<<(std::ostream& os, const CNatCheckFlowTableList& cf) {
+std::ostream &operator<<(std::ostream &os, const CNatCheckFlowTableList &cf) {
     CNatData *it = cf.m_head;
 
     os << "NAT check flow table list:\n";
     os << "  head:" << cf.m_head << " tail:" << cf.m_tail << std::endl;
     while (it != NULL) {
-        os << "  " << *it  << std::endl;
+        os << "  " << *it << std::endl;
         it = it->m_next;
     }
 
@@ -206,7 +207,7 @@ std::ostream& operator<<(std::ostream& os, const CNatCheckFlowTableList& cf) {
 }
 
 // flow table
-std::ostream& operator<<(std::ostream& os, const CNatCheckFlowTable& cf) {
+std::ostream &operator<<(std::ostream &os, const CNatCheckFlowTable &cf) {
     os << "========= Flow table start =========" << std::endl;
     os << cf.m_map;
     os << cf.m_list;
@@ -259,9 +260,7 @@ bool CNatCheckFlowTable::insert(uint64_t key, uint32_t val, double time) {
     return true;
 }
 
-CNatCheckFlowTable::~CNatCheckFlowTable() {
-    clear_old(UINT64_MAX);
-}
+CNatCheckFlowTable::~CNatCheckFlowTable() { clear_old(UINT64_MAX); }
 
 bool CNatCheckFlowTable::test() {
     uint32_t size = 100;
@@ -270,7 +269,7 @@ bool CNatCheckFlowTable::test() {
     uint32_t val;
 
     for (i = 0; i < size; i++) {
-        arr[i] = i+200;
+        arr[i] = i + 200;
     }
 
     // insert some elements
@@ -288,27 +287,27 @@ bool CNatCheckFlowTable::test() {
     // remove element we did not insert
     assert(erase(size, val) == false);
 
-    assert (m_map.verify(arr, size) == true);
-    assert (m_list.verify(arr, size) == true);
+    assert(m_map.verify(arr, size) == true);
+    assert(m_list.verify(arr, size) == true);
 
     // remove even keys
     for (i = 0; i < size; i += 2) {
         assert(erase(i, val) == true);
-        assert (val == arr[i]);
+        assert(val == arr[i]);
         arr[i] = -1;
     }
 
-    assert (m_map.verify(arr, size) == true);
-    assert (m_list.verify(arr, size) == true);
+    assert(m_map.verify(arr, size) == true);
+    assert(m_list.verify(arr, size) == true);
 
     // clear half of the old values (We removed the even already, so 1/4 should be left)
-    clear_old(size/2);
-    for (i = 0; i < size/2; i++) {
-        arr [i] = -1;
+    clear_old(size / 2);
+    for (i = 0; i < size / 2; i++) {
+        arr[i] = -1;
     }
 
-    assert (m_map.verify(arr, size) == true);
-    assert (m_list.verify(arr, size) == true);
+    assert(m_map.verify(arr, size) == true);
+    assert(m_list.verify(arr, size) == true);
 
     return true;
 }

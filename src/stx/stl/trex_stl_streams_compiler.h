@@ -39,14 +39,12 @@ class TrexStatelessProfile;
  */
 class TrexDPCoreMask {
 
-public:
-
-
+  public:
     TrexDPCoreMask(uint8_t dp_core_count, uint64_t dp_core_mask = MASK_ALL) {
         assert(is_valid_mask(dp_core_count, dp_core_mask));
 
         m_dp_core_count = dp_core_count;
-        m_dp_core_mask  = dp_core_mask;
+        m_dp_core_mask = dp_core_mask;
 
         /* create a vector of all the active cores */
         for (int i = 0; i < m_dp_core_count; i++) {
@@ -56,48 +54,36 @@ public:
         }
     }
 
+    uint8_t get_total_count() const { return m_dp_core_count; }
 
-    uint8_t get_total_count() const {
-        return m_dp_core_count;
-    }
-
-    uint8_t get_active_count() const {
-        return m_active_cores.size();
-    }
+    uint8_t get_active_count() const { return m_active_cores.size(); }
 
     bool is_core_active(uint8_t core_id) const {
         assert(core_id < m_dp_core_count);
-        return ( (1 << core_id) & m_dp_core_mask );
+        return ((1 << core_id) & m_dp_core_mask);
     }
 
-    bool is_core_disabled(uint8_t core_id) const {
-        return (!is_core_active(core_id));
-    }
+    bool is_core_disabled(uint8_t core_id) const { return (!is_core_active(core_id)); }
 
-    const std::vector<uint8_t> & get_active_cores() const {
-        return m_active_cores;
-    }
+    const std::vector<uint8_t> &get_active_cores() const { return m_active_cores; }
 
     static bool is_valid_mask(uint8_t dp_core_count, uint64_t dp_core_mask) {
-        if ( (dp_core_count < 1) || (dp_core_count > 64) ) {
+        if ((dp_core_count < 1) || (dp_core_count > 64)) {
             return false;
         }
         /* highest bit pushed to left and then -1 will give all the other bits on */
-        return ( (dp_core_mask & ( (1 << dp_core_count) - 1 ) ) != 0);
+        return ((dp_core_mask & ((1 << dp_core_count) - 1)) != 0);
     }
 
-private:
-
-    uint8_t   m_dp_core_count;
-    uint64_t  m_dp_core_mask;
+  private:
+    uint8_t m_dp_core_count;
+    uint64_t m_dp_core_mask;
 
     std::vector<uint8_t> m_active_cores;
 
-public:
+  public:
     static const uint64_t MASK_ALL = UINT64_MAX;
-
 };
-
 
 /**
  * compiled object for a table of streams
@@ -107,8 +93,7 @@ public:
 class TrexStreamsCompiledObj {
     friend class TrexStreamsCompiler;
 
-public:
-
+  public:
     TrexStreamsCompiledObj(uint8_t port_id);
     ~TrexStreamsCompiledObj();
 
@@ -116,27 +101,21 @@ public:
         TrexStream *m_stream;
     };
 
-    const std::vector<obj_st> & get_objects() {
-        return m_objs;
-    }
+    const std::vector<obj_st> &get_objects() { return m_objs; }
 
-    uint8_t get_port_id(){
-        return (m_port_id);
-    }
+    uint8_t get_port_id() { return (m_port_id); }
 
-    bool get_all_streams_continues(){
-        return (m_all_continues);
-    }
+    bool get_all_streams_continues() { return (m_all_continues); }
 
     void Dump(FILE *fd);
 
-    TrexStreamsCompiledObj* clone();
+    TrexStreamsCompiledObj *clone();
 
     bool is_empty() {
         if (m_objs.size() == 0) {
             return true;
         }
-        for (auto& obj : m_objs) {
+        for (auto &obj : m_objs) {
             if (!obj.m_stream->is_null_stream()) {
                 return false;
             }
@@ -144,75 +123,52 @@ public:
         return true;
     }
 
-    int size() const {
-        return m_objs.size();
-    }
+    int size() const { return m_objs.size(); }
 
-private:
+  private:
     void add_compiled_stream(TrexStream *stream);
-
 
     std::vector<obj_st> m_objs;
 
-    bool    m_all_continues;
+    bool m_all_continues;
     uint8_t m_port_id;
 };
 
 class TrexStreamsCompiler {
-public:
-
-     TrexStreamsCompiler(std::string profile_id = "_") {
-
-         m_profile_id = profile_id;
-     }
-     ~TrexStreamsCompiler(){}
+  public:
+    TrexStreamsCompiler(std::string profile_id = "_") { m_profile_id = profile_id; }
+    ~TrexStreamsCompiler() {}
     /**
      * compiles a vector of streams to an object passable to the DP
      *
      * @author imarom (28-Oct-15)
      *
      */
-    bool compile(uint8_t                                port_id,
-                 const std::vector<TrexStream *>        &streams,
-                 std::vector<TrexStreamsCompiledObj *>  &objs,
-                 const TrexDPCoreMask                   &core_mask = 1,
-                 double                                 factor = 1.0,
-                 std::string                            *fail_msg = NULL);
-
+    bool compile(uint8_t port_id, const std::vector<TrexStream *> &streams, std::vector<TrexStreamsCompiledObj *> &objs,
+                 const TrexDPCoreMask &core_mask = 1, double factor = 1.0, std::string *fail_msg = NULL);
 
     /**
      *
      * returns a reference pointer to the last compile warnings
      * if no warnings were produced - the vector is empty
      */
-    const std::vector<std::string> & get_last_compile_warnings() {
-        return m_warnings;
-    }
+    const std::vector<std::string> &get_last_compile_warnings() { return m_warnings; }
 
-private:
+  private:
+    void compile_internal(uint8_t port_id, const std::vector<TrexStream *> &streams,
+                          std::vector<TrexStreamsCompiledObj *> &objs, const TrexDPCoreMask &core_mask, double factor);
 
-    void compile_internal(uint8_t                                port_id,
-                          const std::vector<TrexStream *>        &streams,
-                          std::vector<TrexStreamsCompiledObj *>  &objs,
-                          const TrexDPCoreMask                   &core_mask,
-                          double                                 factor);
+    void migrate_to_direct_cores(const TrexDPCoreMask &core_mask,
+                                 const std::vector<TrexStreamsCompiledObj *> &indirect_objs,
+                                 std::vector<TrexStreamsCompiledObj *> &direct_objs);
 
-    void migrate_to_direct_cores(const TrexDPCoreMask                         &core_mask,
-                                 const std::vector<TrexStreamsCompiledObj *>  &indirect_objs,
-                                 std::vector<TrexStreamsCompiledObj *>        &direct_objs);
+    void compile_non_latency_streams(uint8_t port_id, const std::vector<TrexStream *> &streams,
+                                     std::vector<TrexStreamsCompiledObj *> &objs, uint8_t dp_core_count, double factor);
 
-    void compile_non_latency_streams(uint8_t                                port_id,
-                                     const std::vector<TrexStream *>        &streams,
-                                     std::vector<TrexStreamsCompiledObj *>  &objs,
-                                     uint8_t                                dp_core_count,
-                                     double                                 factor);
+    void compile_latency_streams(uint8_t port_id, const std::vector<TrexStream *> &streams,
+                                 TrexStreamsCompiledObj *&latency_obj);
 
-    void compile_latency_streams(uint8_t                                port_id,
-                                 const std::vector<TrexStream *>        &streams,
-                                 TrexStreamsCompiledObj                 *&latency_obj);
-
-    void pre_compile_check(const std::vector<TrexStream *> &streams,
-                           GraphNodeMap & nodes);
+    void pre_compile_check(const std::vector<TrexStream *> &streams, GraphNodeMap &nodes);
     void allocate_pass(const std::vector<TrexStream *> &streams, GraphNodeMap *nodes);
     void validate_core_pinning(const TrexStream *stream, const TrexStream *next);
     void direct_pass(GraphNodeMap *nodes);
@@ -222,60 +178,43 @@ private:
     void add_warning(const std::string &warning);
     void err(const std::string &err);
 
-    void compile_on_all_cores(uint8_t                                port_id,
-                              const std::vector<TrexStream *>        &streams,
-                              std::vector<TrexStreamsCompiledObj *>  &objs,
-                              uint8_t                                dp_core_count,
-                              double                                 factor,
-                              GraphNodeMap                           &nodes,
-                              bool                                   all_continues);
+    void compile_on_all_cores(uint8_t port_id, const std::vector<TrexStream *> &streams,
+                              std::vector<TrexStreamsCompiledObj *> &objs, uint8_t dp_core_count, double factor,
+                              GraphNodeMap &nodes, bool all_continues);
 
+    void compile_stream(const TrexStream *stream, double factor, uint8_t dp_core_count,
+                        std::vector<TrexStreamsCompiledObj *> &objs, GraphNodeMap &nodes);
 
-    void compile_stream(const TrexStream *stream,
-                        double factor,
-                        uint8_t dp_core_count,
-                        std::vector<TrexStreamsCompiledObj *> &objs,
-                        GraphNodeMap &nodes);
-
-    void compile_stream_on_single_core(TrexStream *stream,
-                                       uint8_t dp_core_count,
-                                       std::vector<TrexStreamsCompiledObj *> &objs,
-                                       int new_id,
-                                       int new_next_id,
+    void compile_stream_on_single_core(TrexStream *stream, uint8_t dp_core_count,
+                                       std::vector<TrexStreamsCompiledObj *> &objs, int new_id, int new_next_id,
                                        uint8_t core_id = 0);
 
-    void compile_stream_on_all_cores(TrexStream *stream,
-                                     uint8_t dp_core_count,
-                                     std::vector<TrexStreamsCompiledObj *> &objs,
-                                     int new_id,
-                                     int new_next_id);
-
+    void compile_stream_on_all_cores(TrexStream *stream, uint8_t dp_core_count,
+                                     std::vector<TrexStreamsCompiledObj *> &objs, int new_id, int new_next_id);
 
     std::vector<std::string> m_warnings;
-    std::string    m_profile_id;
+    std::string m_profile_id;
 };
 
 class TrexStreamsGraph;
 
 /* describes a bandwidth point */
 class BW {
-public:
-
+  public:
     BW() {
-        m_pps    = 0;
+        m_pps = 0;
         m_bps_l2 = 0;
         m_bps_l1 = 0;
     }
 
     BW(double pps, double bps_l2, double bps_l1) {
-        m_pps    = pps;
+        m_pps = pps;
         m_bps_l2 = bps_l2;
         m_bps_l1 = bps_l1;
-
     }
 
-    BW& operator+= (const BW &other) {
-        m_pps    += other.m_pps;
+    BW &operator+=(const BW &other) {
+        m_pps += other.m_pps;
         m_bps_l1 += other.m_bps_l1;
         m_bps_l2 += other.m_bps_l2;
 
@@ -287,19 +226,16 @@ public:
      * BW object
      */
     static BW min_bw(uint32_t min_pps = 1, uint16_t min_pkt_size = 14) {
-        return BW(min_pps,
-                  min_pps * (min_pkt_size * 8),
-                  min_pps * (min_pkt_size + 20) * 8);
+        return BW(min_pps, min_pps * (min_pkt_size * 8), min_pps * (min_pkt_size + 20) * 8);
     }
 
     double m_pps;
     double m_bps_l1;
     double m_bps_l2;
-
 };
 
 /* there are two temp copies here - it is known... */
-static inline BW operator+ (BW lhs, const BW &rhs) {
+static inline BW operator+(BW lhs, const BW &rhs) {
     lhs += rhs;
     return lhs;
 }
@@ -312,11 +248,8 @@ static inline BW operator+ (BW lhs, const BW &rhs) {
 class TrexStreamsGraphObj {
     friend class TrexStreamsGraph;
 
-public:
-
-    TrexStreamsGraphObj() {
-        m_expected_duration = 0;
-    }
+  public:
+    TrexStreamsGraphObj() { m_expected_duration = 0; }
 
     /**
      * rate event is defined by those:
@@ -326,78 +259,59 @@ public:
      * @author imarom (23-Nov-15)
      */
     struct rate_event_st {
-        double   time;
-        double   diff_pps;
-        double   diff_bps_l1;
-        double   diff_bps_l2;
+        double time;
+        double diff_pps;
+        double diff_bps_l1;
+        double diff_bps_l2;
         uint32_t stream_id;
     };
 
-    double get_max_pps(double factor = 1) const {
-        return (m_var.m_pps * factor + m_fixed.m_pps);
-    }
+    double get_max_pps(double factor = 1) const { return (m_var.m_pps * factor + m_fixed.m_pps); }
 
-    double get_max_bps_l1(double factor = 1) const {
-        return (m_var.m_bps_l1 * factor + m_fixed.m_bps_l1);
-    }
+    double get_max_bps_l1(double factor = 1) const { return (m_var.m_bps_l1 * factor + m_fixed.m_bps_l1); }
 
-    double get_max_bps_l2(double factor = 1) const {
-        return (m_var.m_bps_l2 * factor + m_fixed.m_bps_l2);
-    }
+    double get_max_bps_l2(double factor = 1) const { return (m_var.m_bps_l2 * factor + m_fixed.m_bps_l2); }
 
     double get_factor_pps(double req_pps) const {
-        if ( (req_pps - m_fixed.m_pps) < 0 )  {
+        if ((req_pps - m_fixed.m_pps) < 0) {
             std::stringstream ss;
             ss << "current stream configuration enforces a minimum rate of '" << m_fixed.m_pps << "' pps";
             throw TrexException(ss.str());
         }
 
-        return ( (req_pps - m_fixed.m_pps) / m_var.m_pps );
+        return ((req_pps - m_fixed.m_pps) / m_var.m_pps);
     }
 
     double get_factor_bps_l1(double req_bps_l1) const {
-        if ( (req_bps_l1 - m_fixed.m_bps_l1) < 0 )  {
+        if ((req_bps_l1 - m_fixed.m_bps_l1) < 0) {
             std::stringstream ss;
             ss << "current stream configuration enforces a minimum rate of '" << m_fixed.m_bps_l1 << "' BPS L1";
             throw TrexException(ss.str());
         }
 
-        return ( (req_bps_l1 - m_fixed.m_bps_l1) / m_var.m_bps_l1 );
+        return ((req_bps_l1 - m_fixed.m_bps_l1) / m_var.m_bps_l1);
     }
 
     double get_factor_bps_l2(double req_bps_l2) const {
-        if ( (req_bps_l2 - m_fixed.m_bps_l2) < 0 )  {
+        if ((req_bps_l2 - m_fixed.m_bps_l2) < 0) {
             std::stringstream ss;
             ss << "current stream configuration enforces a minimum rate of '" << m_fixed.m_bps_l2 << "' BPS L2";
             throw TrexException(ss.str());
         }
 
-        return ( (req_bps_l2 - m_fixed.m_bps_l2) / m_var.m_bps_l2 );
+        return ((req_bps_l2 - m_fixed.m_bps_l2) / m_var.m_bps_l2);
     }
 
-    int get_duration() const {
-        return m_expected_duration;
-    }
+    int get_duration() const { return m_expected_duration; }
 
-    const std::list<rate_event_st> & get_events() const {
-        return m_rate_events;
-    }
+    const std::list<rate_event_st> &get_events() const { return m_rate_events; }
 
+  private:
+    void on_loop_detection() { m_expected_duration = -1; }
 
-private:
+    void add_rate_event(const rate_event_st &ev) { m_rate_events.push_back(ev); }
 
-
-    void on_loop_detection() {
-        m_expected_duration = -1;
-    }
-
-    void add_rate_event(const rate_event_st &ev) {
-        m_rate_events.push_back(ev);
-    }
-
-    void add_fixed_rate(const BW &bw) {
-        m_fixed += bw;
-    }
+    void add_fixed_rate(const BW &bw) { m_fixed += bw; }
 
     void generate();
     void find_max_rate();
@@ -411,11 +325,10 @@ private:
     /* total consists of fixed rate + variable rate*/
     BW m_total;
 
-    int     m_expected_duration;
+    int m_expected_duration;
 
     /* list of rate events */
     std::list<rate_event_st> m_rate_events;
-
 };
 
 /**
@@ -424,20 +337,16 @@ private:
  * @author imarom (23-Nov-15)
  */
 class TrexStreamsGraph {
-public:
-
-    TrexStreamsGraph() {
-        m_graph_obj = NULL;
-    }
+  public:
+    TrexStreamsGraph() { m_graph_obj = NULL; }
 
     /**
      * generate a sequence graph for streams
      *
      */
-    const TrexStreamsGraphObj * generate(const std::vector<TrexStream *> &streams);
+    const TrexStreamsGraphObj *generate(const std::vector<TrexStream *> &streams);
 
-private:
-
+  private:
     void generate_graph_for_one_root(uint32_t root_stream_id);
 
     void add_rate_events_for_stream(double &offset, TrexStream *stream);

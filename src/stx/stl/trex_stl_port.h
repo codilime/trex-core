@@ -34,97 +34,75 @@ limitations under the License.
 /* STL files */
 #include "trex_stl_stream.h"
 
-
 class TrexCpToDpMsgBase;
 class TrexCpToRxMsgBase;
 class TrexStreamsGraphObj;
 class TrexPortMultiplier;
 class TrexPktBuffer;
 
-
 class AsyncStopEvent;
 class AsyncProfileStopEvent;
 
 class TrexProfileTable;
-
-
 
 /**
  * port multiplier object
  *
  */
 class TrexPortMultiplier {
-public:
-
-
+  public:
     /**
      * defines the type of multipler passed to start
      */
-    enum mul_type_e {
-        MUL_FACTOR,
-        MUL_BPS,
-        MUL_BPSL1,
-        MUL_PPS,
-        MUL_PERCENTAGE
-    };
+    enum mul_type_e { MUL_FACTOR, MUL_BPS, MUL_BPSL1, MUL_PPS, MUL_PERCENTAGE };
 
     /**
      * multiplier can be absolute value
      * increment value or subtract value
      */
-    enum mul_op_e {
-        OP_ABS,
-        OP_ADD,
-        OP_SUB
-    };
-
+    enum mul_op_e { OP_ABS, OP_ADD, OP_SUB };
 
     TrexPortMultiplier(mul_type_e type, mul_op_e op, double value) {
-        m_type   = type;
-        m_op     = op;
-        m_value  = value;
+        m_type = type;
+        m_op = op;
+        m_value = value;
     }
 
     TrexPortMultiplier(const std::string &type_str, const std::string &op_str, double value);
 
-
-public:
+  public:
     static const std::initializer_list<std::string> g_types;
     static const std::initializer_list<std::string> g_ops;
 
-    mul_type_e             m_type;
-    mul_op_e               m_op;
-    double                 m_value;
+    mul_type_e m_type;
+    mul_op_e m_op;
+    double m_value;
 };
-
 
 /**
  * describes a stateless profile
  *
  * @author imarom (31-Aug-15)
  */
-class TrexStatelessProfile: public TrexPort {
+class TrexStatelessProfile : public TrexPort {
 
     friend TrexDpPortEvents;
     friend TrexDpPortEvent;
     friend AsyncProfileStopEvent;
 
-public:
-
+  public:
     TrexStatelessProfile(uint8_t port_id, std::string profile_id);
     ~TrexStatelessProfile();
-
 
     /*  implemented for Json RPC related Profile */
     /* provides storage for the profile json*/
     void store_profile_json(const Json::Value &profile_json);
 
     /* access the profile json */
-    const Json::Value & get_profile_json();
+    const Json::Value &get_profile_json();
 
     /* original template provided by requester */
     Json::Value m_profile_json;
-
 
     /**
      * validate the state of the port before start
@@ -140,7 +118,8 @@ public:
      * start traffic
      * throws TrexException in case of an error
      */
-    void start_traffic(const TrexPortMultiplier &mul, double duration, bool force = false, uint64_t core_mask = UINT64_MAX, double start_at_ts = 0);
+    void start_traffic(const TrexPortMultiplier &mul, double duration, bool force = false,
+                       uint64_t core_mask = UINT64_MAX, double start_at_ts = 0);
 
     /**
      * stop traffic
@@ -177,7 +156,6 @@ public:
     void update_traffic(const TrexPortMultiplier &mul, bool force);
     void update_streams(const TrexPortMultiplier &mul, bool force, std::vector<TrexStream *> &streams);
 
-
     /**
      * sets service mode
      *
@@ -186,9 +164,7 @@ public:
      * @param enabled
      */
 
-    bool is_service_mode_on() const {
-        return false;
-    }
+    bool is_service_mode_on() const { return false; }
 
     bool is_running_flow_stats();
     bool has_flow_stats();
@@ -208,31 +184,19 @@ public:
     void remove_stream(TrexStream *stream);
     void remove_and_delete_all_streams();
 
-    TrexStream * get_stream_by_id(uint32_t stream_id) {
-        return m_stream_table.get_stream_by_id(stream_id);
-    }
+    TrexStream *get_stream_by_id(uint32_t stream_id) { return m_stream_table.get_stream_by_id(stream_id); }
 
-    int get_stream_count() {
-        return m_stream_table.size();
-    }
+    int get_stream_count() { return m_stream_table.size(); }
 
-    void get_id_list(std::vector<uint32_t> &id_list) {
-        m_stream_table.get_id_list(id_list);
-    }
+    void get_id_list(std::vector<uint32_t> &id_list) { m_stream_table.get_id_list(id_list); }
 
-    void get_object_list(std::vector<TrexStream *> &object_list) {
-        m_stream_table.get_object_list(object_list);
-    }
-
+    void get_object_list(std::vector<TrexStream *> &object_list) { m_stream_table.get_object_list(object_list); }
 
     /**
      * returns the traffic multiplier currently being used by the DP
      *
      */
-    double get_multiplier() {
-        return (m_factor);
-    }
-
+    double get_multiplier() { return (m_factor); }
 
     /**
      * get the port effective rate (on a started / paused port)
@@ -240,12 +204,8 @@ public:
      * @author imarom (07-Jan-16)
      *
      */
-    void get_port_effective_rate(double &pps,
-                                 double &bps_L1,
-                                 double &bps_L2,
-                                 double &percentage);
+    void get_port_effective_rate(double &pps, double &bps_L1, double &bps_L2, double &percentage);
     std::string m_profile_id;
-
 
     /**
      * profile_id  for DP
@@ -255,8 +215,7 @@ public:
     /* verify state for profile */
     bool verify_profile_state(int state, const char *cmd_name, bool should_throw = true) const;
 
-private:
-
+  private:
     /**
      * when a port stops, perform various actions
      *
@@ -269,7 +228,6 @@ private:
      */
     double calculate_effective_factor(const TrexPortMultiplier &mul, bool force, const TrexStreamsGraphObj &graph_obj);
     double calculate_effective_factor_internal(const TrexPortMultiplier &mul, const TrexStreamsGraphObj &graph_obj);
-
 
     /**
      * generates a graph of streams graph
@@ -284,33 +242,28 @@ private:
      */
     void delete_streams_graph();
 
+    TrexStreamTable m_stream_table;
 
-    TrexStreamTable    m_stream_table;
-
-    bool               m_last_all_streams_continues;
-    double             m_last_duration;
-    double             m_factor;
-    uint32_t           m_non_explicit_dst_macs_count;
-    uint32_t           m_flow_stats_count;
+    bool m_last_all_streams_continues;
+    double m_last_duration;
+    double m_factor;
+    uint32_t m_non_explicit_dst_macs_count;
+    uint32_t m_flow_stats_count;
 
     /* holds a graph of streams rate*/
-    const TrexStreamsGraphObj  *m_graph_obj;
+    const TrexStreamsGraphObj *m_graph_obj;
 
-    bool  m_is_service_mode_on;
+    bool m_is_service_mode_on;
 
     static const uint32_t MAX_STREAMS = 20000;
-
 };
-
-
 
 /**
  *  TrexProfileTable class
  *
  */
 class TrexProfileTable {
-public:
-
+  public:
     TrexProfileTable();
     ~TrexProfileTable();
 
@@ -320,14 +273,12 @@ public:
      */
     void add_profile(TrexStatelessProfile *mprofile);
 
-
     /**
      * fetch a stream if exists
      * o.w NULL
      *
      */
-    TrexStatelessProfile * get_profile_by_id(string profile_id);
-
+    TrexStatelessProfile *get_profile_by_id(string profile_id);
 
     /**
      * populate a list with all the profile IDs
@@ -350,19 +301,16 @@ public:
      */
     int size();
 
-    std::unordered_map<string, TrexStatelessProfile *>::iterator begin() {return m_profile_table.begin();}
-    std::unordered_map<string, TrexStatelessProfile *>::iterator end() {return m_profile_table.end();}
+    std::unordered_map<string, TrexStatelessProfile *>::iterator begin() { return m_profile_table.begin(); }
+    std::unordered_map<string, TrexStatelessProfile *>::iterator end() { return m_profile_table.end(); }
 
-private:
+  private:
     /**
      * holds all the profile in a hash table by profile id
      *
      */
     std::unordered_map<string, TrexStatelessProfile *> m_profile_table;
 };
-
-
-
 
 /**
  * describes a stateless port
@@ -375,12 +323,10 @@ class TrexStatelessPort : public TrexPort {
     friend TrexDpPortEvent;
     friend AsyncStopEvent;
 
-public:
-
+  public:
     TrexStatelessPort(uint8_t port_id);
 
     ~TrexStatelessPort();
-
 
     /**
      * validate the state of the port before start
@@ -396,8 +342,8 @@ public:
      * start traffic
      * throws TrexException in case of an error
      */
-    void start_traffic(string profile_id, const TrexPortMultiplier &mul, double duration, bool force = false, uint64_t core_mask = UINT64_MAX, double start_at_ts = 0);
-
+    void start_traffic(string profile_id, const TrexPortMultiplier &mul, double duration, bool force = false,
+                       uint64_t core_mask = UINT64_MAX, double start_at_ts = 0);
 
     /**
      * stop traffic
@@ -432,21 +378,15 @@ public:
      *
      */
     void update_traffic(string profile_id, const TrexPortMultiplier &mul, bool force);
-    void update_streams(string profile_id, const TrexPortMultiplier &mul, bool force, std::vector<TrexStream *> &streams);
+    void update_streams(string profile_id, const TrexPortMultiplier &mul, bool force,
+                        std::vector<TrexStream *> &streams);
 
     /**
      * push a PCAP file onto the port
      *
      */
-    void push_remote(const std::string &pcap_filename,
-                     double            ipg_usec,
-                     double            min_ipg_sec,
-                     double            speedup,
-                     uint32_t          count,
-                     double            duration,
-                     bool              is_dual);
-
-
+    void push_remote(const std::string &pcap_filename, double ipg_usec, double min_ipg_sec, double speedup,
+                     uint32_t count, double duration, bool is_dual);
 
     /**
      * sets service mode
@@ -457,9 +397,7 @@ public:
      */
     void set_service_mode(bool enabled);
 
-    bool is_service_mode_on() const {
-        return m_is_service_mode_on;
-    }
+    bool is_service_mode_on() const { return m_is_service_mode_on; }
 
     bool is_running_flow_stats();
     bool has_flow_stats(string profile_id);
@@ -471,7 +409,6 @@ public:
     int get_max_stream_id(string profile_id);
     int get_max_stream_id();
 
-
     /**
      * delegators
      *
@@ -481,7 +418,7 @@ public:
     void remove_stream(string profile_id, TrexStream *stream);
     void remove_and_delete_all_streams(string profile_id = "_");
 
-    TrexStream * get_stream_by_id(string profile_id, uint32_t stream_id) {
+    TrexStream *get_stream_by_id(string profile_id, uint32_t stream_id) {
         TrexStatelessProfile *mprofile = get_profile_by_id(profile_id);
         return mprofile->get_stream_by_id(stream_id);
     }
@@ -501,14 +438,9 @@ public:
         mprofile->get_object_list(object_list);
     }
 
+    TrexStatelessProfile *get_profile_by_id(string profile_id) { return m_profile_table.get_profile_by_id(profile_id); }
 
-    TrexStatelessProfile * get_profile_by_id(string profile_id) {
-        return m_profile_table.get_profile_by_id(profile_id);
-    }
-
-    int get_profile_count() {
-        return m_profile_table.size();
-    }
+    int get_profile_count() { return m_profile_table.size(); }
 
     void get_profile_id_list(std::vector<string> &profile_id_list) {
         m_profile_table.get_profile_id_list(profile_id_list);
@@ -533,10 +465,7 @@ public:
      * @author imarom (07-Jan-16)
      *
      */
-    void get_port_effective_rate(double &pps,
-                                 double &bps_L1,
-                                 double &bps_L2,
-                                 double &percentage);
+    void get_port_effective_rate(double &pps, double &bps_L1, double &bps_L2, double &percentage);
 
     /**
      * get profile state
@@ -565,9 +494,9 @@ public:
 
     void get_profile_by_dp_id(uint32_t profile_id);
 
-    TrexDpPortEvents & get_dp_events(uint32_t profile_id) {
+    TrexDpPortEvents &get_dp_events(uint32_t profile_id) {
 
-        std::vector <TrexStatelessProfile *> profiles;
+        std::vector<TrexStatelessProfile *> profiles;
         get_profile_object_list(profiles);
 
         for (auto &mprofile : profiles) {
@@ -578,16 +507,12 @@ public:
         return m_dp_events;
     }
 
-
-private:
-
-
+  private:
     /**
      * when a port stops, perform various actions
      *
      */
     void common_port_stop_actions(bool async);
-
 
     /**
      * generates a graph of streams graph
@@ -602,13 +527,11 @@ private:
      */
     void delete_streams_graph();
 
-    bool  m_is_service_mode_on;
+    bool m_is_service_mode_on;
 
-    TrexProfileTable    m_profile_table;
+    TrexProfileTable m_profile_table;
 
     uint32_t m_dp_profile_id_inc = 0;
 };
 
-
 #endif /* __TREX_STL_PORT_H__ */
-

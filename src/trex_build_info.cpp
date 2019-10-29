@@ -26,18 +26,14 @@ limitations under the License.
 #include <iostream>
 
 bool TrexBuildInfo::is_sanitized() {
-    #ifdef __SANITIZE_ADDRESS__
-        return true;
-    #else
-        return false;
-    #endif
+#ifdef __SANITIZE_ADDRESS__
+    return true;
+#else
+    return false;
+#endif
 }
 
-
-std::string TrexBuildInfo::get_gcc_built_with_vesrion() {
-    return __VERSION__;
-}
-
+std::string TrexBuildInfo::get_gcc_built_with_vesrion() { return __VERSION__; }
 
 std::string TrexBuildInfo::get_glibc_built_with_version() {
     std::stringstream ss;
@@ -46,17 +42,12 @@ std::string TrexBuildInfo::get_glibc_built_with_version() {
     return ss.str();
 }
 
-
-std::string TrexBuildInfo::get_host_glibc_version() {
-    return gnu_get_libc_version();
-}
-
+std::string TrexBuildInfo::get_host_glibc_version() { return gnu_get_libc_version(); }
 
 void TrexBuildInfo::show() {
     std::cout << "\n";
     std::cout << "Compiled with GCC     :   " << get_gcc_built_with_vesrion() << "\n";
-    std::cout << "Compiled with glibc   :   " << get_glibc_built_with_version() << " (host: " << get_host_glibc_version() << ")\n";
+    std::cout << "Compiled with glibc   :   " << get_glibc_built_with_version()
+              << " (host: " << get_host_glibc_version() << ")\n";
     std::cout << "Sanitized image       :   " << (is_sanitized() ? "yes" : "no") << "\n";
 }
-
-

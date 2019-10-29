@@ -34,8 +34,8 @@
 
 class TrexCpToRxMsgBase;
 
-typedef std::map<uint8_t, RXPortManager*> rx_port_mg_map_t;
-typedef std::vector<RXPortManager*> rx_port_mg_vec_t;
+typedef std::map<uint8_t, RXPortManager *> rx_port_mg_map_t;
+typedef std::vector<RXPortManager *> rx_port_mg_vec_t;
 
 /**
  * RX core
@@ -43,8 +43,8 @@ typedef std::vector<RXPortManager*> rx_port_mg_vec_t;
  */
 class CRxCore : public TrexRxCore {
 
-protected:
-        /**
+  protected:
+    /**
      * core states
      *
      * STATE_COLD - will sleep until a packet arrives
@@ -53,35 +53,24 @@ protected:
      *
      * STATE_HOT  - 100% checking for packets (latency check)
      */
-    enum state_e {
-        STATE_COLD,
-        STATE_HOT,
-        STATE_QUIT
-    };
+    enum state_e { STATE_COLD, STATE_HOT, STATE_QUIT };
 
-
- public:
-
-
-    CRxCore() {
-        m_is_active = false;
-    }
+  public:
+    CRxCore() { m_is_active = false; }
     ~CRxCore();
 
     void start();
     void create(const CRxSlCfg &cfg);
     void reset_rx_stats(uint8_t port_id);
-    int get_rx_stats(uint8_t port_id, rx_per_flow_t *rx_stats, int min, int max, bool reset
-                     , TrexPlatformApi::driver_stat_cap_e type);
+    int get_rx_stats(uint8_t port_id, rx_per_flow_t *rx_stats, int min, int max, bool reset,
+                     TrexPlatformApi::driver_stat_cap_e type);
     int get_rfc2544_info(rfc2544_info_t *rfc2544_info, int min, int max, bool reset, bool period_switch);
     int get_rx_err_cntrs(CRxCoreErrCntrs *rx_err);
 
-
-    void quit() {m_state = STATE_QUIT;}
-    bool is_working() const {return (m_state != STATE_QUIT);}
+    void quit() { m_state = STATE_QUIT; }
+    bool is_working() const { return (m_state != STATE_QUIT); }
     double get_cpu_util();
     void update_cpu_util();
-
 
     const TrexPktBuffer *get_rx_queue_pkts(uint8_t port_id);
 
@@ -99,7 +88,8 @@ protected:
      * start proxifying of CAPWAP traffic between WLC and STF TRex
      *
      */
-    bool start_capwap_proxy(uint8_t port_id, uint8_t pair_port_id, bool is_wireless_side, Json::Value capwap_map, uint32_t wlc_ip);
+    bool start_capwap_proxy(uint8_t port_id, uint8_t pair_port_id, bool is_wireless_side, Json::Value capwap_map,
+                            uint32_t wlc_ip);
     void stop_capwap_proxy(uint8_t port_id);
 
     /* enable/disable astf fia */
@@ -128,9 +118,7 @@ protected:
      * the RX core handles packets
      *
      */
-    float get_pps_rate() {
-        return m_rx_pps.add(m_rx_pkts);
-    }
+    float get_pps_rate() { return m_rx_pps.add(m_rx_pkts); }
 
     /**
      * sends a list of packets using a queue (delayed) with IPG
@@ -146,14 +134,11 @@ protected:
      * returns true if the RX core is active
      *
      */
-    bool is_active() {
-        return m_is_active;
-    }
+    bool is_active() { return m_is_active; }
 
-    virtual void handle_astf_latency_pkt(const rte_mbuf_t *m,
-                                         uint8_t port_id);
+    virtual void handle_astf_latency_pkt(const rte_mbuf_t *m, uint8_t port_id);
 
- protected:
+  protected:
     uint32_t handle_msg_packets(void);
     uint32_t handle_rx_one_queue(uint8_t thread_id, CNodeRing *r);
 
@@ -174,45 +159,42 @@ protected:
     bool is_latency_active();
     bool should_be_hot();
 
-    void handle_rx_queue_msgs(uint8_t thread_id, CNodeRing * r);
+    void handle_rx_queue_msgs(uint8_t thread_id, CNodeRing *r);
     void handle_work_stage();
 
     int process_all_pending_pkts(bool flush_rx = false);
 
-    void flush_all_pending_pkts() {
-        process_all_pending_pkts(true);
-    }
+    void flush_all_pending_pkts() { process_all_pending_pkts(true); }
 
     void try_rx_queues();
 
+  protected:
+    TrexMonitor m_monitor;
+    uint32_t m_tx_cores;
+    bool m_capture;
+    state_e m_state;
+    CNodeRing *m_ring_from_cp;
+    CMessagingManager *m_rx_dp;
+    CCpuUtlDp m_cpu_dp_u;
+    CCpuUtlCp m_cpu_cp_u;
 
- protected:
-    TrexMonitor      m_monitor;
-    uint32_t         m_tx_cores;
-    bool             m_capture;
-    state_e          m_state;
-    CNodeRing       *m_ring_from_cp;
-    CMessagingManager * m_rx_dp;
-    CCpuUtlDp        m_cpu_dp_u;
-    CCpuUtlCp        m_cpu_cp_u;
+    dsec_t m_sync_time_sec;
+    dsec_t m_sync_time_period;
+    dsec_t m_grat_arp_sec;
 
-    dsec_t           m_sync_time_sec;
-    dsec_t           m_sync_time_period;
-    dsec_t           m_grat_arp_sec;
+    uint64_t m_rx_pkts;
 
-    uint64_t         m_rx_pkts;
-
-    CRxCoreErrCntrs  m_err_cntrs;
-    CRFC2544Info     m_rfc2544[MAX_FLOW_STATS_PAYLOAD];
+    CRxCoreErrCntrs m_err_cntrs;
+    CRFC2544Info m_rfc2544[MAX_FLOW_STATS_PAYLOAD];
 
     rx_port_mg_map_t m_rx_port_mngr_map;
     rx_port_mg_vec_t m_rx_port_mngr_vec;
 
-    CPPSMeasure      m_rx_pps;
+    CPPSMeasure m_rx_pps;
 
-    TXQueue          m_tx_queue;
+    TXQueue m_tx_queue;
 
     /* accessed from control core */
-    volatile bool    m_is_active;
+    volatile bool m_is_active;
 };
 #endif

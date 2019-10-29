@@ -29,7 +29,7 @@ void COneIPInfo::dump(FILE *fd, const char *offset) const {
     get_ip_str(ip_str);
     std::string mac_str;
     utl_macaddr_to_str(mac, mac_str);
-    const char *mac_char = resolve_needed() ?  "Unknown" : mac_str.c_str();
+    const char *mac_char = resolve_needed() ? "Unknown" : mac_str.c_str();
     fprintf(fd, "%sip: %s ", offset, ip_str);
     if (m_vlan != 0)
         fprintf(fd, "vlan: %d ", m_vlan);
@@ -39,9 +39,7 @@ void COneIPInfo::dump(FILE *fd, const char *offset) const {
     fprintf(fd, "\n");
 }
 
-bool COneIPInfo::resolve_needed() const {
-    return m_mac.isDefaultAddress();
-}
+bool COneIPInfo::resolve_needed() const { return m_mac.isDefaultAddress(); }
 
 /*
  * Fill buffer p with arp request.
@@ -62,9 +60,7 @@ void COneIPv4Info::fill_grat_arp_buf(uint8_t *p) {
     CTestPktGen::create_arp_req(p, m_ip, m_ip, src_mac, 0, m_vlan);
 }
 
-bool COneIPv4Info::is_zero_ip() {
-    return m_ip == 0;
-}
+bool COneIPv4Info::is_zero_ip() { return m_ip == 0; }
 
 void COneIPv6Info::fill_arp_req_buf(uint8_t *p, uint16_t port_id, COneIPInfo *sip) {
     //??? implement ipv6
@@ -75,7 +71,8 @@ void COneIPv6Info::fill_grat_arp_buf(uint8_t *p) {
 }
 
 bool COneIPv6Info::is_zero_ip() {
-    return m_ip[0] == 0 && m_ip[1] == 0 && m_ip[2] == 0 && m_ip[3] == 0 && m_ip[4] == 0 && m_ip[5] == 0 && m_ip[6] == 0 && m_ip[7] == 0;
+    return m_ip[0] == 0 && m_ip[1] == 0 && m_ip[2] == 0 && m_ip[3] == 0 && m_ip[4] == 0 && m_ip[5] == 0 &&
+           m_ip[6] == 0 && m_ip[7] == 0;
 }
 
 const COneIPInfo *CManyIPInfo::get_next() {
@@ -85,7 +82,6 @@ const COneIPInfo *CManyIPInfo::get_next() {
         m_ipv4_iter = m_ipv4_resolve.begin();
         m_iter_initiated = true;
     }
-
 
     if (m_ipv4_iter == m_ipv4_resolve.end()) {
         m_ipv4_iter = m_ipv4_resolve.begin();
@@ -103,8 +99,8 @@ void CManyIPInfo::dump(FILE *fd) {
         fprintf(fd, "IPv4 resolved list:\n");
         uint8_t mac[ETHER_ADDR_LEN];
         it->second.get_mac(mac);
-        fprintf(fd, "ip:%s vlan: %d resolved to mac %s\n", ip_to_str(it->first.get_ip()).c_str(), it->first.get_vlan()
-                , utl_macaddr_to_str(mac).c_str());
+        fprintf(fd, "ip:%s vlan: %d resolved to mac %s\n", ip_to_str(it->first.get_ip()).c_str(), it->first.get_vlan(),
+                utl_macaddr_to_str(mac).c_str());
     }
 }
 

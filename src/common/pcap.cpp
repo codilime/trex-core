@@ -19,15 +19,10 @@ limitations under the License.
 #include <string.h>
 #include "pal_utl.h"
 
-
-
-
 static uint32_t MAGIC_NUM_FLIP = 0xd4c3b2a1;
 static uint32_t MAGIC_NUM_DONT_FLIP = 0xa1b2c3d4;
 
-
-LibPCapReader::LibPCapReader()
-{
+LibPCapReader::LibPCapReader() {
     m_is_open = false;
     m_last_time = 0;
     m_is_valid = false;
@@ -35,8 +30,7 @@ LibPCapReader::LibPCapReader()
     m_is_flip = false;
 }
 
-LibPCapReader::~LibPCapReader()
-{
+LibPCapReader::~LibPCapReader() {
     if (m_is_open && m_file_handler) {
         fclose(m_file_handler);
     }
@@ -55,36 +49,35 @@ void LibPCapReader::Rewind() {
  *
  * @return bool
  */
-bool LibPCapReader::Create(char * name, int loops)
-{
+bool LibPCapReader::Create(char *name, int loops) {
     this->m_loops = loops;
 
-    if(name == NULL) {
-	return false;
+    if (name == NULL) {
+        return false;
     }
 
     if (m_is_open) {
         return true;
     }
-    m_file_handler = CAP_FOPEN_64(name,"rb");
+    m_file_handler = CAP_FOPEN_64(name, "rb");
 
     if (m_file_handler == 0) {
-        printf(" failed to open cap file %s : errno : %d\n",name, errno);
+        printf(" failed to open cap file %s : errno : %d\n", name, errno);
         return false;
     }
 
-   CAP_FSEEK_64 (m_file_handler, 0, SEEK_END);
-   m_file_size = CAP_FTELL_64 (m_file_handler);
-   rewind (m_file_handler);
+    CAP_FSEEK_64(m_file_handler, 0, SEEK_END);
+    m_file_size = CAP_FTELL_64(m_file_handler);
+    rewind(m_file_handler);
 
-   if (init()) {
-	   m_is_open = true;
-	   return true;
-   }
+    if (init()) {
+        m_is_open = true;
+        return true;
+    }
 
-   fclose(m_file_handler);
+    fclose(m_file_handler);
 
-   return false;
+    return false;
 }
 
 /**
@@ -95,111 +88,103 @@ bool LibPCapReader::Create(char * name, int loops)
  *
  * @return bool
  */
-bool LibPCapReader::init()
-{
-	packet_file_header_t header;
-	memset(&header,0,sizeof(packet_file_header_t));
-    size_t n = fread(&header,1,sizeof(packet_file_header_t),m_file_handler);
-	if (n < sizeof(packet_file_header_t)) {
-		return false;
-	}
+bool LibPCapReader::init() {
+    packet_file_header_t header;
+    memset(&header, 0, sizeof(packet_file_header_t));
+    size_t n = fread(&header, 1, sizeof(packet_file_header_t), m_file_handler);
+    if (n < sizeof(packet_file_header_t)) {
+        return false;
+    }
 
-	if (header.magic == MAGIC_NUM_FLIP) {
-		m_is_flip = true;
-	} else if (header.magic == MAGIC_NUM_DONT_FLIP){
-		m_is_flip = false;
-	} else {
-		// capture file in not libpcap format.
-		m_is_valid = false;
-		return false;
-	}
+    if (header.magic == MAGIC_NUM_FLIP) {
+        m_is_flip = true;
+    } else if (header.magic == MAGIC_NUM_DONT_FLIP) {
+        m_is_flip = false;
+    } else {
+        // capture file in not libpcap format.
+        m_is_valid = false;
+        return false;
+    }
 
-	m_is_valid = true;
-	return true;
+    m_is_valid = true;
+    return true;
 }
 
 /**
  * flip header values.
  * @param toflip
  */
-void LibPCapReader::flip(sf_pkthdr_t * toflip)
-{
-   toflip->ts.sec  = PAL_NTOHL(toflip->ts.sec);
-   toflip->ts.msec = PAL_NTOHL(toflip->ts.msec);
-   toflip->len     = PAL_NTOHL(toflip->len);
-   toflip->caplen  = PAL_NTOHL(toflip->caplen);
+void LibPCapReader::flip(sf_pkthdr_t *toflip) {
+    toflip->ts.sec = PAL_NTOHL(toflip->ts.sec);
+    toflip->ts.msec = PAL_NTOHL(toflip->ts.msec);
+    toflip->len = PAL_NTOHL(toflip->len);
+    toflip->caplen = PAL_NTOHL(toflip->caplen);
 }
 
-bool LibPCapReader::ReadPacket(CCapPktRaw *lpPacket)
-{
-	if(!m_is_valid || !m_is_open)
-		return false;
+bool LibPCapReader::ReadPacket(CCapPktRaw *lpPacket) {
+    if (!m_is_valid || !m_is_open)
+        return false;
 
-   sf_pkthdr_t pkt_header;
-   memset(&pkt_header,0,sizeof(sf_pkthdr_t));
+    sf_pkthdr_t pkt_header;
+    memset(&pkt_header, 0, sizeof(sf_pkthdr_t));
 
-   if (CAP_FTELL_64(m_file_handler) == m_file_size) {
-       /* reached end of file - do we loop ?*/
-       if (m_loops > 0) {
-           rewind(m_file_handler);
-           this->init();
+    if (CAP_FTELL_64(m_file_handler) == m_file_size) {
+        /* reached end of file - do we loop ?*/
+        if (m_loops > 0) {
+            rewind(m_file_handler);
+            this->init();
+        }
+    }
+    int n = fread(&pkt_header, 1, sizeof(sf_pkthdr_t), m_file_handler);
+    if (n < sizeof(sf_pkthdr_t)) {
+        return false;
+    }
 
-       }
-   }
-   int n = fread(&pkt_header,1,sizeof(sf_pkthdr_t),m_file_handler);
-   if (n < sizeof(sf_pkthdr_t)) {
-	   return false;
-   }
+    if (m_is_flip) {
+        flip(&pkt_header);
+    }
+    if (pkt_header.caplen > READER_MAX_PACKET_SIZE) {
+        /* cannot read this packet */
+        printf("WARNING: packet is too big (%dB), max allowed is %dB. Stopping to read current pcap\n",
+               pkt_header.caplen, READER_MAX_PACKET_SIZE);
+        return false;
+    }
 
-   if (m_is_flip) {
-		flip(&pkt_header);
-   }
-   if (pkt_header.caplen > READER_MAX_PACKET_SIZE) {
-       /* cannot read this packet */
-       printf("WARNING: packet is too big (%dB), max allowed is %dB. Stopping to read current pcap\n", pkt_header.caplen, READER_MAX_PACKET_SIZE);
-       return false;
-   }
+    lpPacket->pkt_len = fread(lpPacket->raw, 1, pkt_header.caplen, m_file_handler);
 
-   lpPacket->pkt_len = fread(lpPacket->raw,1,pkt_header.caplen,m_file_handler);
+    lpPacket->time_sec = pkt_header.ts.sec;
+    lpPacket->time_nsec = pkt_header.ts.msec * 1000;
 
-   lpPacket->time_sec  = pkt_header.ts.sec;
-   lpPacket->time_nsec = pkt_header.ts.msec*1000;
+    if (lpPacket->pkt_len < pkt_header.caplen) {
+        lpPacket->pkt_len = 0;
+        return false;
+    }
 
-   if ( lpPacket->pkt_len < pkt_header.caplen) {
-       lpPacket->pkt_len = 0;
-	   return false;
-   }
-
-   /* decrease packet limit count */
-   if (m_loops > 0) {
-       m_loops--;
-   }
-   lpPacket->pkt_cnt++;
-   return true;
+    /* decrease packet limit count */
+    if (m_loops > 0) {
+        m_loops--;
+    }
+    lpPacket->pkt_cnt++;
+    return true;
 }
 
-LibPCapWriter::LibPCapWriter()
-{
-	m_file_handler = NULL;
-	m_timestamp = 0;
+LibPCapWriter::LibPCapWriter() {
+    m_file_handler = NULL;
+    m_timestamp = 0;
     m_is_open = false;
 }
 
-LibPCapWriter::~LibPCapWriter()
-{
-	Close();
-}
+LibPCapWriter::~LibPCapWriter() { Close(); }
 
 /**
  * close and release file desc.
-*/
-void LibPCapWriter::Close()
-{
-	if (m_is_open) {
-		fclose(m_file_handler);
-		m_file_handler = NULL;
-		m_is_open = false;
-	}
+ */
+void LibPCapWriter::Close() {
+    if (m_is_open) {
+        fclose(m_file_handler);
+        m_file_handler = NULL;
+        m_is_open = false;
+    }
 }
 
 /**
@@ -208,20 +193,19 @@ void LibPCapWriter::Close()
  *
  * @return bool
  */
-bool LibPCapWriter::Create(char * name)
-{
-	if (name == NULL) {
-		return false;
-	}
+bool LibPCapWriter::Create(char *name) {
+    if (name == NULL) {
+        return false;
+    }
 
-	if (m_is_open) {
-		return true;
-	}
+    if (m_is_open) {
+        return true;
+    }
 
-	m_file_handler = CAP_FOPEN_64(name,"wb");
+    m_file_handler = CAP_FOPEN_64(name, "wb");
     if (m_file_handler == 0) {
         printf(" ERROR create file \n");
-        return(false);
+        return (false);
     }
 
     /* prepare the write counter */
@@ -241,29 +225,27 @@ void LibPCapWriter::flush_to_disk() {
  *
  * @return bool - true on success
  */
-bool LibPCapWriter::init()
-{
+bool LibPCapWriter::init() {
 
-	// prepare the file header (one time header for each libpcap file)
-	// and write it.
-	packet_file_header_t header;
-    header.magic   = MAGIC_NUM_DONT_FLIP;
-    header.version_major  = 0x0002;
-    header.version_minor  = 0x0004;
-    header.thiszone       = 0;
-    header.sigfigs        = 0;
-    header.snaplen        = 2000;
-	header.linktype       = 1;
+    // prepare the file header (one time header for each libpcap file)
+    // and write it.
+    packet_file_header_t header;
+    header.magic = MAGIC_NUM_DONT_FLIP;
+    header.version_major = 0x0002;
+    header.version_minor = 0x0004;
+    header.thiszone = 0;
+    header.sigfigs = 0;
+    header.snaplen = 2000;
+    header.linktype = 1;
 
-    int n = fwrite(&header,1,sizeof(header),m_file_handler);
-	if ( n == sizeof(packet_file_header_t )) {
-		m_is_open = true;
-		return true;
-	}
+    int n = fwrite(&header, 1, sizeof(header), m_file_handler);
+    if (n == sizeof(packet_file_header_t)) {
+        m_is_open = true;
+        return true;
+    }
     fclose(m_file_handler);
-	return false;
+    return false;
 }
-
 
 /**
  * Write packet to file.
@@ -273,34 +255,30 @@ bool LibPCapWriter::init()
  *
  * @return bool  - true on success.
  */
-bool LibPCapWriter::write_packet(CCapPktRaw * lpPacket)
-{
-	if (!m_is_open) {
-		return false;
-	}
+bool LibPCapWriter::write_packet(CCapPktRaw *lpPacket) {
+    if (!m_is_open) {
+        return false;
+    }
 
-	// build the packet libpcap header
+    // build the packet libpcap header
     sf_pkthdr_t pkt_header;
-	pkt_header.caplen = lpPacket->pkt_len;
-	pkt_header.len = lpPacket->pkt_len;
-	pkt_header.ts.msec = (lpPacket->time_nsec/1000);
-	pkt_header.ts.sec  = lpPacket->time_sec;
+    pkt_header.caplen = lpPacket->pkt_len;
+    pkt_header.len = lpPacket->pkt_len;
+    pkt_header.ts.msec = (lpPacket->time_nsec / 1000);
+    pkt_header.ts.sec = lpPacket->time_sec;
 
-	m_timestamp++;
+    m_timestamp++;
 
-	// write header and then the packet.
-	int n = fwrite(&pkt_header,1,sizeof(sf_pkthdr_t),m_file_handler);
-    n+= fwrite(lpPacket->raw,1,lpPacket->pkt_len,m_file_handler);
+    // write header and then the packet.
+    int n = fwrite(&pkt_header, 1, sizeof(sf_pkthdr_t), m_file_handler);
+    n += fwrite(lpPacket->raw, 1, lpPacket->pkt_len, m_file_handler);
 
-	if (n< ( (int)sizeof(sf_pkthdr_t) + lpPacket->pkt_len)) {
-		return false;
-	}
+    if (n < ((int)sizeof(sf_pkthdr_t) + lpPacket->pkt_len)) {
+        return false;
+    }
     /* advance the counter on success */
     m_pkt_count++;
     return true;
 }
 
-uint32_t LibPCapWriter::get_pkt_count() {
-    return m_pkt_count;
-}
-
+uint32_t LibPCapWriter::get_pkt_count() { return m_pkt_count; }

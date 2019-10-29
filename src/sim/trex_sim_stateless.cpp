@@ -33,20 +33,17 @@ limitations under the License.
 #include <stdexcept>
 #include <sstream>
 
-
 using namespace std;
 
 class DPCoreStats {
-public:
+  public:
     DPCoreStats() {
-        m_simulated_pkts   = 0;
-        m_non_active_pkts  = 0;
-        m_written_pkts     = 0;
+        m_simulated_pkts = 0;
+        m_non_active_pkts = 0;
+        m_written_pkts = 0;
     }
 
-    uint64_t get_on_wire_count() {
-        return (m_simulated_pkts - m_non_active_pkts);
-    }
+    uint64_t get_on_wire_count() { return (m_simulated_pkts - m_non_active_pkts); }
 
     uint64_t m_simulated_pkts;
     uint64_t m_non_active_pkts;
@@ -55,7 +52,7 @@ public:
 
 /****** utils ******/
 static string format_num(double num, const string &suffix = "") {
-    const char x[] = {' ','K','M','G','T','P'};
+    const char x[] = {' ', 'K', 'M', 'G', 'T', 'P'};
 
     double my_num = num;
 
@@ -77,15 +74,10 @@ static string format_num(double num, const string &suffix = "") {
     return "NaN";
 }
 
-
-class SimRunException : public std::runtime_error
-{
-public:
-    SimRunException() : std::runtime_error("") {
-
-    }
-    SimRunException(const std::string &what) : std::runtime_error(what) {
-    }
+class SimRunException : public std::runtime_error {
+  public:
+    SimRunException() : std::runtime_error("") {}
+    SimRunException(const std::string &what) : std::runtime_error(what) {}
 };
 
 /**
@@ -94,7 +86,7 @@ public:
  * @author imarom (19-Nov-15)
  */
 class DpToCpHandler {
-public:
+  public:
     virtual void handle(TrexDpToCpMsgBase *msg) = 0;
 };
 
@@ -102,48 +94,39 @@ public:
  *
  *  stateless sim object
  *
-************************/
+ ************************/
 class SimPublisher : public TrexPublisher {
-public:
-
+  public:
     /* override create */
-    bool Create(uint16_t port, bool disable) {
-        return true;
-    }
+    bool Create(uint16_t port, bool disable) { return true; }
 
-    void Delete() {
+    void Delete() {}
 
-    }
+    void publish_json(const std::string &s) {}
 
-    void publish_json(const std::string &s) {
-    }
-
-    virtual ~SimPublisher() {
-    }
+    virtual ~SimPublisher() {}
 };
 
 /************************
  *
  *  stateless sim object
  *
-************************/
+ ************************/
 
 SimStateless::SimStateless() {
-    m_publisher                   = NULL;
-    m_dp_to_cp_handler            = NULL;
-    m_verbose                     = false;
-    m_dp_core_count               = -1;
-    m_dp_core_index               = -1;
-    m_port_count                  = -1;
-    m_limit                       = 0;
-    m_is_dry_run                  = false;
+    m_publisher = NULL;
+    m_dp_to_cp_handler = NULL;
+    m_verbose = false;
+    m_dp_core_count = -1;
+    m_dp_core_index = -1;
+    m_port_count = -1;
+    m_limit = 0;
+    m_is_dry_run = false;
 
     /* override ownership checks */
     TrexRpcCommand::test_set_override_ownership(true);
     TrexRpcCommand::test_set_override_api(true);
-
 }
-
 
 /**
  * on the simulation we first construct CP and then DP
@@ -152,8 +135,7 @@ SimStateless::SimStateless() {
  *
  * @author imarom (8/10/2016)
  */
-void
-SimStateless::find_active_dp_cores() {
+void SimStateless::find_active_dp_cores() {
     for (int core_index = 0; core_index < m_dp_core_count; core_index++) {
         TrexDpCore *dp_core = m_fl.m_threads_info[core_index]->get_dp_core();
         if (dp_core->are_any_pending_cp_messages()) {
@@ -162,9 +144,7 @@ SimStateless::find_active_dp_cores() {
     }
 }
 
-
-void
-SimStateless::init() {
+void SimStateless::init() {
 
     /* message queue init */
     assert(CMsgIns::Ins()->Create(m_dp_core_count));
@@ -185,25 +165,19 @@ SimStateless::init() {
     set_stx(new TrexStateless(cfg));
 }
 
-int
-SimStateless::run(const string &json_filename,
-                  const string &out_filename,
-                  int port_count,
-                  int dp_core_count,
-                  int dp_core_index,
-                  int limit,
-                  bool is_dry_run) {
+int SimStateless::run(const string &json_filename, const string &out_filename, int port_count, int dp_core_count,
+                      int dp_core_index, int limit, bool is_dry_run) {
 
     assert(dp_core_count > 0);
 
     /* -1 means its not set or positive value between 0 and the dp core count - 1*/
-    assert( (dp_core_index == -1) || ( in_range(dp_core_index, 0, dp_core_count - 1)) );
+    assert((dp_core_index == -1) || (in_range(dp_core_index, 0, dp_core_count - 1)));
 
     m_dp_core_count = dp_core_count;
     m_dp_core_index = dp_core_index;
-    m_port_count    = port_count;
-    m_limit         = limit;
-    m_is_dry_run    = is_dry_run;
+    m_port_count = port_count;
+    m_limit = limit;
+    m_is_dry_run = is_dry_run;
 
     init();
     prepare_dataplane();
@@ -221,7 +195,6 @@ SimStateless::run(const string &json_filename,
 
     return 0;
 }
-
 
 SimStateless::~SimStateless() {
 
@@ -243,28 +216,23 @@ SimStateless::~SimStateless() {
  *
  * @author imarom (28-Dec-15)
  */
-void
-SimStateless::prepare_control_plane() {
+void SimStateless::prepare_control_plane() {
 
     get_stateless_obj()->launch_control_plane();
 
     for (auto &port : get_stateless_obj()->get_port_map()) {
         port.second->acquire("test", 0, true);
     }
-
 }
-
 
 /**
  * prepare the data plane for test
  *
  */
-void
-SimStateless::prepare_dataplane() {
+void SimStateless::prepare_dataplane() {
 
     CGlobalInfo::m_options.m_expected_portd = m_port_count;
     set_op_mode(OP_MODE_STL);
-
 
     m_fl.Create();
     m_fl.generate_p_thread_info(m_dp_core_count);
@@ -278,10 +246,7 @@ SimStateless::prepare_dataplane() {
     }
 }
 
-
-
-void
-SimStateless::execute_json(const std::string &json_filename) {
+void SimStateless::execute_json(const std::string &json_filename) {
     std::string rep;
     std::ifstream test(json_filename);
     std::stringstream buffer;
@@ -302,11 +267,9 @@ SimStateless::execute_json(const std::string &json_filename) {
     }
 
     validate_response(root);
-
 }
 
-void
-SimStateless::validate_response(const Json::Value &resp) {
+void SimStateless::validate_response(const Json::Value &resp) {
     std::stringstream ss;
 
     if (resp.isArray()) {
@@ -322,19 +285,17 @@ SimStateless::validate_response(const Json::Value &resp) {
             throw SimRunException(ss.str());
         }
     }
-
 }
 
 static inline bool is_debug() {
-    #ifdef DEBUG
+#ifdef DEBUG
     return true;
-    #else
+#else
     return false;
-    #endif
+#endif
 }
 
-void
-SimStateless::show_intro(const std::string &out_filename) {
+void SimStateless::show_intro(const std::string &out_filename) {
     double pps;
     double bps_L1;
     double bps_L2;
@@ -349,7 +310,9 @@ SimStateless::show_intro(const std::string &out_filename) {
     if (m_limit > 0) {
         std::cout << "packet limit:             " << m_limit << "\n";
     } else {
-        std::cout << "packet limit:             " << "*NO LIMIT*" << "\n";
+        std::cout << "packet limit:             "
+                  << "*NO LIMIT*"
+                  << "\n";
     }
 
     if (m_dp_core_index != -1) {
@@ -364,7 +327,6 @@ SimStateless::show_intro(const std::string &out_filename) {
     std::cout << "ports:                    " << m_port_count << "\n";
     std::cout << "cores:                    " << m_dp_core_count << "\n";
 
-
     std::cout << "\nPort Config:\n";
     std::cout << "------------\n\n";
 
@@ -373,16 +335,15 @@ SimStateless::show_intro(const std::string &out_filename) {
 
     port->get_port_effective_rate(pps, bps_L1, bps_L2, percentage);
 
-    std::cout << "max PPS    :              " << format_num(pps,        "pps") << "\n";
-    std::cout << "max BPS L1 :              " << format_num(bps_L1,     "bps") << "\n";
-    std::cout << "max BPS L2 :              " << format_num(bps_L2,     "bps") << "\n";
-    std::cout << "line util. :              " << format_num(percentage,  "%") << "\n";
+    std::cout << "max PPS    :              " << format_num(pps, "pps") << "\n";
+    std::cout << "max BPS L1 :              " << format_num(bps_L1, "bps") << "\n";
+    std::cout << "max BPS L2 :              " << format_num(bps_L2, "bps") << "\n";
+    std::cout << "line util. :              " << format_num(percentage, "%") << "\n";
 
     std::cout << "\n\nStarting simulation...\n";
 }
 
-void
-SimStateless::run_dp(const std::string &out_filename) {
+void SimStateless::run_dp(const std::string &out_filename) {
     std::vector<DPCoreStats> core_stats(m_dp_core_count);
     DPCoreStats total;
 
@@ -404,7 +365,6 @@ SimStateless::run_dp(const std::string &out_filename) {
     /* cleanup */
     cleanup();
 
-
     std::cout << "\n\nSimulation summary:\n";
     std::cout << "-------------------\n\n";
 
@@ -416,7 +376,8 @@ SimStateless::run_dp(const std::string &out_filename) {
         std::cout << "    on-wire packets    : " << core_stats[i].get_on_wire_count() << "\n\n";
     }
 
-    std::cout << "Total:" << "\n";
+    std::cout << "Total:"
+              << "\n";
     std::cout << "-----------------\n\n";
     std::cout << "    simulated packets  : " << total.m_simulated_pkts << "\n";
     std::cout << "    non active packets : " << total.m_non_active_pkts << "\n";
@@ -425,14 +386,14 @@ SimStateless::run_dp(const std::string &out_filename) {
     if (m_is_dry_run) {
         std::cout << "*DRY RUN* - no packets were written\n";
     } else {
-        std::cout << "written " << total.m_written_pkts << " packets " << "to '" << out_filename << "'\n\n";
+        std::cout << "written " << total.m_written_pkts << " packets "
+                  << "to '" << out_filename << "'\n\n";
     }
 
     std::cout << "\n";
 }
 
-void
-SimStateless::flush_messages() {
+void SimStateless::flush_messages() {
     for (int i = 0; i < m_dp_core_count; i++) {
         flush_cp_to_dp_messages_core(i);
         flush_dp_to_cp_messages_core(i);
@@ -440,8 +401,7 @@ SimStateless::flush_messages() {
     flush_cp_to_rx_messages();
 }
 
-void
-SimStateless::cleanup() {
+void SimStateless::cleanup() {
 
     for (int port_id = 0; port_id < get_stateless_obj()->get_port_count(); port_id++) {
         get_stateless_obj()->get_port_by_id(port_id)->stop_traffic();
@@ -452,8 +412,7 @@ SimStateless::cleanup() {
     CFlowStatRuleMgr::cleanup();
 }
 
-uint64_t
-SimStateless::get_limit_per_core(int core_index) {
+uint64_t SimStateless::get_limit_per_core(int core_index) {
     /* global no limit ? */
     if (m_limit == 0) {
         return (0);
@@ -466,11 +425,8 @@ SimStateless::get_limit_per_core(int core_index) {
     }
 }
 
-void
-SimStateless::run_dp_core(int core_index,
-                          const std::string &out_filename,
-                          std::vector<DPCoreStats> &stats,
-                          DPCoreStats &total) {
+void SimStateless::run_dp_core(int core_index, const std::string &out_filename, std::vector<DPCoreStats> &stats,
+                               DPCoreStats &total) {
 
     CFlowGenListPerThread *lpt = m_fl.m_threads_info[core_index];
 
@@ -479,33 +435,31 @@ SimStateless::run_dp_core(int core_index,
     flush_dp_to_cp_messages_core(core_index);
 
     /* core */
-    stats[core_index].m_simulated_pkts   = lpt->m_node_gen.m_cnt;
-    stats[core_index].m_non_active_pkts  = lpt->m_node_gen.m_non_active;
+    stats[core_index].m_simulated_pkts = lpt->m_node_gen.m_cnt;
+    stats[core_index].m_non_active_pkts = lpt->m_node_gen.m_non_active;
 
     /* total */
-    total.m_simulated_pkts   += lpt->m_node_gen.m_cnt;
-    total.m_non_active_pkts  += lpt->m_node_gen.m_non_active;
+    total.m_simulated_pkts += lpt->m_node_gen.m_cnt;
+    total.m_non_active_pkts += lpt->m_node_gen.m_non_active;
 
     if (should_capture_core(core_index)) {
-        stats[core_index].m_written_pkts  = (lpt->m_node_gen.m_cnt - lpt->m_node_gen.m_non_active);
-        total.m_written_pkts             += (lpt->m_node_gen.m_cnt - lpt->m_node_gen.m_non_active);
+        stats[core_index].m_written_pkts = (lpt->m_node_gen.m_cnt - lpt->m_node_gen.m_non_active);
+        total.m_written_pkts += (lpt->m_node_gen.m_cnt - lpt->m_node_gen.m_non_active);
     }
 }
 
-
-void
-SimStateless::flush_dp_to_cp_messages_core(int core_index) {
+void SimStateless::flush_dp_to_cp_messages_core(int core_index) {
 
     CNodeRing *ring = CMsgIns::Ins()->getCpDp()->getRingDpToCp(core_index);
 
-    while ( true ) {
-        CGenNode * node = NULL;
+    while (true) {
+        CGenNode *node = NULL;
         if (ring->Dequeue(node) != 0) {
             break;
         }
         assert(node);
 
-        TrexDpToCpMsgBase * msg = (TrexDpToCpMsgBase *)node;
+        TrexDpToCpMsgBase *msg = (TrexDpToCpMsgBase *)node;
         if (m_dp_to_cp_handler) {
             m_dp_to_cp_handler->handle(msg);
         }
@@ -514,41 +468,38 @@ SimStateless::flush_dp_to_cp_messages_core(int core_index) {
     }
 }
 
-void
-SimStateless::flush_cp_to_dp_messages_core(int core_index) {
+void SimStateless::flush_cp_to_dp_messages_core(int core_index) {
 
     CNodeRing *ring = CMsgIns::Ins()->getCpDp()->getRingCpToDp(core_index);
 
-    while ( true ) {
-        CGenNode * node = NULL;
+    while (true) {
+        CGenNode *node = NULL;
         if (ring->Dequeue(node) != 0) {
             break;
         }
         assert(node);
 
-        TrexCpToDpMsgBase * msg = (TrexCpToDpMsgBase *)node;
+        TrexCpToDpMsgBase *msg = (TrexCpToDpMsgBase *)node;
         delete msg;
     }
 }
 
-void
-SimStateless::flush_cp_to_rx_messages() {
+void SimStateless::flush_cp_to_rx_messages() {
     CNodeRing *ring = CMsgIns::Ins()->getCpRx()->getRingCpToDp(0);
 
-    while ( true ) {
-        CGenNode * node = NULL;
+    while (true) {
+        CGenNode *node = NULL;
         if (ring->Dequeue(node) != 0) {
             break;
         }
         assert(node);
 
-        TrexCpToRxMsgBase * msg = (TrexCpToRxMsgBase *)node;
+        TrexCpToRxMsgBase *msg = (TrexCpToRxMsgBase *)node;
         delete msg;
     }
 }
 
-bool
-SimStateless::should_capture_core(int i) {
+bool SimStateless::should_capture_core(int i) {
 
     /* dry run - no core should be recordered */
     if (m_is_dry_run) {
@@ -563,13 +514,11 @@ SimStateless::should_capture_core(int i) {
     }
 }
 
-bool
-SimStateless::is_multiple_capture() {
+bool SimStateless::is_multiple_capture() {
     /* dry run - no core should be recordered */
     if (m_is_dry_run) {
         return false;
     }
 
-    return ( (m_dp_core_count > 1) && (m_dp_core_index == -1) );
+    return ((m_dp_core_count > 1) && (m_dp_core_index == -1));
 }
-

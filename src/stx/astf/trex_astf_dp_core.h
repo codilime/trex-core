@@ -27,14 +27,13 @@ limitations under the License.
 #include "trex_dp_core.h"
 
 struct profile_param {
-    profile_id_t    m_profile_id;
-    double          m_duration;
+    profile_id_t m_profile_id;
+    double m_duration;
 };
 
 class TrexAstfDpCore : public TrexDpCore {
 
-public:
-
+  public:
     TrexAstfDpCore(uint8_t thread_id, CFlowGenListPerThread *core);
     ~TrexAstfDpCore();
 
@@ -56,7 +55,7 @@ public:
     void parse_astf_json(profile_id_t profile_id, std::string *profile_buffer, std::string *topo_buffer);
     void remove_astf_json(profile_id_t profile_id);
 
-protected:
+  protected:
     virtual bool rx_for_idle();
     void report_finished(profile_id_t profile_id = 0);
     void report_error(profile_id_t profile_id, const std::string &error);
@@ -69,27 +68,25 @@ protected:
     bool is_profile_stop_id(profile_id_t profile_id, uint32_t stop_id);
     void set_profile_stop_id(profile_id_t profile_id, uint32_t stop_id);
 
-    void get_scheduler_options(profile_id_t profile_id, bool& disable_client, double& d_time_flow, double& d_phase);
+    void get_scheduler_options(profile_id_t profile_id, bool &disable_client, double &d_time_flow, double &d_phase);
     void start_profile_ctx(profile_id_t profile_id, double duration);
     void stop_profile_ctx(profile_id_t profile_id, uint32_t stop_id);
 
     std::vector<struct profile_param> m_sched_param;
 
     enum profile_state_e {
-        pSTATE_FREE,    // by create or delete_tcp_batch
-        pSTATE_LOADED,  // by create_tcp_batch or stop_transmit
-        pSTATE_STARTING,// by start_transmit
-        pSTATE_ACTIVE,  // by start_profile_ctx
-        pSTATE_WAIT     // by stop_transmit
+        pSTATE_FREE,     // by create or delete_tcp_batch
+        pSTATE_LOADED,   // by create_tcp_batch or stop_transmit
+        pSTATE_STARTING, // by start_transmit
+        pSTATE_ACTIVE,   // by start_profile_ctx
+        pSTATE_WAIT      // by stop_transmit
     };
 
     std::unordered_map<profile_id_t, profile_state_e> m_profile_states;
     int m_active_profile_cnt;
     uint32_t m_profile_stop_id;
 
-    bool is_profile(profile_id_t profile_id) {
-        return m_profile_states.find(profile_id) != m_profile_states.end();
-    }
+    bool is_profile(profile_id_t profile_id) { return m_profile_states.find(profile_id) != m_profile_states.end(); }
     void create_profile_state(profile_id_t profile_id) {
         assert(!is_profile(profile_id));
         m_profile_states[profile_id] = pSTATE_FREE;
@@ -130,9 +127,8 @@ protected:
     void set_profile_stop_event(profile_id_t profile_id);
     void clear_profile_stop_event_all();
 
-public:
+  public:
     void on_profile_stop_event(profile_id_t profile_id);
 };
 
 #endif /* __TREX_ASTF_DP_CORE_H__ */
-

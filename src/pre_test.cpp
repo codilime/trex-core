@@ -118,8 +118,9 @@ COneIPInfo *CPretestOnePortInfo::get_src(uint16_t vlan, uint8_t ip_ver) {
 
 COneIPv4Info *CPretestOnePortInfo::find_ip(uint32_t ip, uint16_t vlan) {
     for (std::vector<COneIPInfo *>::iterator it = m_src_info.begin(); it != m_src_info.end(); ++it) {
-        if (((*it)->ip_ver() == COneIPInfo::IP4_VER) && ((*it)->get_vlan() == vlan) && (((COneIPv4Info *)(*it))->get_ip() == ip))
-            return (COneIPv4Info *) *it;
+        if (((*it)->ip_ver() == COneIPInfo::IP4_VER) && ((*it)->get_vlan() == vlan) &&
+            (((COneIPv4Info *)(*it))->get_ip() == ip))
+            return (COneIPv4Info *)*it;
     }
 
     return NULL;
@@ -128,8 +129,9 @@ COneIPv4Info *CPretestOnePortInfo::find_ip(uint32_t ip, uint16_t vlan) {
 COneIPv4Info *CPretestOnePortInfo::find_next_hop(uint32_t ip, uint16_t vlan) {
 
     for (std::vector<COneIPInfo *>::iterator it = m_dst_info.begin(); it != m_dst_info.end(); ++it) {
-        if (((*it)->ip_ver() == COneIPInfo::IP4_VER) && ((*it)->get_vlan() == vlan) && (((COneIPv4Info *)(*it))->get_ip() == ip))
-            return (COneIPv4Info *) *it;
+        if (((*it)->ip_ver() == COneIPInfo::IP4_VER) && ((*it)->get_vlan() == vlan) &&
+            (((COneIPv4Info *)(*it))->get_ip() == ip))
+            return (COneIPv4Info *)*it;
     }
 
     return NULL;
@@ -137,9 +139,9 @@ COneIPv4Info *CPretestOnePortInfo::find_next_hop(uint32_t ip, uint16_t vlan) {
 
 COneIPv6Info *CPretestOnePortInfo::find_ipv6(uint16_t ip[8], uint16_t vlan) {
     for (std::vector<COneIPInfo *>::iterator it = m_src_info.begin(); it != m_src_info.end(); ++it) {
-        if (((*it)->ip_ver() == COneIPInfo::IP6_VER) && ((*it)->get_vlan() == vlan)
-            && (! memcmp((uint8_t *) ((COneIPv6Info *) (*it))->get_ipv6(), (uint8_t *)ip, 2*8 /* ???*/ ) ) )
-            return (COneIPv6Info *) *it;
+        if (((*it)->ip_ver() == COneIPInfo::IP6_VER) && ((*it)->get_vlan() == vlan) &&
+            (!memcmp((uint8_t *)((COneIPv6Info *)(*it))->get_ipv6(), (uint8_t *)ip, 2 * 8 /* ???*/)))
+            return (COneIPv6Info *)*it;
     }
 
     return NULL;
@@ -152,13 +154,13 @@ bool CPretestOnePortInfo::get_mac(COneIPInfo *ip, uint8_t *mac) {
         if (ip->ip_ver() != (*it)->ip_ver())
             continue;
 
-        switch(ip->ip_ver()) {
+        switch (ip->ip_ver()) {
         case 4:
-            if (*((COneIPv4Info *) (*it)) != *((COneIPv4Info *) ip))
+            if (*((COneIPv4Info *)(*it)) != *((COneIPv4Info *)ip))
                 continue;
             break;
         case 6:
-            if (*((COneIPv6Info *) (*it)) != *((COneIPv6Info *) ip))
+            if (*((COneIPv6Info *)(*it)) != *((COneIPv6Info *)ip))
                 continue;
             break;
         default:
@@ -166,7 +168,7 @@ bool CPretestOnePortInfo::get_mac(COneIPInfo *ip, uint8_t *mac) {
         }
 
         (*it)->get_mac(mac);
-        if (! memcmp(mac, defaultmac.GetConstBuffer(), ETHER_ADDR_LEN)) {
+        if (!memcmp(mac, defaultmac.GetConstBuffer(), ETHER_ADDR_LEN)) {
             return false;
         } else {
             return true;
@@ -212,7 +214,7 @@ void CPretestOnePortInfo::send_arp_req_all() {
             continue;
 
         m[0] = CGlobalInfo::pktmbuf_alloc_small_by_port(m_port_id);
-        if ( unlikely(m[0] == 0) )  {
+        if (unlikely(m[0] == 0)) {
             fprintf(stderr, "ERROR: Could not allocate mbuf for sending ARP to port:%d\n", m_port_id);
             exit(1);
         }
@@ -228,10 +230,10 @@ void CPretestOnePortInfo::send_arp_req_all() {
         (*it)->fill_arp_req_buf(p, m_port_id, sip);
 
         if (verbose >= 3) {
-            fprintf(stdout, "TX ARP request on port %d - " , m_port_id);
+            fprintf(stdout, "TX ARP request on port %d - ", m_port_id);
             (*it)->dump(stdout, "");
             if (verbose >= 7) {
-                utl_rte_pktmbuf_dump_k12(stdout,m[0]);
+                utl_rte_pktmbuf_dump_k12(stdout, m[0]);
             }
         }
 
@@ -256,7 +258,7 @@ void CPretestOnePortInfo::send_grat_arp_all() {
         int verbose = CGlobalInfo::m_options.preview.getVMode();
 
         m[0] = CGlobalInfo::pktmbuf_alloc_small_by_port(m_port_id);
-        if ( unlikely(m[0] == 0) )  {
+        if (unlikely(m[0] == 0)) {
             fprintf(stderr, "ERROR: Could not allocate mbuf for sending grat ARP on port:%d\n", m_port_id);
             exit(1);
         }
@@ -264,9 +266,8 @@ void CPretestOnePortInfo::send_grat_arp_all() {
         uint8_t *p = (uint8_t *)rte_pktmbuf_append(m[0], (*it)->get_grat_arp_len());
         (*it)->fill_grat_arp_buf(p);
 
-
         if (verbose >= 3) {
-            fprintf(stdout, "TX grat ARP on port %d - " , m_port_id);
+            fprintf(stdout, "TX grat ARP on port %d - ", m_port_id);
             (*it)->dump(stdout, "");
         }
 
@@ -407,7 +408,7 @@ bool CPretest::is_arp(const uint8_t *p, uint16_t pkt_size, ArpHdr *&arp, uint16_
     if (pkt_size < min_size)
         return false;
 
-    switch(m_ether->getNextProtocol()) {
+    switch (m_ether->getNextProtocol()) {
     case EthernetHeader::Protocol::ARP:
         arp = (ArpHdr *)(p + 14);
         min_size += sizeof(ArpHdr);
@@ -438,7 +439,7 @@ bool CPretest::is_arp(const uint8_t *p, uint16_t pkt_size, ArpHdr *&arp, uint16_
 }
 
 int CPretest::handle_rx(int port_id, int queue_id) {
-    rte_mbuf_t * rx_pkts[32];
+    rte_mbuf_t *rx_pkts[32];
     uint16_t cnt;
     int i;
     int verbose = CGlobalInfo::m_options.preview.getVMode();
@@ -447,17 +448,17 @@ int CPretest::handle_rx(int port_id, int queue_id) {
     do {
         CPretestOnePortInfo *port = &m_port_info[port_id];
 
-        cnt = port->get_port()->rx_burst( queue_id, rx_pkts, sizeof(rx_pkts)/sizeof(rx_pkts[0]));
+        cnt = port->get_port()->rx_burst(queue_id, rx_pkts, sizeof(rx_pkts) / sizeof(rx_pkts[0]));
         tries++;
         bool free_pkt;
         for (i = 0; i < cnt; i++) {
-            rte_mbuf_t * m = rx_pkts[i];
+            rte_mbuf_t *m = rx_pkts[i];
             free_pkt = true;
             int pkt_size = rte_pktmbuf_pkt_len(m);
             uint8_t *p = rte_pktmbuf_mtod(m, uint8_t *);
-            if (verbose >= 7){
-                fprintf(stdout, "RX-gen on port %d queue %d \n",port_id,queue_id);
-                utl_rte_pktmbuf_dump_k12(stdout,m);
+            if (verbose >= 7) {
+                fprintf(stdout, "RX-gen on port %d queue %d \n", port_id, queue_id);
+                utl_rte_pktmbuf_dump_k12(stdout, m);
             }
 
             ArpHdr *arp;
@@ -470,14 +471,12 @@ int CPretest::handle_rx(int port_id, int queue_id) {
                         if (arp->m_arp_sip == arp->m_arp_tip) {
                             is_grat = true;
                         }
-                        fprintf(stdout, "RX %s on port %d queue %d sip:%s tip:%s vlan:%d\n"
-                                , is_grat ? "grat ARP" : "ARP request"
-                                , port_id, queue_id
-                                , ip_to_str(ntohl(arp->m_arp_sip)).c_str()
-                                , ip_to_str(ntohl(arp->m_arp_tip)).c_str()
-                                , vlan_id);
+                        fprintf(stdout, "RX %s on port %d queue %d sip:%s tip:%s vlan:%d\n",
+                                is_grat ? "grat ARP" : "ARP request", port_id, queue_id,
+                                ip_to_str(ntohl(arp->m_arp_sip)).c_str(), ip_to_str(ntohl(arp->m_arp_tip)).c_str(),
+                                vlan_id);
                         if (verbose >= 7)
-                            utl_rte_pktmbuf_dump_k12(stdout,m);
+                            utl_rte_pktmbuf_dump_k12(stdout, m);
                     }
                     // is this request for our IP?
                     COneIPv4Info *src_addr;
@@ -486,7 +485,7 @@ int CPretest::handle_rx(int port_id, int queue_id) {
                         // If our request(i.e. we are connected in loopback)
                         // , do a shortcut, and write info directly to asking port
                         uint8_t magic[5] = {0x1, 0x3, 0x5, 0x7, 0x9};
-                        if (! memcmp((uint8_t *)&arp->m_arp_tha.data, magic, 5)) {
+                        if (!memcmp((uint8_t *)&arp->m_arp_tha.data, magic, 5)) {
                             uint8_t sent_port_id = arp->m_arp_tha.data[5];
                             if ((sent_port_id < m_max_ports) &&
                                 (rcv_addr = m_port_info[sent_port_id].find_next_hop(ntohl(arp->m_arp_tip), vlan_id))) {
@@ -516,30 +515,26 @@ int CPretest::handle_rx(int port_id, int queue_id) {
                                 rte_pktmbuf_free(m);
                             } else {
                                 if (verbose >= 3) {
-                                    fprintf(stdout, "TX ARP reply on port:%d sip:%s, tip:%s\n"
-                                            , port_id
-                                            , ip_to_str(ntohl(arp->m_arp_sip)).c_str()
-                                            , ip_to_str(ntohl(arp->m_arp_tip)).c_str());
-
+                                    fprintf(stdout, "TX ARP reply on port:%d sip:%s, tip:%s\n", port_id,
+                                            ip_to_str(ntohl(arp->m_arp_sip)).c_str(),
+                                            ip_to_str(ntohl(arp->m_arp_tip)).c_str());
                                 }
                                 port->m_stats.m_tx_arp++;
                             }
                         }
                     } else {
                         // ARP request not to our IP. Check if this is gratitues ARP for something we need.
-                        if ((arp->m_arp_tip == arp->m_arp_sip)
-                            && (rcv_addr = port->find_next_hop(ntohl(arp->m_arp_tip), vlan_id))) {
+                        if ((arp->m_arp_tip == arp->m_arp_sip) &&
+                            (rcv_addr = port->find_next_hop(ntohl(arp->m_arp_tip), vlan_id))) {
                             rcv_addr->set_mac((uint8_t *)&arp->m_arp_sha);
                         }
                     }
                 } else {
                     if (arp->m_arp_op == htons(ArpHdr::ARP_HDR_OP_REPLY)) {
                         if (verbose >= 3) {
-                            fprintf(stdout, "RX ARP reply on port %d queue %d sip:%s tip:%s vlan:%d\n"
-                                    , port_id, queue_id
-                                    , ip_to_str(ntohl(arp->m_arp_sip)).c_str()
-                                    , ip_to_str(ntohl(arp->m_arp_tip)).c_str()
-                                    , vlan_id);
+                            fprintf(stdout, "RX ARP reply on port %d queue %d sip:%s tip:%s vlan:%d\n", port_id,
+                                    queue_id, ip_to_str(ntohl(arp->m_arp_sip)).c_str(),
+                                    ip_to_str(ntohl(arp->m_arp_tip)).c_str(), vlan_id);
                         }
 
                         // If this is response to our request, update our tables
@@ -560,11 +555,11 @@ int CPretest::handle_rx(int port_id, int queue_id) {
 
 void CPretest::get_results(CManyIPInfo &resolved_ips) {
     for (int port = 0; port < m_max_ports; port++) {
-        for (std::vector<COneIPInfo *>::iterator it = m_port_info[port].m_dst_info.begin()
-                 ; it != m_port_info[port].m_dst_info.end(); ++it) {
+        for (std::vector<COneIPInfo *>::iterator it = m_port_info[port].m_dst_info.begin();
+             it != m_port_info[port].m_dst_info.end(); ++it) {
             uint8_t ip_type = (*it)->ip_ver();
             (*it)->set_port(port);
-            switch(ip_type) {
+            switch (ip_type) {
             case COneIPInfo::IP4_VER:
                 resolved_ips.insert(*(COneIPv4Info *)(*it));
                 break;
@@ -598,12 +593,12 @@ void CPretest::test() {
     uint8_t mac0[ETHER_ADDR_LEN] = {0x90, 0xe2, 0xba, 0xae, 0x87, 0xd0};
     uint8_t mac1[ETHER_ADDR_LEN] = {0x90, 0xe2, 0xba, 0xae, 0x87, 0xd1};
     uint8_t mac2[ETHER_ADDR_LEN] = {0x90, 0xe2, 0xba, 0xae, 0x87, 0xd2};
-    uint32_t ip0  = 0x0f000002;
+    uint32_t ip0 = 0x0f000002;
     uint32_t ip01 = 0x0f000003;
-    uint32_t ip1  = 0x0f000001;
+    uint32_t ip1 = 0x0f000001;
     uint16_t ipv6_0[8] = {0x1234, 0x5678, 0xabcd, 0x0, 0x0, 0x0, 0x1111, 0x2220};
     uint16_t ipv6_1[8] = {0x1234, 0x5678, 0xabcd, 0x0, 0x0, 0x0, 0x1111, 0x2221};
-    uint16_t vlan=1;
+    uint16_t vlan = 1;
     uint8_t port_0 = 0;
     uint8_t port_1 = 3;
 

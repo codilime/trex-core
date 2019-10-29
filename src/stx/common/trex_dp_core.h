@@ -29,7 +29,6 @@ limitations under the License.
 #include "mbuf.h"
 #include "dpdk_port_map.h"
 
-
 class CFlowGenListPerThread;
 class TrexCpToDpMsgBase;
 
@@ -41,18 +40,9 @@ class TrexCpToDpMsgBase;
  *
  */
 class TrexDpCore {
-public:
-
+  public:
     /* states */
-    enum state_e {
-        STATE_IDLE,
-        STATE_STARTING,
-        STATE_TRANSMITTING,
-        STATE_STOPPING,
-        STATE_PCAP_TX,
-        STATE_TERMINATE
-    };
-
+    enum state_e { STATE_IDLE, STATE_STARTING, STATE_TRANSMITTING, STATE_STOPPING, STATE_PCAP_TX, STATE_TERMINATE };
 
     TrexDpCore(uint32_t thread_id, CFlowGenListPerThread *core, state_e init_state);
     virtual ~TrexDpCore() {}
@@ -64,7 +54,6 @@ public:
      */
     void start();
 
-
     /**
      * launch the DP core but
      * exit after one iteration
@@ -73,12 +62,10 @@ public:
      */
     void start_once();
 
-
     /**
      * stop the DP core
      */
     void stop();
-
 
     /**
      * a barrier for the DP core
@@ -86,15 +73,11 @@ public:
      */
     void barrier(uint8_t port_id, uint32_t profile_id, int event_id);
 
-
     /**
      * return true if core has any pending messages from CP
      *
      */
-    bool are_any_pending_cp_messages() {
-        return (!m_ring_from_cp->isEmpty());
-    }
-
+    bool are_any_pending_cp_messages() { return (!m_ring_from_cp->isEmpty()); }
 
     /**
      * check for and handle messages from CP
@@ -107,50 +90,39 @@ public:
         /* fast path */
         m_ring_to_cp->Reschedule();
 
-        if ( likely ( m_ring_from_cp->isEmpty() ) ) {
+        if (likely(m_ring_from_cp->isEmpty())) {
             return false;
         }
 
-        while ( true ) {
-            CGenNode * node = NULL;
+        while (true) {
+            CGenNode *node = NULL;
             if (m_ring_from_cp->Dequeue(node) != 0) {
                 break;
             }
             assert(node);
 
-            TrexCpToDpMsgBase * msg = (TrexCpToDpMsgBase *)node;
+            TrexCpToDpMsgBase *msg = (TrexCpToDpMsgBase *)node;
             handle_cp_msg(msg);
         }
 
         return true;
-
     }
 
-
-    state_e get_state() {
-        return m_state;
-    }
-
+    state_e get_state() { return m_state; }
 
     /**
      * return true if all the ports are idle
      */
     virtual bool are_all_ports_idle() = 0;
 
-
     /**
      * return true if a specific port is active
      */
     virtual bool is_port_active(uint8_t port_id) = 0;
 
+    virtual void rx_handle_packet(int dir, rte_mbuf_t *m, bool is_idle, tvpid_t port_id) { assert(0); }
 
-    virtual void rx_handle_packet(int dir,rte_mbuf_t * m,bool is_idle,
-                                  tvpid_t port_id){
-        assert(0);
-    }
-
-protected:
-
+  protected:
     /**
      * per implementation start scheduler
      */
@@ -172,26 +144,20 @@ protected:
      */
     void handle_cp_msg(TrexCpToDpMsgBase *msg);
 
-
     void add_global_duration(double duration);
 
-
     /* thread id */
-    uint8_t                  m_thread_id;
-
+    uint8_t m_thread_id;
 
     /* global state */
-    state_e                  m_state;
+    state_e m_state;
 
     /* pointer to the main object */
-    CFlowGenListPerThread   *m_core;
+    CFlowGenListPerThread *m_core;
 
     /* messaging */
-    CNodeRing               *m_ring_from_cp;
-    CNodeRing               *m_ring_to_cp;
-
+    CNodeRing *m_ring_from_cp;
+    CNodeRing *m_ring_to_cp;
 };
 
-
 #endif /* __TREX_DP_CORE_H__ */
-

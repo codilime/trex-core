@@ -46,15 +46,14 @@ TrexRpcServerInterface::TrexRpcServerInterface(const TrexRpcServerConfig &cfg, c
     }
 
     std::string logfile_name = cfg.get_logfile_name();
-    if ( logfile_name.size() ) {
+    if (logfile_name.size()) {
         m_logfile.open(logfile_name);
-        if ( !m_logfile.is_open() ) {
+        if (!m_logfile.is_open()) {
             printf("ERROR: Could not open rpc-log file.\n");
             printf("Check path correctness and permissions: %s", logfile_name.c_str());
             exit(1);
         }
     }
-
 }
 
 TrexRpcServerInterface::~TrexRpcServerInterface() {
@@ -62,28 +61,28 @@ TrexRpcServerInterface::~TrexRpcServerInterface() {
         stop();
     }
 
-    if ( m_logfile.is_open() ) {
+    if (m_logfile.is_open()) {
         m_logfile.close();
     }
 }
 
 void TrexRpcServerInterface::verbose_msg(const std::string &msg) {
-    if ( !m_is_verbose && !m_logfile.is_open() ) {
+    if (!m_is_verbose && !m_logfile.is_open()) {
         return;
     }
 
     auto t = std::time(nullptr);
     auto tm = std::localtime(&t);
     char time_buffer[80];
-    strftime (time_buffer, 80, "%d-%m-%Y %H:%M:%S", tm);
+    strftime(time_buffer, 80, "%d-%m-%Y %H:%M:%S", tm);
 
     std::stringstream msg_ss;
     msg_ss << "[" << time_buffer << "] [" << m_name << "] " << msg << "\n";
 
-    if ( m_is_verbose ) {
+    if (m_is_verbose) {
         std::cout << msg_ss.str() << std::flush;
     }
-    if ( m_logfile.is_open() ) {
+    if (m_logfile.is_open()) {
         m_logfile << msg_ss.str();
         m_logfile.flush();
     }
@@ -128,26 +127,18 @@ void TrexRpcServerInterface::stop() {
     delete m_thread;
 }
 
-void TrexRpcServerInterface::set_verbose(bool verbose) {
-    m_is_verbose = verbose;
-}
+void TrexRpcServerInterface::set_verbose(bool verbose) { m_is_verbose = verbose; }
 
-bool TrexRpcServerInterface::is_verbose() {
-    return m_is_verbose;
-}
+bool TrexRpcServerInterface::is_verbose() { return m_is_verbose; }
 
-bool TrexRpcServerInterface::is_running() {
-    return m_is_running;
-}
-
+bool TrexRpcServerInterface::is_running() { return m_is_running; }
 
 /************** RPC server *************/
 
-static const std::string
-get_current_date_time() {
-    time_t     now = time(0);
-    struct tm  tstruct;
-    char       buf[80];
+static const std::string get_current_date_time() {
+    time_t now = time(0);
+    struct tm tstruct;
+    char buf[80];
     tstruct = *localtime(&now);
     strftime(buf, sizeof(buf), "%b %d %Y @ %X", &tstruct);
 
@@ -208,9 +199,7 @@ void TrexRpcServer::set_verbose(bool verbose) {
     }
 }
 
-
-std::string
-TrexRpcServer::test_inject_request(const std::string &req_str) {
+std::string TrexRpcServer::test_inject_request(const std::string &req_str) {
     if (m_req_resp) {
         return m_req_resp->test_inject_request(req_str);
     } else {
@@ -221,23 +210,15 @@ TrexRpcServer::test_inject_request(const std::string &req_str) {
 /**
  * MOCK req resp server
  */
-TrexRpcServerReqResMock::TrexRpcServerReqResMock(const TrexRpcServerConfig &cfg) : TrexRpcServerReqRes(cfg) {
-}
+TrexRpcServerReqResMock::TrexRpcServerReqResMock(const TrexRpcServerConfig &cfg) : TrexRpcServerReqRes(cfg) {}
 
 /**
  * override start
  *
  */
-void
-TrexRpcServerReqResMock::start() {
-
-}
-
+void TrexRpcServerReqResMock::start() {}
 
 /**
  * override stop
  */
-void
-TrexRpcServerReqResMock::stop() {
-
-}
+void TrexRpcServerReqResMock::stop() {}

@@ -38,31 +38,26 @@ limitations under the License.
 #include "44bsd/flow_table.h"
 */
 
-
 class gt_astf_inter : public trexAstfInteractiveTest {
 
-protected:
+  protected:
     virtual void SetUp() {
         m_op_mode_prev = get_op_mode();
         set_op_mode(OP_MODE_ASTF);
     }
 
-    virtual void TearDown() {
-        set_op_mode(m_op_mode_prev);
-    }
+    virtual void TearDown() { set_op_mode(m_op_mode_prev); }
 
     trex_traffic_mode_t m_op_mode_prev;
-public:
+
+  public:
 };
 
-
 /***********************
-*   ASTF Interactive   *
-***********************/
+ *   ASTF Interactive   *
+ ***********************/
 
-TEST_F(gt_astf_inter, astf_positive_1) {
-    CFlowGenList fl;
-}
+TEST_F(gt_astf_inter, astf_positive_1) { CFlowGenList fl; }
 
 TEST_F(gt_astf_inter, astf_positive_2) {
     CFlowGenList fl;
@@ -91,7 +86,7 @@ TEST_F(gt_astf_inter, astf_negative_3) {
 }
 
 TEST_F(gt_astf_inter, astf_positive_4) {
-    CAstfDB * lpastf = CAstfDB::instance();
+    CAstfDB *lpastf = CAstfDB::instance();
     bool success;
     success = lpastf->parse_file("automation/regression/data/owuigblskv");
     EXPECT_EQ(success, false);
@@ -141,7 +136,7 @@ TEST_F(gt_astf_inter, astf_positive_6) {
     }
     EXPECT_EQ(success, false);
 
-    CAstfDB * lpastf = CAstfDB::instance();
+    CAstfDB *lpastf = CAstfDB::instance();
     success = lpastf->parse_file("automation/regression/data/astf_dns.json");
     EXPECT_EQ(success, true);
 
@@ -164,14 +159,13 @@ TEST_F(gt_astf_inter, astf_positive_6) {
     fl.Delete();
 }
 
-
 TEST_F(gt_astf_inter, astf_positive_7) {
     bool success;
     CFlowGenList fl;
     fl.Create();
     fl.generate_p_thread_info(1);
     CFlowGenListPerThread *lpt = fl.m_threads_info[0];
-    CAstfDB * lpastf;
+    CAstfDB *lpastf;
 
     profile_id_t profile_id_1 = 0x12345678;
 
@@ -238,6 +232,3 @@ TEST_F(gt_astf_inter, astf_positive_7) {
     fl.clean_p_thread_info();
     fl.Delete();
 }
-
-
-

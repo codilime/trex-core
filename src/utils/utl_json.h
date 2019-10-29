@@ -24,32 +24,29 @@ limitations under the License.
 #include <type_traits>
 #include <json/json.h>
 
-
 namespace details {
-inline std::string add_json_val(std::string const& name, std::string const& val, bool last){
+inline std::string add_json_val(std::string const &name, std::string const &val, bool last) {
     std::string s = "\"" + name + "\":" + val;
     if (!last)
         s += ",";
     return s;
 }
-}
+} // namespace details
 
-inline std::string add_json(std::string const& name, std::string const& val, bool last=false){
+inline std::string add_json(std::string const &name, std::string const &val, bool last = false) {
     return details::add_json_val(name, "\"" + val + "\"", last);
 }
 
-template <typename N, typename = typename std::enable_if<std::is_integral<N>::value || std::is_floating_point<N>::value>::type>
-inline std::string add_json(std::string const& name, N counter, bool last=false){
+template <typename N,
+          typename = typename std::enable_if<std::is_integral<N>::value || std::is_floating_point<N>::value>::type>
+inline std::string add_json(std::string const &name, N counter, bool last = false) {
     return details::add_json_val(name, std::to_string(counter), last);
 }
 
-
 std::string pretty_json_str(const std::string &json_str);
 
-std::string pretty_json_str(const Json::Value & value);
+std::string pretty_json_str(const Json::Value &value);
 
-void dump_json(Json::Value & value,FILE *fd);
-
+void dump_json(Json::Value &value, FILE *fd);
 
 #endif
-

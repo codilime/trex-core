@@ -21,21 +21,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 #include "CRing.h"
 #include <string>
 
-
 /* messages from CP->DP Ids */
 
-struct CGenNodeMsgBase  {
+struct CGenNodeMsgBase {
     enum {
-        NAT_FIRST     = 7,
-        LATENCY_PKT   = 8,
+        NAT_FIRST = 7,
+        LATENCY_PKT = 8,
     } msg_types;
 
-public:
-    uint8_t       m_msg_type; /* msg type */
+  public:
+    uint8_t m_msg_type; /* msg type */
 };
 
 /*
@@ -67,62 +65,53 @@ cp     <-      -- dp1
 
 */
 
-class CGenNode ;
-typedef CTRingSp<CGenNode>  CNodeRing;
+class CGenNode;
+typedef CTRingSp<CGenNode> CNodeRing;
 
 /* CP == latency thread
    DP == traffic pkt generator */
 class CMessagingManager {
-public:
-    CMessagingManager(){
-        m_cp_to_dp=0;
-        m_dp_to_cp=0;
-        m_num_dp_threads=0;
+  public:
+    CMessagingManager() {
+        m_cp_to_dp = 0;
+        m_dp_to_cp = 0;
+        m_num_dp_threads = 0;
     }
-    bool Create(uint8_t num_dp_threads,std::string name);
+    bool Create(uint8_t num_dp_threads, std::string name);
     void Delete();
-    CNodeRing * getRingCpToDp(uint8_t thread_id);
-    CNodeRing * getRingDpToCp(uint8_t thread_id);
-    CNodeRing * getRingCpToRx();
-    uint8_t get_num_threads(){
-        return (m_num_dp_threads);
-    }
-private:
-    CNodeRing * m_cp_to_dp;
-    CNodeRing * m_dp_to_cp;
-    uint8_t     m_num_dp_threads;
+    CNodeRing *getRingCpToDp(uint8_t thread_id);
+    CNodeRing *getRingDpToCp(uint8_t thread_id);
+    CNodeRing *getRingCpToRx();
+    uint8_t get_num_threads() { return (m_num_dp_threads); }
+
+  private:
+    CNodeRing *m_cp_to_dp;
+    CNodeRing *m_dp_to_cp;
+    uint8_t m_num_dp_threads;
 };
 
-
 class CMsgIns {
-public:
-    static  CMsgIns  * Ins();
-    static  void Free();
+  public:
+    static CMsgIns *Ins();
+    static void Free();
     bool Create(uint8_t num_threads);
     void Delete();
-public:
-    CMessagingManager * getRxDp(){
-        return (&m_rx_dp);
-    }
-    CMessagingManager * getCpDp(){
-        return (&m_cp_dp);
-    }
-    CMessagingManager * getCpRx(){
-        return (&m_cp_rx);
-    }
 
-    uint8_t get_num_threads(){
-        return (m_rx_dp.get_num_threads());
-    }
+  public:
+    CMessagingManager *getRxDp() { return (&m_rx_dp); }
+    CMessagingManager *getCpDp() { return (&m_cp_dp); }
+    CMessagingManager *getCpRx() { return (&m_cp_rx); }
 
-private:
+    uint8_t get_num_threads() { return (m_rx_dp.get_num_threads()); }
+
+  private:
     CMessagingManager m_rx_dp;
     CMessagingManager m_cp_dp;
     CMessagingManager m_cp_rx;
 
-private:
+  private:
     /* one instance */
-    static  CMsgIns  * m_ins;
+    static CMsgIns *m_ins;
 };
 
 #endif

@@ -21,17 +21,17 @@ limitations under the License.
 #include "os_time.h"
 #include "rx_check_header.h"
 
-void CRx_check_header::dump(FILE *fd){
+void CRx_check_header::dump(FILE *fd) {
 
-    fprintf(fd,"  time_stamp : %x \n",m_time_stamp);
-    uint64_t d = (os_get_hr_tick_32() - m_time_stamp );
-    dsec_t dd= ptime_convert_hr_dsec(d);
+    fprintf(fd, "  time_stamp : %x \n", m_time_stamp);
+    uint64_t d = (os_get_hr_tick_32() - m_time_stamp);
+    dsec_t dd = ptime_convert_hr_dsec(d);
 
-    fprintf(fd,"  time_stamp : %f  \n",dd);
-    fprintf(fd,"  magic      : %x \n",m_magic);
-    fprintf(fd,"  pkt_id     : %x \n",m_pkt_id);
-    fprintf(fd,"  size       : %x \n",m_flow_size);
+    fprintf(fd, "  time_stamp : %f  \n", dd);
+    fprintf(fd, "  magic      : %x \n", m_magic);
+    fprintf(fd, "  pkt_id     : %x \n", m_pkt_id);
+    fprintf(fd, "  size       : %x \n", m_flow_size);
 
-    fprintf(fd,"  flow_id    : %lx \n",m_flow_id);
-    fprintf(fd,"  flags      : %x \n",m_flags);
+    fprintf(fd, "  flow_id    : %lx \n", m_flow_id);
+    fprintf(fd, "  flags      : %x \n", m_flags);
 }

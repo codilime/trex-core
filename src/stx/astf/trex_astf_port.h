@@ -21,7 +21,6 @@ limitations under the License.
 #ifndef __TREX_ASTF_PORT_H__
 #define __TREX_ASTF_PORT_H__
 
-
 #include "trex_port.h"
 
 class CSyncBarrier;
@@ -32,8 +31,7 @@ class CSyncBarrier;
  */
 class TrexAstfPort : public TrexPort {
 
-public:
-
+  public:
     TrexAstfPort(uint8_t port_id);
 
     ~TrexAstfPort();
@@ -46,6 +44,4 @@ public:
     virtual void change_state(port_state_e state);
 };
 
-
 #endif /* __TREX_ASTF_PORT_H__ */
-

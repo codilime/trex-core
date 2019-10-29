@@ -28,37 +28,27 @@ limitations under the License.
 #include <vector>
 #include <string>
 
-
-
 struct CTimerWheelYamlInfo {
-public:
-    CTimerWheelYamlInfo(){
-        reset();
+  public:
+    CTimerWheelYamlInfo() { reset(); }
+
+    void reset() {
+        m_info_exist = false;
+        m_buckets = 1024;
+        m_levels = 3;
+        m_bucket_time_usec = 20.0;
     }
 
+    bool m_info_exist; /* file exist ?*/
+    uint32_t m_buckets;
+    uint32_t m_levels;
+    double m_bucket_time_usec;
 
-    void reset(){
-        m_info_exist =false;
-        m_buckets=1024;
-        m_levels=3;
-        m_bucket_time_usec=20.0;
-    }
-
-    bool            m_info_exist; /* file exist ?*/
-    uint32_t        m_buckets;
-    uint32_t        m_levels;
-    double          m_bucket_time_usec;
-
-
-public:
+  public:
     void Dump(FILE *fd);
-    bool Verify(std::string & err);
-
+    bool Verify(std::string &err);
 };
 
-void operator >> (const YAML::Node& node, CTimerWheelYamlInfo & mac_info);
-
-
-
+void operator>>(const YAML::Node &node, CTimerWheelYamlInfo &mac_info);
 
 #endif

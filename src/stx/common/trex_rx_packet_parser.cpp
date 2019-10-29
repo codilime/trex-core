@@ -27,18 +27,17 @@
 #include "pkt_gen.h"
 #include "trex_rx_packet_parser.h"
 
-
 RXPktParser::RXPktParser(const rte_mbuf_t *mbuf) {
     m_mbuf = mbuf;
 
     /* start point */
-    m_current   = rte_pktmbuf_mtod(mbuf, uint8_t *);
+    m_current = rte_pktmbuf_mtod(mbuf, uint8_t *);
     m_size_left = rte_pktmbuf_pkt_len(mbuf);
 
-    m_ether    = NULL;
-    m_arp      = NULL;
-    m_ipv4     = NULL;
-    m_icmp     = NULL;
+    m_ether = NULL;
+    m_arp = NULL;
+    m_ipv4 = NULL;
+    m_icmp = NULL;
 
     /* parse L2 (stripping VLANs) */
     uint16_t next_proto = parse_l2();
@@ -60,7 +59,6 @@ RXPktParser::RXPktParser(const rte_mbuf_t *mbuf) {
     }
 }
 
-
 /**
  * parse L2 header
  * returns the payload protocol (VLANs stripped)
@@ -74,24 +72,20 @@ uint16_t RXPktParser::parse_l2(void) {
     while (true) {
         switch (next_proto) {
         case EthernetHeader::Protocol::QINQ:
-        case EthernetHeader::Protocol::VLAN:
-            {
-                VLANHeader *vlan_hdr = (VLANHeader *)parse_bytes(4);
-                m_vlan_ids.push_back(vlan_hdr->getTagID());
+        case EthernetHeader::Protocol::VLAN: {
+            VLANHeader *vlan_hdr = (VLANHeader *)parse_bytes(4);
+            m_vlan_ids.push_back(vlan_hdr->getTagID());
 
-                next_proto = vlan_hdr->getNextProtocolHostOrder();
+            next_proto = vlan_hdr->getNextProtocolHostOrder();
 
-            }
-            break;
+        } break;
 
         default:
             /* break */
             return next_proto;
         }
     }
-
 }
-
 
 const uint8_t *RXPktParser::parse_bytes(uint32_t size) {
     if (m_size_left < size) {
@@ -99,15 +93,13 @@ const uint8_t *RXPktParser::parse_bytes(uint32_t size) {
     }
 
     const uint8_t *p = m_current;
-    m_current    += size;
-    m_size_left  -= size;
+    m_current += size;
+    m_size_left -= size;
 
     return p;
 }
 
-void RXPktParser::parse_arp(void) {
-    m_arp = (ArpHdr *)parse_bytes(sizeof(ArpHdr));
-}
+void RXPktParser::parse_arp(void) { m_arp = (ArpHdr *)parse_bytes(sizeof(ArpHdr)); }
 
 void RXPktParser::parse_ipv4(void) {
     m_ipv4 = (IPHeader *)parse_bytes(IPHeader::DefaultSize);
@@ -125,11 +117,6 @@ void RXPktParser::parse_ipv4(void) {
     }
 }
 
-void RXPktParser::parse_icmp(void) {
-    m_icmp = (ICMPHeader *)parse_bytes(sizeof(ICMPHeader));
-}
+void RXPktParser::parse_icmp(void) { m_icmp = (ICMPHeader *)parse_bytes(sizeof(ICMPHeader)); }
 
-void RXPktParser::parse_err(void) {
-    throw TrexException(TrexException::T_RX_PKT_PARSE_ERR);
-}
-
+void RXPktParser::parse_err(void) { throw TrexException(TrexException::T_RX_PKT_PARSE_ERR); }

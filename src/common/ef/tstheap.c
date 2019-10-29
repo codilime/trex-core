@@ -13,49 +13,42 @@
 
 extern C_LINKAGE double drand48(void); /* For pre-ANSI C systems */
 
-#define	POOL_SIZE	1024
-#define	LARGEST_BUFFER	30000
-#define	TEST_DURATION	1000000
+#define POOL_SIZE 1024
+#define LARGEST_BUFFER 30000
+#define TEST_DURATION 1000000
 
-void *	pool[POOL_SIZE];
+void *pool[POOL_SIZE];
 
-#ifdef	FAKE_DRAND48
+#ifdef FAKE_DRAND48
 /*
  * Add -DFAKE_DRAND48 to your compile flags if your system doesn't
  * provide drand48().
  */
 
-#ifndef	ULONG_MAX
-#define	ULONG_MAX	~(1L)
+#ifndef ULONG_MAX
+#define ULONG_MAX ~(1L)
 #endif
 
-double
-drand48(void)
-{
-	return (random() / (double)ULONG_MAX);
-}
+double drand48(void) { return (random() / (double)ULONG_MAX); }
 #endif
 
-int
-main(int argc, char * * argv)
-{
-	int	count = 0;
-	int	duration = TEST_DURATION;
+int main(int argc, char **argv) {
+    int count = 0;
+    int duration = TEST_DURATION;
 
-	if ( argc >= 2 )
-		duration = atoi(argv[1]);
+    if (argc >= 2)
+        duration = atoi(argv[1]);
 
-	for ( ; count < duration; count++ ) {
-		void * *	element = &pool[(int)(drand48() * POOL_SIZE)];
-		size_t		size = (size_t)(drand48() * (LARGEST_BUFFER + 1));
+    for (; count < duration; count++) {
+        void **element = &pool[(int)(drand48() * POOL_SIZE)];
+        size_t size = (size_t)(drand48() * (LARGEST_BUFFER + 1));
 
-		if ( *element ) {
-			free( *element );
-			*element = 0;
-		}
-		else if ( size > 0 ) {
-			*element = malloc(size);
-		}
-	}
-	return 0;
+        if (*element) {
+            free(*element);
+            *element = 0;
+        } else if (size > 0) {
+            *element = malloc(size);
+        }
+    }
+    return 0;
 }

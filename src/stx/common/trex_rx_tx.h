@@ -32,58 +32,44 @@ class CRxCore;
  * TX packet - an object to hold a packet to be sent
  */
 class TXPacket {
-public:
-
+  public:
     /**
      * create a new packet
      *
      */
     TXPacket(int port_id, const std::string &raw, double ts_sec) : m_raw(raw) {
         m_port_id = port_id;
-        m_time    = ts_sec;
+        m_time = ts_sec;
     }
 
     /**
      * returns the timestamp of the packet
      */
-    double get_time() const {
-        return m_time;
-    }
+    double get_time() const { return m_time; }
 
     /**
      * returns the port id on which the packet should be sent
      */
-    int get_port_id() const {
-        return m_port_id;
-    }
+    int get_port_id() const { return m_port_id; }
 
     /**
      * returns the binary raw of the packet (string)
      *
      */
-    const std::string &get_raw() const {
-        return m_raw;
-    }
+    const std::string &get_raw() const { return m_raw; }
 
-private:
-
-    const std::string   m_raw;
-    double              m_time;
-    int                 m_port_id;
+  private:
+    const std::string m_raw;
+    double m_time;
+    int m_port_id;
 };
-
 
 /**
  * comparator for TX packets (for timing)
  */
-struct TXPacketCompare
-{
-   bool operator() (const TXPacket *lhs, const TXPacket *rhs)
-   {
-       return lhs->get_time() > rhs->get_time();
-   }
+struct TXPacketCompare {
+    bool operator()(const TXPacket *lhs, const TXPacket *rhs) { return lhs->get_time() > rhs->get_time(); }
 };
-
 
 /**
  * holds a heap of to-be-sent packets
@@ -91,11 +77,10 @@ struct TXPacketCompare
  * @author imarom (8/15/2017)
  */
 class TXQueue {
-public:
-
+  public:
     TXQueue() {
         m_rx = NULL;
-        m_capacity  = 0;
+        m_capacity = 0;
     }
 
     /**
@@ -125,7 +110,6 @@ public:
         return m_heap.size() >= m_capacity;
     }
 
-
     /**
      * a constant tick to the queue
      */
@@ -139,17 +123,13 @@ public:
         _tick();
     }
 
-private:
-
+  private:
     void _tick();
 
     std::priority_queue<TXPacket *, std::vector<TXPacket *>, TXPacketCompare> m_heap;
 
-    CRxCore                 *m_rx;
-    uint32_t                 m_capacity;
+    CRxCore *m_rx;
+    uint32_t m_capacity;
 };
 
-
-
 #endif /* __TREX_RX_TX_H__ */
-

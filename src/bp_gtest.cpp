@@ -38,81 +38,73 @@ limitations under the License.
 #include "bp_gtest.h"
 #include "utl_port_map.h"
 
-int test_policer(){
+int test_policer() {
     CPolicer policer;
 
-    policer.set_cir( 100.0);
+    policer.set_cir(100.0);
     policer.set_level(0.0);
     policer.set_bucket_size(100.0);
 
     double t;
-    uint32_t c=0;
-    for (t=0.001;t<10.0; t=t+0.001) {
-        if ( policer.update(1.0,t) ){
+    uint32_t c = 0;
+    for (t = 0.001; t < 10.0; t = t + 0.001) {
+        if (policer.update(1.0, t)) {
             c++;
-            printf(" %f \n",t);
+            printf(" %f \n", t);
         }
     }
-    printf(" %u \n",c);
-    if ( ( c > 970.0) &&  ( c < 1000.0) ) {
+    printf(" %u \n", c);
+    if ((c > 970.0) && (c < 1000.0)) {
         printf(" ok \n");
         return (0);
-    }else{
+    } else {
         printf("error \n");
         return (-1);
     }
 }
 
-
-
-
-int test_priorty_queue(void){
-    CGenNode * node;
-    std::priority_queue<CGenNode *, std::vector<CGenNode *>,CGenNodeCompare> p_queue;
+int test_priorty_queue(void) {
+    CGenNode *node;
+    std::priority_queue<CGenNode *, std::vector<CGenNode *>, CGenNodeCompare> p_queue;
     int i;
-    for (i=0; i<10; i++) {
-         node = new CGenNode();
-         printf(" +%p \n",node);
-         node->m_flow_id = 10-i;
-         node->m_pkt_info = (CFlowPktInfo *)(uintptr_t)i;
-         node->m_time = (double)i+0.1;
-         p_queue.push(node);
+    for (i = 0; i < 10; i++) {
+        node = new CGenNode();
+        printf(" +%p \n", node);
+        node->m_flow_id = 10 - i;
+        node->m_pkt_info = (CFlowPktInfo *)(uintptr_t)i;
+        node->m_time = (double)i + 0.1;
+        p_queue.push(node);
     }
     while (!p_queue.empty()) {
         node = p_queue.top();
-        printf(" -->%p \n",node);
-        //node->Dump(stdout);
+        printf(" -->%p \n", node);
+        // node->Dump(stdout);
         p_queue.pop();
-        //delete node;
+        // delete node;
     }
     return (0);
 }
 
-
-
-void histogram_test(){
+void histogram_test() {
     CTimeHistogram t;
     t.Create();
     t.Add(0.0001);
     t.Add(0.0002);
     t.Add(0.0003);
     int i;
-    for (i=0; i<100;i++) {
-        t.Add(1.0/1000000.0);
+    for (i = 0; i < 100; i++) {
+        t.Add(1.0 / 1000000.0);
     }
     t.Dump(stdout);
     t.Delete();
 }
 
-
-
-
-int test_human_p(){
-    printf ("%s \n",double_to_human_str(1024.0*1024.0,"Byte",KBYE_1024).c_str());
-    printf ("%s \n",double_to_human_str(1.0,"Byte",KBYE_1024).c_str());
-    printf ("%s \n",double_to_human_str(-3000.0,"Byte",KBYE_1024).c_str());
-    printf ("%s \n",double_to_human_str(-3000000.0,"Byte",KBYE_1024).c_str());
-    printf ("%s \n",double_to_human_str(-30000000.0,"Byte",KBYE_1024).c_str());
+int test_human_p() {
+    printf("%s \n", double_to_human_str(1024.0 * 1024.0, "Byte", KBYE_1024).c_str());
+    printf("%s \n", double_to_human_str(1.0, "Byte", KBYE_1024).c_str());
+    printf("%s \n", double_to_human_str(-3000.0, "Byte", KBYE_1024).c_str());
+    printf("%s \n", double_to_human_str(-3000000.0, "Byte", KBYE_1024).c_str());
+    printf("%s \n", double_to_human_str(-30000000.0, "Byte", KBYE_1024).c_str());
     return (0);
 }
 
@@ -121,157 +113,152 @@ class cpu : public trexTest {};
 
 TEST_F(basic, limit_single_pkt) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/limit_single_pkt.yaml";
-     po->out_file ="limit_single_pkt";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/limit_single_pkt.yaml";
+    po->out_file = "limit_single_pkt";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, limit_multi_pkt) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/limit_multi_pkt.yaml";
-     po->out_file ="limit_multi_pkt";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/limit_multi_pkt.yaml";
+    po->out_file = "limit_multi_pkt";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, imix) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="automation/regression/cfg/imix.yaml";
-     po->out_file ="imix";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "automation/regression/cfg/imix.yaml";
+    po->out_file = "imix";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, imix_fast) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/imix_64_fast.yaml";
-     po->out_file ="imix_64_fast";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/imix_64_fast.yaml";
+    po->out_file = "imix_64_fast";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, dns) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/dns.yaml";
-     po->out_file ="dns";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/dns.yaml";
+    po->out_file = "dns";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 /* test -p function */
 TEST_F(basic, dns_flow_flip) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->preview.setClientServerFlowFlip(true);
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->preview.setClientServerFlowFlip(true);
 
-     po->cfg_file ="cap2/dns.yaml";
-     po->out_file ="dns_p";
-     bool res=t1.init();
-     po->preview.setClientServerFlowFlip(false);
+    po->cfg_file = "cap2/dns.yaml";
+    po->out_file = "dns_p";
+    bool res = t1.init();
+    po->preview.setClientServerFlowFlip(false);
 
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, dns_flip) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->preview.setClientServerFlip(true);
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->preview.setClientServerFlip(true);
 
-     po->cfg_file ="cap2/dns.yaml";
-     po->out_file ="dns_flip";
-     bool res=t1.init();
-     po->preview.setClientServerFlip(false);
+    po->cfg_file = "cap2/dns.yaml";
+    po->out_file = "dns_flip";
+    bool res = t1.init();
+    po->preview.setClientServerFlip(false);
 
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, dns_e) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->preview.setClientServerFlowFlipAddr(true);
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->preview.setClientServerFlowFlipAddr(true);
 
-     po->cfg_file ="cap2/dns.yaml";
-     po->out_file ="dns_e";
-     bool res=t1.init();
-     po->preview.setClientServerFlowFlipAddr(false);
+    po->cfg_file = "cap2/dns.yaml";
+    po->out_file = "dns_e";
+    bool res = t1.init();
+    po->preview.setClientServerFlowFlipAddr(false);
 
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
-
 
 /* test the packet padding , must be valid for --rx-check to work */
 TEST_F(basic, dns_packet_padding_test) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/dns.yaml";
-     po->out_file ="dns";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(t1.get_padd_offset_first_packet(),0);
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/dns.yaml";
+    po->out_file = "dns";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(t1.get_padd_offset_first_packet(), 0);
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, dns_ipv6) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->preview.set_ipv6_mode_enable(true);
-     po->cfg_file ="cap2/dns.yaml";
-     po->out_file ="dns_ipv6";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
-     EXPECT_EQ_UINT32(t1.get_padd_offset_first_packet(),0);
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->preview.set_ipv6_mode_enable(true);
+    po->cfg_file = "cap2/dns.yaml";
+    po->out_file = "dns_ipv6";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
+    EXPECT_EQ_UINT32(t1.get_padd_offset_first_packet(), 0);
 }
 
 TEST_F(basic, dns_json) {
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     t1.m_dump_json=true;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/dns.yaml";
-     po->out_file ="dns";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    t1.m_dump_json = true;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/dns.yaml";
+    po->out_file = "dns";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 #if 0
 
@@ -329,79 +316,75 @@ TEST_F(basic, dns_one_server_2) {
 
 TEST_F(basic, dns_one_server) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/dns_one_server.yaml";
-     po->out_file ="dns_one_server";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/dns_one_server.yaml";
+    po->out_file = "dns_one_server";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, sfr2) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
 
-     po->preview.setVMode(0);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/sfr2.yaml";
-     po->out_file ="sfr2";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    po->preview.setVMode(0);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/sfr2.yaml";
+    po->out_file = "sfr2";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, sfr3) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(0);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/sfr3.yaml";
-     po->out_file ="sfr3";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(0);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/sfr3.yaml";
+    po->out_file = "sfr3";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, sfr4) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(0);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/sfr4.yaml";
-     po->out_file ="sfr_4";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(0);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/sfr4.yaml";
+    po->out_file = "sfr_4";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, per_template_gen1) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(0);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/per_template_gen1.yaml";
-     po->out_file ="sfr_4";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(0);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/per_template_gen1.yaml";
+    po->out_file = "sfr_4";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 TEST_F(basic, per_template_gen2) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(0);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/per_template_gen2.yaml";
-     po->out_file ="sfr_4";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(0);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/per_template_gen2.yaml";
+    po->out_file = "sfr_4";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 /*
 TEST_F(basic, sfr5) {
@@ -417,109 +400,105 @@ TEST_F(basic, sfr5) {
 }
 */
 
-
 TEST_F(basic, ipv6_convert) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="automation/regression/cfg/imix.yaml";
-     po->out_file ="imix_v6";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "automation/regression/cfg/imix.yaml";
+    po->out_file = "imix_v6";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, ipv6_convert_http) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/http_simple_ipv6.yaml";
-     po->out_file ="http_simple_ipv6";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/http_simple_ipv6.yaml";
+    po->out_file = "http_simple_ipv6";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, ipv6) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/ipv6.yaml";
-     po->out_file ="ipv6";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/ipv6.yaml";
+    po->out_file = "ipv6";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, ipv4_vlan) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/ipv4_load_balance.yaml";
-     po->out_file ="ipv4_load_balance";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/ipv4_load_balance.yaml";
+    po->out_file = "ipv4_load_balance";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, ipv6_vlan) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/ipv6_load_balance.yaml";
-     po->out_file ="ipv6_load_balance";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/ipv6_load_balance.yaml";
+    po->out_file = "ipv6_load_balance";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 /* exacly like cap file */
 TEST_F(basic, test_pcap_mode1) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/test_pcap_mode1.yaml";
-     po->out_file ="pcap_mode1";
-     t1.m_time_diff = 0.000005; // 5 nsec
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/test_pcap_mode1.yaml";
+    po->out_file = "pcap_mode1";
+    t1.m_time_diff = 0.000005; // 5 nsec
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 /* check override the low IPG */
 TEST_F(basic, test_pcap_mode2) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/test_pcap_mode2.yaml";
-     po->out_file ="pcap_mode2";
-     t1.m_time_diff = 0.000005; // 5 nsec
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/test_pcap_mode2.yaml";
+    po->out_file = "pcap_mode2";
+    t1.m_time_diff = 0.000005; // 5 nsec
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 #define l_pkt_test_s_ip 0x01020304
 #define l_pkt_test_d_ip 0x05060708
 
-CLatencyPktMode *
-latency_pkt_mod_create(uint8_t l_pkt_mode) {
+CLatencyPktMode *latency_pkt_mod_create(uint8_t l_pkt_mode) {
     switch (l_pkt_mode) {
     default:
-        return  new CLatencyPktModeSCTP(l_pkt_mode);
+        return new CLatencyPktModeSCTP(l_pkt_mode);
         break;
     case L_PKT_SUBMODE_NO_REPLY:
     case L_PKT_SUBMODE_REPLY:
@@ -529,9 +508,8 @@ latency_pkt_mod_create(uint8_t l_pkt_mode) {
     }
 }
 
-rte_mbuf_t *
-create_latency_test_pkt(uint8_t l_pkt_mode, uint16_t &pkt_size, uint8_t port_id, uint8_t pkt_num) {
-    rte_mbuf_t * m;
+rte_mbuf_t *create_latency_test_pkt(uint8_t l_pkt_mode, uint16_t &pkt_size, uint8_t port_id, uint8_t pkt_num) {
+    rte_mbuf_t *m;
     CLatencyPktMode *c_l_pkt_mode;
     CCPortLatency port0;
     CLatencyPktInfo info;
@@ -541,9 +519,10 @@ create_latency_test_pkt(uint8_t l_pkt_mode, uint16_t &pkt_size, uint8_t port_id,
 
     mgr.c_l_pkt_mode = c_l_pkt_mode;
     info.Create(c_l_pkt_mode);
-    port0.Create(0, info.get_payload_offset(), info.get_l4_offset(), info.get_pkt_size(), 0,c_l_pkt_mode,mgr.get_nat_manager());
-    info.set_ip(l_pkt_test_s_ip ,l_pkt_test_d_ip, 0x01000000);
-    m=info.generate_pkt(0,0);
+    port0.Create(0, info.get_payload_offset(), info.get_l4_offset(), info.get_pkt_size(), 0, c_l_pkt_mode,
+                 mgr.get_nat_manager());
+    info.set_ip(l_pkt_test_s_ip, l_pkt_test_d_ip, 0x01000000);
+    m = info.generate_pkt(0, 0);
     while (pkt_num > 0) {
         pkt_num--;
         port0.update_packet(m, port_id);
@@ -556,46 +535,44 @@ create_latency_test_pkt(uint8_t l_pkt_mode, uint16_t &pkt_size, uint8_t port_id,
     return m;
 }
 
-bool
-verify_latency_pkt(uint8_t *p, uint8_t proto, uint16_t icmp_seq, uint8_t icmp_type) {
+bool verify_latency_pkt(uint8_t *p, uint8_t proto, uint16_t icmp_seq, uint8_t icmp_type) {
     EthernetHeader *eth = (EthernetHeader *)p;
     IPHeader *ip = (IPHeader *)(p + 14);
-    uint8_t  srcmac[]={0x10,0x10,0x10,0x10,0x10,0x10};
-    //uint8_t  dstmac[]={0x0,0x0,0x0,0x0,0x0,0x0};
-    latency_header * h;
+    uint8_t srcmac[] = {0x10, 0x10, 0x10, 0x10, 0x10, 0x10};
+    // uint8_t  dstmac[]={0x0,0x0,0x0,0x0,0x0,0x0};
+    latency_header *h;
 
     // eth
-    EXPECT_EQ_UINT32(eth->getNextProtocol(), 0x0800)<< "Failed ethernet next protocol check";
-    EXPECT_EQ_UINT32(memcmp(p, srcmac, 6), 0)<<  "Failed ethernet source MAC check";
-    //EXPECT_EQ_UINT32(memcmp(p, dstmac, 6), 0)<<  "Failed ethernet dest MAC check";
+    EXPECT_EQ_UINT32(eth->getNextProtocol(), 0x0800) << "Failed ethernet next protocol check";
+    EXPECT_EQ_UINT32(memcmp(p, srcmac, 6), 0) << "Failed ethernet source MAC check";
+    // EXPECT_EQ_UINT32(memcmp(p, dstmac, 6), 0)<<  "Failed ethernet dest MAC check";
     // IP
-    EXPECT_EQ_UINT32(ip->getSourceIp(), l_pkt_test_s_ip)<<  "Failed IP src check";
-    EXPECT_EQ_UINT32(ip->getDestIp(), l_pkt_test_d_ip)<<  "Failed IP dst check";
-    EXPECT_EQ_UINT32(ip->getProtocol(), proto)<<  "Failed IP protocol check";
-    EXPECT_EQ_UINT32(ip->isChecksumOK()?0:1, 0)<<  "Failed IP checksum check";
-    EXPECT_EQ_UINT32(ip->getTimeToLive(), 0xff)<<  "Failed IP ttl check";
-    EXPECT_EQ_UINT32(ip->getTotalLength(), 48)<<  "Failed IP total length check";
+    EXPECT_EQ_UINT32(ip->getSourceIp(), l_pkt_test_s_ip) << "Failed IP src check";
+    EXPECT_EQ_UINT32(ip->getDestIp(), l_pkt_test_d_ip) << "Failed IP dst check";
+    EXPECT_EQ_UINT32(ip->getProtocol(), proto) << "Failed IP protocol check";
+    EXPECT_EQ_UINT32(ip->isChecksumOK() ? 0 : 1, 0) << "Failed IP checksum check";
+    EXPECT_EQ_UINT32(ip->getTimeToLive(), 0xff) << "Failed IP ttl check";
+    EXPECT_EQ_UINT32(ip->getTotalLength(), 48) << "Failed IP total length check";
 
     // payload
-    h=(latency_header *)(p+42);
-    EXPECT_EQ_UINT32(h->magic, LATENCY_MAGIC)<<  "Failed latency magic check";
+    h = (latency_header *)(p + 42);
+    EXPECT_EQ_UINT32(h->magic, LATENCY_MAGIC) << "Failed latency magic check";
 
     if (proto == 0x84)
         return true;
     // ICMP
     ICMPHeader *icmp = (ICMPHeader *)(p + 34);
-    EXPECT_EQ_UINT32(icmp->isCheckSumOk(28)?0:1, 0)<<  "Failed ICMP checksum verification";
-    EXPECT_EQ_UINT32(icmp->getSeqNum(), icmp_seq)<< "Failed ICMP sequence number check";
-    EXPECT_EQ_UINT32(icmp->getType(), icmp_type)<<  "Failed ICMP type check";
-    EXPECT_EQ_UINT32(icmp->getCode(), 0)<<  "Failed ICMP code check";
-    EXPECT_EQ_UINT32(icmp->getId(), 0xaabb)<<  "Failed ICMP ID check";
+    EXPECT_EQ_UINT32(icmp->isCheckSumOk(28) ? 0 : 1, 0) << "Failed ICMP checksum verification";
+    EXPECT_EQ_UINT32(icmp->getSeqNum(), icmp_seq) << "Failed ICMP sequence number check";
+    EXPECT_EQ_UINT32(icmp->getType(), icmp_type) << "Failed ICMP type check";
+    EXPECT_EQ_UINT32(icmp->getCode(), 0) << "Failed ICMP code check";
+    EXPECT_EQ_UINT32(icmp->getId(), 0xaabb) << "Failed ICMP ID check";
 
     return true;
 }
 
-bool
-test_latency_pkt_rcv(rte_mbuf_t *m, uint8_t l_pkt_mode, uint8_t port_num, uint16_t num_pkt, bool exp_pkt_ok
-                     , uint16_t exp_tx_seq, uint16_t exp_rx_seq) {
+bool test_latency_pkt_rcv(rte_mbuf_t *m, uint8_t l_pkt_mode, uint8_t port_num, uint16_t num_pkt, bool exp_pkt_ok,
+                          uint16_t exp_tx_seq, uint16_t exp_rx_seq) {
     CLatencyPktMode *c_l_pkt_mode;
     CCPortLatency port;
     CLatencyPktInfo info;
@@ -606,7 +583,8 @@ test_latency_pkt_rcv(rte_mbuf_t *m, uint8_t l_pkt_mode, uint8_t port_num, uint16
     c_l_pkt_mode = latency_pkt_mod_create(l_pkt_mode);
     mgr.c_l_pkt_mode = c_l_pkt_mode;
     info.Create(c_l_pkt_mode);
-    port.Create(0, info.get_payload_offset(), info.get_l4_offset(), info.get_pkt_size(), 0,c_l_pkt_mode,mgr.get_nat_manager());
+    port.Create(0, info.get_payload_offset(), info.get_l4_offset(), info.get_pkt_size(), 0, c_l_pkt_mode,
+                mgr.get_nat_manager());
     bool pkt_ok = port.check_packet(m, rxc);
 
     while (num_pkt > 0) {
@@ -616,47 +594,46 @@ test_latency_pkt_rcv(rte_mbuf_t *m, uint8_t l_pkt_mode, uint8_t port_num, uint16
         }
     }
 
-    EXPECT_EQ_UINT32(pkt_ok ?0:1, exp_pkt_ok?0:1)<<  "Failed packet OK check";
-    EXPECT_EQ_UINT32(port.get_icmp_tx_seq(), exp_tx_seq)<<  "Failed tx check";
-    EXPECT_EQ_UINT32(port.get_icmp_rx_seq(), exp_rx_seq)<<  "Failed rx check";
+    EXPECT_EQ_UINT32(pkt_ok ? 0 : 1, exp_pkt_ok ? 0 : 1) << "Failed packet OK check";
+    EXPECT_EQ_UINT32(port.get_icmp_tx_seq(), exp_tx_seq) << "Failed tx check";
+    EXPECT_EQ_UINT32(port.get_icmp_rx_seq(), exp_rx_seq) << "Failed rx check";
     // if packet is bad, check_packet raise the error counter
-    EXPECT_EQ_UINT32(port.m_unsup_prot, exp_pkt_ok?0:1)<<  "Failed unsupported packets count";
+    EXPECT_EQ_UINT32(port.m_unsup_prot, exp_pkt_ok ? 0 : 1) << "Failed unsupported packets count";
 
     return true;
 }
 
-
 // Testing latency packet generation
 TEST_F(basic, latency1) {
     uint8_t *p;
-    rte_mbuf_t * m;
+    rte_mbuf_t *m;
     uint16_t pkt_size;
 
     // SCTP packet
     m = create_latency_test_pkt(0, pkt_size, 0, 1);
-    p=rte_pktmbuf_mtod(m, uint8_t*);
+    p = rte_pktmbuf_mtod(m, uint8_t *);
     verify_latency_pkt(p, 0x84, 0, 0);
     rte_pktmbuf_free(m);
 
     m = create_latency_test_pkt(L_PKT_SUBMODE_NO_REPLY, pkt_size, 1, 2);
-    p=rte_pktmbuf_mtod(m, uint8_t*);
+    p = rte_pktmbuf_mtod(m, uint8_t *);
     verify_latency_pkt(p, 0x01, 2, 8);
     rte_pktmbuf_free(m);
 
     // ICMP reply mode client side
     m = create_latency_test_pkt(L_PKT_SUBMODE_REPLY, pkt_size, 0, 3);
-    p = rte_pktmbuf_mtod(m, uint8_t*);
+    p = rte_pktmbuf_mtod(m, uint8_t *);
     verify_latency_pkt(p, 0x01, 3, 8);
     rte_pktmbuf_free(m);
 
     // ICMP reply mode server side
     m = create_latency_test_pkt(L_PKT_SUBMODE_REPLY, pkt_size, 1, 4);
-    p=rte_pktmbuf_mtod(m, uint8_t*);
+    p = rte_pktmbuf_mtod(m, uint8_t *);
     verify_latency_pkt(p, 0x01, 4, 0);
     rte_pktmbuf_free(m);
 
     m = create_latency_test_pkt(L_PKT_SUBMODE_0_SEQ, pkt_size, 1, 5);
-    p=rte_pktmbuf_mtod(m, uint8_t*);
+    p = rte_pktmbuf_mtod(m, uint8_t *);
     verify_latency_pkt(p, 0x01, 0, 8);
     rte_pktmbuf_free(m);
 }
@@ -693,77 +670,72 @@ TEST_F(basic, latency2) {
 
     // bad packet
     m = create_latency_test_pkt(l_pkt_mode, pkt_size, port_id, pkt_num);
-    EthernetHeader *eth = (EthernetHeader *)rte_pktmbuf_mtod(m, uint8_t*);
+    EthernetHeader *eth = (EthernetHeader *)rte_pktmbuf_mtod(m, uint8_t *);
     eth->setNextProtocol(0x5);
     test_latency_pkt_rcv(m, l_pkt_mode, 0, 2, false, 1, 0);
 }
 
 class CDummyLatencyHWBase : public CPortLatencyHWBase {
-public:
-    CDummyLatencyHWBase(){
-        m_queue=0;
-        m_port_id=0;
+  public:
+    CDummyLatencyHWBase() {
+        m_queue = 0;
+        m_port_id = 0;
     }
 
     virtual int tx(rte_mbuf_t *m) {
-        assert(m_queue==0);
-        //printf(" tx on port %d \n",m_port_id);
-      //  utl_DumpBuffer(stdout,rte_pktmbuf_mtod(m, uint8_t*),rte_pktmbuf_pkt_len(m),0);
-        m_queue=m;
+        assert(m_queue == 0);
+        // printf(" tx on port %d \n",m_port_id);
+        //  utl_DumpBuffer(stdout,rte_pktmbuf_mtod(m, uint8_t*),rte_pktmbuf_pkt_len(m),0);
+        m_queue = m;
         return (0);
     }
 
-    virtual int tx_raw(rte_mbuf_t *m) {
-        return tx(m);
-    }
+    virtual int tx_raw(rte_mbuf_t *m) { return tx(m); }
 
-    virtual int tx_latency(rte_mbuf_t *m) {
-        return tx(m);
-    }
+    virtual int tx_latency(rte_mbuf_t *m) { return tx(m); }
 
-    virtual rte_mbuf_t * rx(){
-        //printf(" rx on port %d \n",m_port_id);
-        rte_mbuf_t * m=0;
-        if (m_queue ) {
-            m=m_queue;
-            m_queue=0;
+    virtual rte_mbuf_t *rx() {
+        // printf(" rx on port %d \n",m_port_id);
+        rte_mbuf_t *m = 0;
+        if (m_queue) {
+            m = m_queue;
+            m_queue = 0;
         }
 
         /*if ( m ){
             utl_DumpBuffer(stdout,rte_pktmbuf_mtod(m , uint8_t*),rte_pktmbuf_pkt_len(m ),0);
         } */
-        return ( m );
+        return (m);
     }
 
-    virtual uint16_t rx_burst(struct rte_mbuf **rx_pkts,
-                               uint16_t nb_pkts){
-        //printf(" rx on port %d \n",m_port_id);
-        rte_mbuf_t * m=rx();
+    virtual uint16_t rx_burst(struct rte_mbuf **rx_pkts, uint16_t nb_pkts) {
+        // printf(" rx on port %d \n",m_port_id);
+        rte_mbuf_t *m = rx();
         if (m) {
-            rx_pkts[0]=m;
+            rx_pkts[0] = m;
             return (1);
-        }else{
+        } else {
             return (0);
         }
     }
 
+  private:
+    rte_mbuf_t *m_queue;
 
-private:
-    rte_mbuf_t * m_queue;
-public:
-    uint8_t      m_port_id;
+  public:
+    uint8_t m_port_id;
 };
 
 // Testing latency statistics functions
 TEST_F(basic, latency3) {
     CLatencyManager mg;
-    CLatencyManagerCfg  cfg;
+    CLatencyManagerCfg cfg;
     CDummyLatencyHWBase dports[TREX_MAX_PORTS];
-    cfg.m_cps =10;
-    cfg.m_max_ports=4;
+    cfg.m_cps = 10;
+    cfg.m_max_ports = 4;
     int i;
     for (i = 0; i < TREX_MAX_PORTS; i++) {
-        dports[i].m_port_id=i;
+        dports[i].m_port_id = i;
         cfg.m_ports[i] = &dports[i];
     }
 
@@ -773,239 +745,230 @@ TEST_F(basic, latency3) {
     mg.Dump(stdout);
     std::string json;
     mg.dump_json_v2(json);
-    printf(" %s \n",json.c_str());
+    printf(" %s \n", json.c_str());
 
-
-    EXPECT_EQ_UINT32(mg.is_active()?1:0, (uint32_t)0)<< "pass";
+    EXPECT_EQ_UINT32(mg.is_active() ? 1 : 0, (uint32_t)0) << "pass";
 
     mg.start(8, false);
     mg.stop();
     mg.Dump(stdout);
     mg.DumpShort(stdout);
     mg.dump_json_v2(json);
-    printf(" %s \n",json.c_str());
+    printf(" %s \n", json.c_str());
 
     mg.Delete();
 }
 
 TEST_F(basic, hist1) {
 
-    CTimeHistogram  hist1;
+    CTimeHistogram hist1;
 
-    dsec_t dusec=1.0/1000000.0;
+    dsec_t dusec = 1.0 / 1000000.0;
 
     hist1.Create();
     hist1.Add(dusec);
-    hist1.Add(2.0*dusec);
-    hist1.Add(11.0*dusec);
-    hist1.Add(110.0*dusec);
-    hist1.Add(1110.0*dusec);
-    hist1.Add(10110.0*dusec);
-    hist1.Add(40110.0*dusec);
-    hist1.Add(400110.0*dusec);
+    hist1.Add(2.0 * dusec);
+    hist1.Add(11.0 * dusec);
+    hist1.Add(110.0 * dusec);
+    hist1.Add(1110.0 * dusec);
+    hist1.Add(10110.0 * dusec);
+    hist1.Add(40110.0 * dusec);
+    hist1.Add(400110.0 * dusec);
     hist1.Dump(stdout);
     hist1.Delete();
 }
 
 TEST_F(basic, rtsp1) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/rtsp_short1.yaml";
-     po->out_file ="rtsp_short1";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/rtsp_short1.yaml";
+    po->out_file = "rtsp_short1";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, rtsp2) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/rtsp_short2.yaml";
-     po->out_file ="rtsp_short2";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/rtsp_short2.yaml";
+    po->out_file = "rtsp_short2";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, rtsp3) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/rtsp_short3.yaml";
-     po->out_file ="rtsp_short3";
-     t1.m_req_ports = 32000;
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/rtsp_short3.yaml";
+    po->out_file = "rtsp_short3";
+    t1.m_req_ports = 32000;
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, rtsp1_ipv6) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/rtsp_short1.yaml";
-     po->out_file ="rtsp_short1_v6";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/rtsp_short1.yaml";
+    po->out_file = "rtsp_short1_v6";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, rtsp2_ipv6) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/rtsp_short2.yaml";
-     po->out_file ="rtsp_short2_v6";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/rtsp_short2.yaml";
+    po->out_file = "rtsp_short2_v6";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, rtsp3_ipv6) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/rtsp_short3.yaml";
-     po->out_file ="rtsp_short3_v6";
-     t1.m_req_ports = 32000;
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/rtsp_short3.yaml";
+    po->out_file = "rtsp_short3_v6";
+    t1.m_req_ports = 32000;
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, sip1) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/sip_short1.yaml";
-     po->out_file ="sip_short1";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/sip_short1.yaml";
+    po->out_file = "sip_short1";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, sip2) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/sip_short2.yaml";
-     po->out_file ="sip_short2";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/sip_short2.yaml";
+    po->out_file = "sip_short2";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, sip3) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/sip_short2.yaml";
-     po->out_file ="sip_short3";
-     t1.m_req_ports = 32000;
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/sip_short2.yaml";
+    po->out_file = "sip_short3";
+    t1.m_req_ports = 32000;
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, sip1_ipv6) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/sip_short1.yaml";
-     po->out_file ="sip_short1_v6";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/sip_short1.yaml";
+    po->out_file = "sip_short1_v6";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, sip2_ipv6) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/sip_short2.yaml";
-     po->out_file ="sip_short2_v6";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/sip_short2.yaml";
+    po->out_file = "sip_short2_v6";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, sip3_ipv6) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/sip_short2.yaml";
-     po->out_file ="sip_short3_v6";
-     t1.m_req_ports = 32000;
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/sip_short2.yaml";
+    po->out_file = "sip_short3_v6";
+    t1.m_req_ports = 32000;
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
 
 TEST_F(basic, dyn1) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     srand(1);
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/dyn_pyld1.yaml";
-     po->out_file ="dyn_pyld1";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    srand(1);
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/dyn_pyld1.yaml";
+    po->out_file = "dyn_pyld1";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, http1) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/http_plugin.yaml";
-     po->out_file ="http_plugin";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/http_plugin.yaml";
+    po->out_file = "http_plugin";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
 
 TEST_F(basic, http1_ipv6) {
 
-     CTestBasic t1;
-     CParserOption * po =&CGlobalInfo::m_options;
-     po->preview.setVMode(3);
-     po->preview.set_ipv6_mode_enable(true);
-     po->preview.setFileWrite(true);
-     po->cfg_file ="cap2/http_plugin.yaml";
-     po->out_file ="http_plugin_v6";
-     bool res=t1.init();
-     EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    CTestBasic t1;
+    CParserOption *po = &CGlobalInfo::m_options;
+    po->preview.setVMode(3);
+    po->preview.set_ipv6_mode_enable(true);
+    po->preview.setFileWrite(true);
+    po->cfg_file = "cap2/http_plugin.yaml";
+    po->out_file = "http_plugin_v6";
+    bool res = t1.init();
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }
-
-
 
 void delay(int msec);
 
@@ -1082,221 +1045,211 @@ TEST_F(cpu, cpu3) {
 }
 #endif
 
-class timerwl  : public trexTest {};
+class timerwl : public trexTest {};
 
-void  flow_callback(CFlowTimerHandle * timer_handle);
+void flow_callback(CFlowTimerHandle *timer_handle);
 
 class CTestFlow {
-public:
-    CTestFlow(){
+  public:
+    CTestFlow() {
         flow_id = 0;
-        m_timer_handle.m_callback=flow_callback;
+        m_timer_handle.m_callback = flow_callback;
         m_timer_handle.m_object = (void *)this;
         m_timer_handle.m_id = 0x1234;
     }
 
-    uint32_t		flow_id;
+    uint32_t flow_id;
     CFlowTimerHandle m_timer_handle;
-public:
-    void OnTimeOut(){
-        printf(" timeout %d \n",flow_id);
-    }
+
+  public:
+    void OnTimeOut() { printf(" timeout %d \n", flow_id); }
 };
 
-void  flow_callback(CFlowTimerHandle * t){
-    CTestFlow * lp=(CTestFlow *)t->m_object;
+void flow_callback(CFlowTimerHandle *t) {
+    CTestFlow *lp = (CTestFlow *)t->m_object;
     assert(lp);
-    assert(t->m_id==0x1234);
+    assert(t->m_id == 0x1234);
     lp->OnTimeOut();
 }
 
-
 TEST_F(timerwl, tw1) {
-    CTimerWheel  my_tw;
+    CTimerWheel my_tw;
 
     CTestFlow f1;
     CTestFlow f2;
     CTestFlow f3;
     CTestFlow f4;
 
-    f1.flow_id=1;
-    f2.flow_id=2;
-    f3.flow_id=3;
-    f4.flow_id=4;
+    f1.flow_id = 1;
+    f2.flow_id = 2;
+    f3.flow_id = 3;
+    f4.flow_id = 4;
     double time;
-    EXPECT_EQ(my_tw.peek_top_time(time),false);
-    my_tw.restart_timer(&f1.m_timer_handle,10.0);
-    my_tw.restart_timer(&f2.m_timer_handle,5.0);
-    my_tw.restart_timer(&f3.m_timer_handle,1.0);
-    EXPECT_EQ(my_tw.peek_top_time(time),true);
-    printf(" time %f \n",time);
-    EXPECT_EQ(time ,1.0);
+    EXPECT_EQ(my_tw.peek_top_time(time), false);
+    my_tw.restart_timer(&f1.m_timer_handle, 10.0);
+    my_tw.restart_timer(&f2.m_timer_handle, 5.0);
+    my_tw.restart_timer(&f3.m_timer_handle, 1.0);
+    EXPECT_EQ(my_tw.peek_top_time(time), true);
+    printf(" time %f \n", time);
+    EXPECT_EQ(time, 1.0);
 
-    EXPECT_EQ(my_tw.peek_top_time(time),true);
-    printf(" time %f \n",time);
-    EXPECT_EQ(time ,1.0);
+    EXPECT_EQ(my_tw.peek_top_time(time), true);
+    printf(" time %f \n", time);
+    EXPECT_EQ(time, 1.0);
 
-    EXPECT_EQ(my_tw.peek_top_time(time),true);
-    printf(" time %f \n",time);
-    EXPECT_EQ(time ,1.0);
+    EXPECT_EQ(my_tw.peek_top_time(time), true);
+    printf(" time %f \n", time);
+    EXPECT_EQ(time, 1.0);
 
-    EXPECT_EQ(my_tw.handle(),true);
+    EXPECT_EQ(my_tw.handle(), true);
 
-    EXPECT_EQ(my_tw.peek_top_time(time),true);
-    printf(" time %f \n",time);
-    EXPECT_EQ(time ,5.0);
+    EXPECT_EQ(my_tw.peek_top_time(time), true);
+    printf(" time %f \n", time);
+    EXPECT_EQ(time, 5.0);
 
-    EXPECT_EQ(my_tw.handle(),true);
+    EXPECT_EQ(my_tw.handle(), true);
 
-    EXPECT_EQ(my_tw.peek_top_time(time),true);
-    printf(" time %f \n",time);
-    EXPECT_EQ(time ,10.0);
+    EXPECT_EQ(my_tw.peek_top_time(time), true);
+    printf(" time %f \n", time);
+    EXPECT_EQ(time, 10.0);
 
-    EXPECT_EQ(my_tw.handle(),true);
-
+    EXPECT_EQ(my_tw.handle(), true);
 }
 
 TEST_F(timerwl, tw2) {
-    CTimerWheel  my_tw;
+    CTimerWheel my_tw;
 
-    double mytime=0.1;
+    double mytime = 0.1;
     int i;
-    CTestFlow * af[100];
+    CTestFlow *af[100];
 
-    for (i=0; i<100; i++) {
-        CTestFlow * f=new CTestFlow();
-        af[i]=f;
-        f->flow_id=i;
-        my_tw.restart_timer(&f->m_timer_handle,mytime+10.0);
+    for (i = 0; i < 100; i++) {
+        CTestFlow *f = new CTestFlow();
+        af[i] = f;
+        f->flow_id = i;
+        my_tw.restart_timer(&f->m_timer_handle, mytime + 10.0);
     }
-    EXPECT_EQ(my_tw.m_st_alloc-my_tw.m_st_free,100);
+    EXPECT_EQ(my_tw.m_st_alloc - my_tw.m_st_free, 100);
 
     my_tw.try_handle_events(mytime);
 
-    EXPECT_EQ(my_tw.m_st_alloc-my_tw.m_st_free,100);
+    EXPECT_EQ(my_tw.m_st_alloc - my_tw.m_st_free, 100);
 
-    for (i=0; i<100; i++) {
-        CTestFlow * f=af[i];
+    for (i = 0; i < 100; i++) {
+        CTestFlow *f = af[i];
         my_tw.stop_timer(&f->m_timer_handle);
         delete f;
     }
-    EXPECT_EQ(my_tw.m_st_alloc-my_tw.m_st_free,100);
+    EXPECT_EQ(my_tw.m_st_alloc - my_tw.m_st_free, 100);
 
     my_tw.try_handle_events(mytime);
 
     /* expect to free all the object */
-    EXPECT_EQ(my_tw.m_st_alloc-my_tw.m_st_free,0);
-
+    EXPECT_EQ(my_tw.m_st_alloc - my_tw.m_st_free, 0);
 }
 
 TEST_F(timerwl, check_stop_timer) {
 
-    CTimerWheel  my_tw;
-
+    CTimerWheel my_tw;
 
     CTestFlow f1;
     CTestFlow f2;
     CTestFlow f3;
     CTestFlow f4;
 
-    f1.flow_id=1;
-    f2.flow_id=2;
-    f3.flow_id=3;
-    f4.flow_id=4;
+    f1.flow_id = 1;
+    f2.flow_id = 2;
+    f3.flow_id = 3;
+    f4.flow_id = 4;
     double time;
-    assert(my_tw.peek_top_time(time)==false);
-    my_tw.restart_timer(&f1.m_timer_handle,10.0);
-    my_tw.restart_timer(&f2.m_timer_handle,5.0);
-    my_tw.restart_timer(&f3.m_timer_handle,1.0);
+    assert(my_tw.peek_top_time(time) == false);
+    my_tw.restart_timer(&f1.m_timer_handle, 10.0);
+    my_tw.restart_timer(&f2.m_timer_handle, 5.0);
+    my_tw.restart_timer(&f3.m_timer_handle, 1.0);
     my_tw.stop_timer(&f1.m_timer_handle);
 
-    assert(my_tw.peek_top_time(time)==true);
-    printf(" time %f \n",time);
-    EXPECT_EQ(time ,1.0);
+    assert(my_tw.peek_top_time(time) == true);
+    printf(" time %f \n", time);
+    EXPECT_EQ(time, 1.0);
 
-    assert(my_tw.peek_top_time(time)==true);
-    printf(" time %f \n",time);
-    EXPECT_EQ(time ,1.0);
+    assert(my_tw.peek_top_time(time) == true);
+    printf(" time %f \n", time);
+    EXPECT_EQ(time, 1.0);
 
-    assert(my_tw.peek_top_time(time)==true);
-    printf(" time %f \n",time);
-    EXPECT_EQ(time ,1.0);
-
-    assert(my_tw.handle());
-
-    assert(my_tw.peek_top_time(time)==true);
-    printf(" time %f \n",time);
-    EXPECT_EQ(time ,5.0);
-
+    assert(my_tw.peek_top_time(time) == true);
+    printf(" time %f \n", time);
+    EXPECT_EQ(time, 1.0);
 
     assert(my_tw.handle());
 
-    EXPECT_EQ(my_tw.peek_top_time(time) ,false);
+    assert(my_tw.peek_top_time(time) == true);
+    printf(" time %f \n", time);
+    EXPECT_EQ(time, 5.0);
+
+    assert(my_tw.handle());
+
+    EXPECT_EQ(my_tw.peek_top_time(time), false);
     my_tw.Dump(stdout);
 }
 
+static int many_timers_flow_id = 0;
 
-static int many_timers_flow_id=0;
-
-void  many_timers_flow_callback(CFlowTimerHandle * t){
-    CTestFlow * lp=(CTestFlow *)t->m_object;
+void many_timers_flow_callback(CFlowTimerHandle *t) {
+    CTestFlow *lp = (CTestFlow *)t->m_object;
     assert(lp);
-    assert(t->m_id==0x1234);
-    assert(many_timers_flow_id==lp->flow_id);
+    assert(t->m_id == 0x1234);
+    assert(many_timers_flow_id == lp->flow_id);
     many_timers_flow_id--;
 }
 
-
 TEST_F(timerwl, many_timers) {
 
-    CTimerWheel  my_tw;
+    CTimerWheel my_tw;
 
     int i;
-    for (i=0; i<100; i++) {
-        CTestFlow * f= new CTestFlow();
-        f->m_timer_handle.m_callback=many_timers_flow_callback;
-        f->flow_id=(uint32_t)i;
-        my_tw.restart_timer(&f->m_timer_handle,100.0-(double)i);
+    for (i = 0; i < 100; i++) {
+        CTestFlow *f = new CTestFlow();
+        f->m_timer_handle.m_callback = many_timers_flow_callback;
+        f->flow_id = (uint32_t)i;
+        my_tw.restart_timer(&f->m_timer_handle, 100.0 - (double)i);
     }
-    many_timers_flow_id=99;
+    many_timers_flow_id = 99;
 
     double time;
-    double ex_time=1.0;
+    double ex_time = 1.0;
     while (true) {
-        if ( my_tw.peek_top_time(time) ){
-            assert(time==ex_time);
-            ex_time+=1.0;
+        if (my_tw.peek_top_time(time)) {
+            assert(time == ex_time);
+            ex_time += 1.0;
             assert(my_tw.handle());
-        }
-        else{
+        } else {
             break;
         }
     }
 
     my_tw.Dump(stdout);
 
-    EXPECT_EQ(my_tw.m_st_handle ,100);
-    EXPECT_EQ(my_tw.m_st_alloc ,100);
-    EXPECT_EQ(my_tw.m_st_free ,100);
-    EXPECT_EQ(my_tw.m_st_start ,100);
-
+    EXPECT_EQ(my_tw.m_st_handle, 100);
+    EXPECT_EQ(my_tw.m_st_alloc, 100);
+    EXPECT_EQ(my_tw.m_st_free, 100);
+    EXPECT_EQ(my_tw.m_st_start, 100);
 }
 
-void  many_timers_stop_flow_callback(CFlowTimerHandle * t){
-    CTestFlow * lp=(CTestFlow *)t->m_object;
+void many_timers_stop_flow_callback(CFlowTimerHandle *t) {
+    CTestFlow *lp = (CTestFlow *)t->m_object;
     assert(lp);
-    assert(t->m_id==0x1234);
+    assert(t->m_id == 0x1234);
     assert(0);
 }
 
 TEST_F(timerwl, many_timers_with_stop) {
-    CTimerWheel  my_tw;
+    CTimerWheel my_tw;
 
     int i;
-    for (i=0; i<100; i++) {
-        CTestFlow * f= new CTestFlow();
-        f->m_timer_handle.m_callback=many_timers_stop_flow_callback;
-        f->flow_id=(uint32_t)i;
+    for (i = 0; i < 100; i++) {
+        CTestFlow *f = new CTestFlow();
+        f->m_timer_handle.m_callback = many_timers_stop_flow_callback;
+        f->flow_id = (uint32_t)i;
         my_tw.restart_timer(&f->m_timer_handle, 500.0 - (double)i);
         my_tw.restart_timer(&f->m_timer_handle, 1000.0 - (double)i);
         my_tw.restart_timer(&f->m_timer_handle, 100.0 - (double)i);
@@ -1305,101 +1258,96 @@ TEST_F(timerwl, many_timers_with_stop) {
 
     double time;
     while (true) {
-        if ( my_tw.peek_top_time(time) ){
+        if (my_tw.peek_top_time(time)) {
             assert(0);
             assert(my_tw.handle());
-        }
-        else{
+        } else {
             break;
         }
     }
 
     my_tw.Dump(stdout);
 
-
-    EXPECT_EQ(my_tw.m_st_handle ,0);
-    EXPECT_EQ(my_tw.m_st_alloc-my_tw.m_st_free ,0);
-    EXPECT_EQ(my_tw.m_st_start ,300);
+    EXPECT_EQ(my_tw.m_st_handle, 0);
+    EXPECT_EQ(my_tw.m_st_alloc - my_tw.m_st_free, 0);
+    EXPECT_EQ(my_tw.m_st_start, 300);
 }
 
 //////////////////////////////////////////////
 class rx_check : public trexTest {
- protected:
-  virtual void SetUp() {
-      trexTest::SetUp();
-      m_rx_check.Create();
-  }
-  virtual void TearDown() {
-      m_rx_check.Delete();
-  }
-public:
+  protected:
+    virtual void SetUp() {
+        trexTest::SetUp();
+        m_rx_check.Create();
+    }
+    virtual void TearDown() { m_rx_check.Delete(); }
+
+  public:
     RxCheckManager m_rx_check;
 };
-
 
 TEST_F(rx_check, rx_check_normal) {
     int i;
 
-    for (i=0; i<10; i++) {
+    for (i = 0; i < 10; i++) {
         CRx_check_header rxh;
         rxh.clean();
 
-        rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-        rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-        rxh.m_time_stamp=0;
-        rxh.m_magic=RX_CHECK_MAGIC;
-        rxh.m_aging_sec=10;
-        rxh.m_pkt_id=i;
-        rxh.m_flow_size=10;
+        rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+        rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+        rxh.m_time_stamp = 0;
+        rxh.m_magic = RX_CHECK_MAGIC;
+        rxh.m_aging_sec = 10;
+        rxh.m_pkt_id = i;
+        rxh.m_flow_size = 10;
 
-        rxh.m_flow_id=7;
+        rxh.m_flow_id = 7;
         rxh.set_dir(0);
         rxh.set_both_dir(0);
 
         m_rx_check.handle_packet(&rxh);
     }
 
-    EXPECT_EQ(m_rx_check.m_stats.get_total_err(),0);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
+    EXPECT_EQ(m_rx_check.m_stats.get_total_err(), 0);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 1);
     m_rx_check.Dump(stdout);
 }
-
 
 TEST_F(rx_check, rx_check_drop) {
 
     int i;
 
-    for (i=0; i<10; i++) {
+    for (i = 0; i < 10; i++) {
         CRx_check_header rxh;
         rxh.clean();
 
-        rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-        rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-        rxh.m_time_stamp=0;
-        rxh.m_magic=RX_CHECK_MAGIC;
-        rxh.m_aging_sec=10;
+        rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+        rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+        rxh.m_time_stamp = 0;
+        rxh.m_magic = RX_CHECK_MAGIC;
+        rxh.m_aging_sec = 10;
 
-        if (i==4) {
+        if (i == 4) {
             /* drop packet 4 */
             continue;
         }
-        rxh.m_pkt_id=i;
+        rxh.m_pkt_id = i;
 
-        rxh.m_flow_size=10;
+        rxh.m_flow_size = 10;
 
         rxh.set_dir(0);
         rxh.set_both_dir(0);
 
-        rxh.m_flow_id=7;
+        rxh.m_flow_id = 7;
 
-        rxh.m_flags=0;
+        rxh.m_flags = 0;
         m_rx_check.handle_packet(&rxh);
     }
     m_rx_check.tw_drain();
-    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 1);
     m_rx_check.Dump(stdout);
 }
 
@@ -1408,79 +1356,77 @@ TEST_F(rx_check, rx_check_ooo) {
     m_rx_check.Create();
     int i;
 
-    for (i=0; i<10; i++) {
+    for (i = 0; i < 10; i++) {
         CRx_check_header rxh;
         rxh.clean();
 
-        rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-        rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-        rxh.m_time_stamp=0;
-        rxh.m_magic=RX_CHECK_MAGIC;
-        rxh.m_aging_sec=10;
+        rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+        rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+        rxh.m_time_stamp = 0;
+        rxh.m_magic = RX_CHECK_MAGIC;
+        rxh.m_aging_sec = 10;
 
         rxh.set_dir(0);
         rxh.set_both_dir(0);
 
-
         /* out of order */
-        if (i==4) {
-            rxh.m_pkt_id=5;
-        }else{
-            if (i==5) {
-                rxh.m_pkt_id=4;
-            }else{
-                rxh.m_pkt_id=i;
+        if (i == 4) {
+            rxh.m_pkt_id = 5;
+        } else {
+            if (i == 5) {
+                rxh.m_pkt_id = 4;
+            } else {
+                rxh.m_pkt_id = i;
             }
         }
 
-        rxh.m_flow_size=10;
+        rxh.m_flow_size = 10;
 
-        rxh.m_flow_id=7;
+        rxh.m_flow_id = 7;
 
-        rxh.m_flags=0;
+        rxh.m_flags = 0;
         m_rx_check.handle_packet(&rxh);
     }
     m_rx_check.tw_drain();
-    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_early,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late,2);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_early, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late, 2);
 
     m_rx_check.Dump(stdout);
 }
 
-
 TEST_F(rx_check, rx_check_ooo_1) {
     int i;
 
-    for (i=0; i<10; i++) {
+    for (i = 0; i < 10; i++) {
         CRx_check_header rxh;
         rxh.clean();
-        rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-        rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-        rxh.m_time_stamp=0;
+        rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+        rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+        rxh.m_time_stamp = 0;
         rxh.set_dir(0);
         rxh.set_both_dir(0);
 
-        rxh.m_magic=RX_CHECK_MAGIC;
-        rxh.m_aging_sec=10;
+        rxh.m_magic = RX_CHECK_MAGIC;
+        rxh.m_aging_sec = 10;
 
         /* out of order */
-        if (i==4) {
-            rxh.m_pkt_id=56565;
-        }else{
-            if (i==5) {
-                rxh.m_pkt_id=4;
-            }else{
-                rxh.m_pkt_id=i;
+        if (i == 4) {
+            rxh.m_pkt_id = 56565;
+        } else {
+            if (i == 5) {
+                rxh.m_pkt_id = 4;
+            } else {
+                rxh.m_pkt_id = i;
             }
         }
-        rxh.m_flow_size=10;
-        rxh.m_flow_id=7;
-        rxh.m_flags=0;
+        rxh.m_flow_size = 10;
+        rxh.m_flow_id = 7;
+        rxh.m_flags = 0;
         m_rx_check.handle_packet(&rxh);
     }
     m_rx_check.tw_drain();
-    EXPECT_EQ(m_rx_check.m_stats.m_err_wrong_pkt_id,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late,1);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_wrong_pkt_id, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late, 1);
 
     m_rx_check.Dump(stdout);
 }
@@ -1489,97 +1435,93 @@ TEST_F(rx_check, rx_check_ooo_1) {
 TEST_F(rx_check, rx_check_ooo_2) {
     int i;
 
-    for (i=0; i<10; i++) {
+    for (i = 0; i < 10; i++) {
         CRx_check_header rxh;
         rxh.clean();
-        rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-        rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-        rxh.m_time_stamp=0;
-        rxh.m_magic=RX_CHECK_MAGIC;
-        rxh.m_aging_sec=10;
+        rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+        rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+        rxh.m_time_stamp = 0;
+        rxh.m_magic = RX_CHECK_MAGIC;
+        rxh.m_aging_sec = 10;
 
         /* out of order */
         rxh.set_dir(0);
         rxh.set_both_dir(0);
 
-
-        if (i==0) {
-            rxh.m_pkt_id=7;
-        }else{
-            if (i==7) {
-                rxh.m_pkt_id=0;
-            }else{
-                rxh.m_pkt_id=i;
+        if (i == 0) {
+            rxh.m_pkt_id = 7;
+        } else {
+            if (i == 7) {
+                rxh.m_pkt_id = 0;
+            } else {
+                rxh.m_pkt_id = i;
             }
         }
 
-        rxh.m_flow_size=10;
-        rxh.m_flow_id=7;
-        rxh.m_flags=0;
+        rxh.m_flow_size = 10;
+        rxh.m_flow_id = 7;
+        rxh.m_flags = 0;
         m_rx_check.handle_packet(&rxh);
     }
     m_rx_check.tw_drain();
-    EXPECT_EQ(m_rx_check.m_stats.m_err_open_with_no_fif_pkt,1);
-    EXPECT_EQ(m_rx_check.m_stats. m_err_oo_late,1);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_open_with_no_fif_pkt, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late, 1);
     m_rx_check.Dump(stdout);
 }
-
 
 TEST_F(rx_check, rx_check_normal_two_dir) {
     int i;
 
-    for (i=0; i<10; i++) {
+    for (i = 0; i < 10; i++) {
         CRx_check_header rxh;
         rxh.clean();
-        rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-        rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-        rxh.m_time_stamp=0;
-        rxh.m_magic=RX_CHECK_MAGIC;
-        rxh.m_aging_sec=10;
+        rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+        rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+        rxh.m_time_stamp = 0;
+        rxh.m_magic = RX_CHECK_MAGIC;
+        rxh.m_aging_sec = 10;
 
-        rxh.m_pkt_id=i;
-        rxh.m_flow_size=10;
+        rxh.m_pkt_id = i;
+        rxh.m_flow_size = 10;
 
-        rxh.m_flow_id=7;
+        rxh.m_flow_id = 7;
         rxh.set_dir(0);
         rxh.set_both_dir(0);
 
         m_rx_check.handle_packet(&rxh);
     }
 
-    EXPECT_EQ(m_rx_check.m_stats.get_total_err(),0);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
+    EXPECT_EQ(m_rx_check.m_stats.get_total_err(), 0);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 1);
     m_rx_check.Dump(stdout);
 }
-
-
 
 TEST_F(rx_check, rx_check_normal_two_dir_fails) {
     int i;
 
-    for (i=0; i<10; i++) {
+    for (i = 0; i < 10; i++) {
         CRx_check_header rxh;
         rxh.clean();
-        rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-        rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-        rxh.m_time_stamp=0;
-        rxh.m_magic=RX_CHECK_MAGIC;
-        rxh.m_aging_sec=10;
+        rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+        rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+        rxh.m_time_stamp = 0;
+        rxh.m_magic = RX_CHECK_MAGIC;
+        rxh.m_aging_sec = 10;
 
-        rxh.m_pkt_id=i;
-        rxh.m_flow_size=10;
+        rxh.m_pkt_id = i;
+        rxh.m_flow_size = 10;
 
-        rxh.m_flow_id=7;
+        rxh.m_flow_id = 7;
         rxh.set_dir(0);
         rxh.set_both_dir(1);
 
         m_rx_check.handle_packet(&rxh);
     }
 
-    EXPECT_EQ(m_rx_check.m_stats.get_total_err(),0);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,0);
+    EXPECT_EQ(m_rx_check.m_stats.get_total_err(), 0);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 0);
     m_rx_check.Dump(stdout);
 }
 
@@ -1589,33 +1531,33 @@ TEST_F(rx_check, rx_check_normal_two_dir_ok) {
     CRx_check_header rxh;
     rxh.clean();
 
-    rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-    rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-    rxh.m_time_stamp=0;
-    rxh.m_magic=RX_CHECK_MAGIC;
-    rxh.m_aging_sec=10;
+    rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+    rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+    rxh.m_time_stamp = 0;
+    rxh.m_magic = RX_CHECK_MAGIC;
+    rxh.m_aging_sec = 10;
 
     rxh.set_both_dir(1);
-    rxh.m_flow_id=7;
-    rxh.m_flow_size=10;
+    rxh.m_flow_id = 7;
+    rxh.m_flow_size = 10;
 
-    for (i=0; i<10; i++) {
-        rxh.m_pkt_id=i;
-        printf(" first : %d \n",i);
+    for (i = 0; i < 10; i++) {
+        rxh.m_pkt_id = i;
+        printf(" first : %d \n", i);
         rxh.set_dir(0);
         m_rx_check.handle_packet(&rxh);
     }
 
-    for (i=0; i<10; i++) {
-        printf(" se : %d \n",i);
-        rxh.m_pkt_id=i;
+    for (i = 0; i < 10; i++) {
+        printf(" se : %d \n", i);
+        rxh.m_pkt_id = i;
         rxh.set_dir(1);
         m_rx_check.handle_packet(&rxh);
     }
 
-    EXPECT_EQ(m_rx_check.m_stats.get_total_err(),0);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
+    EXPECT_EQ(m_rx_check.m_stats.get_total_err(), 0);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 1);
     m_rx_check.Dump(stdout);
 }
 
@@ -1625,25 +1567,25 @@ TEST_F(rx_check, rx_check_normal_one_pkt_one_dir) {
     CRx_check_header rxh;
     rxh.clean();
 
-    rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-    rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-    rxh.m_time_stamp=0;
-    rxh.m_magic=RX_CHECK_MAGIC;
-    rxh.m_aging_sec=10;
+    rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+    rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+    rxh.m_time_stamp = 0;
+    rxh.m_magic = RX_CHECK_MAGIC;
+    rxh.m_aging_sec = 10;
 
     rxh.set_both_dir(1);
-    rxh.m_flow_id=7;
-    rxh.m_flow_size=1;
+    rxh.m_flow_id = 7;
+    rxh.m_flow_size = 1;
 
-    for (i=0; i<1; i++) {
-        rxh.m_pkt_id=i;
-        printf(" first : %d \n",i);
+    for (i = 0; i < 1; i++) {
+        rxh.m_pkt_id = i;
+        printf(" first : %d \n", i);
         rxh.set_dir(0);
         m_rx_check.handle_packet(&rxh);
     }
-    EXPECT_EQ(m_rx_check.m_stats.get_total_err(),0);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,0);
+    EXPECT_EQ(m_rx_check.m_stats.get_total_err(), 0);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 0);
     m_rx_check.Dump(stdout);
 }
 
@@ -1653,24 +1595,24 @@ TEST_F(rx_check, rx_check_normal_one_pkt_one_dir_0) {
     CRx_check_header rxh;
     rxh.clean();
 
-    rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-    rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-    rxh.m_time_stamp=0;
-    rxh.m_magic=RX_CHECK_MAGIC;
-    rxh.m_aging_sec=10;
+    rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+    rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+    rxh.m_time_stamp = 0;
+    rxh.m_magic = RX_CHECK_MAGIC;
+    rxh.m_aging_sec = 10;
 
     rxh.set_both_dir(0);
-    rxh.m_flow_id=7;
-    rxh.m_flow_size=1;
+    rxh.m_flow_id = 7;
+    rxh.m_flow_size = 1;
 
-    for (i=0; i<1; i++) {
-        rxh.m_pkt_id=i;
+    for (i = 0; i < 1; i++) {
+        rxh.m_pkt_id = i;
         rxh.set_dir(0);
         m_rx_check.handle_packet(&rxh);
     }
-    EXPECT_EQ(m_rx_check.m_stats.get_total_err(),0);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
+    EXPECT_EQ(m_rx_check.m_stats.get_total_err(), 0);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 1);
     m_rx_check.Dump(stdout);
 }
 
@@ -1680,31 +1622,31 @@ TEST_F(rx_check, rx_check_normal_one_pkt_two_dir_0) {
     CRx_check_header rxh;
     rxh.clean();
 
-    rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-    rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-    rxh.m_time_stamp=0;
-    rxh.m_magic=RX_CHECK_MAGIC;
-    rxh.m_aging_sec=10;
+    rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+    rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+    rxh.m_time_stamp = 0;
+    rxh.m_magic = RX_CHECK_MAGIC;
+    rxh.m_aging_sec = 10;
 
     rxh.set_both_dir(1);
-    rxh.m_flow_id=7;
-    rxh.m_flow_size=1;
+    rxh.m_flow_id = 7;
+    rxh.m_flow_size = 1;
 
-    for (i=0; i<1; i++) {
-        rxh.m_pkt_id=i;
+    for (i = 0; i < 1; i++) {
+        rxh.m_pkt_id = i;
         rxh.set_dir(0);
         m_rx_check.handle_packet(&rxh);
     }
 
-    for (i=0; i<1; i++) {
-        rxh.m_pkt_id=i;
+    for (i = 0; i < 1; i++) {
+        rxh.m_pkt_id = i;
         rxh.set_dir(1);
         m_rx_check.handle_packet(&rxh);
     }
 
-    EXPECT_EQ(m_rx_check.m_stats.get_total_err(),0);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
+    EXPECT_EQ(m_rx_check.m_stats.get_total_err(), 0);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 1);
     m_rx_check.Dump(stdout);
 }
 
@@ -1714,30 +1656,30 @@ TEST_F(rx_check, rx_check_normal_one_pkt_two_dir_err1) {
     CRx_check_header rxh;
     rxh.clean();
 
-    rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-    rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-    rxh.m_time_stamp=0;
-    rxh.m_magic=RX_CHECK_MAGIC;
-    rxh.m_aging_sec=10;
+    rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+    rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+    rxh.m_time_stamp = 0;
+    rxh.m_magic = RX_CHECK_MAGIC;
+    rxh.m_aging_sec = 10;
 
     rxh.set_both_dir(1);
-    rxh.m_flow_id=7;
-    rxh.m_flow_size=10;
+    rxh.m_flow_id = 7;
+    rxh.m_flow_size = 10;
 
-    for (i=0; i<10; i++) {
-        rxh.m_pkt_id=i;
+    for (i = 0; i < 10; i++) {
+        rxh.m_pkt_id = i;
         rxh.set_dir(0);
         m_rx_check.handle_packet(&rxh);
     }
 
-    for (i=0; i<10; i++) {
-        if (i==0) {
-            rxh.m_pkt_id=7;
-        }else{
-            if (i==7) {
-                rxh.m_pkt_id=0;
-            }else{
-                rxh.m_pkt_id=i;
+    for (i = 0; i < 10; i++) {
+        if (i == 0) {
+            rxh.m_pkt_id = 7;
+        } else {
+            if (i == 7) {
+                rxh.m_pkt_id = 0;
+            } else {
+                rxh.m_pkt_id = i;
             }
         }
 
@@ -1745,13 +1687,12 @@ TEST_F(rx_check, rx_check_normal_one_pkt_two_dir_err1) {
         m_rx_check.handle_packet(&rxh);
     }
 
-    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_err_fif_seen_twice,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,0);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_fif_seen_twice, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 0);
     m_rx_check.Dump(stdout);
 }
-
 
 TEST_F(rx_check, rx_check_normal_two_dir_oo) {
     int i;
@@ -1759,43 +1700,42 @@ TEST_F(rx_check, rx_check_normal_two_dir_oo) {
     CRx_check_header rxh;
     rxh.clean();
 
-    rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-    rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-    rxh.m_time_stamp=0;
-    rxh.m_magic=RX_CHECK_MAGIC;
-    rxh.m_aging_sec=10;
+    rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+    rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+    rxh.m_time_stamp = 0;
+    rxh.m_magic = RX_CHECK_MAGIC;
+    rxh.m_aging_sec = 10;
 
     rxh.set_both_dir(1);
-    rxh.m_flow_id=7;
-    rxh.m_flow_size=10;
+    rxh.m_flow_id = 7;
+    rxh.m_flow_size = 10;
 
-    for (i=0; i<10; i++) {
-        rxh.m_pkt_id=i;
+    for (i = 0; i < 10; i++) {
+        rxh.m_pkt_id = i;
         rxh.set_dir(0);
         m_rx_check.handle_packet(&rxh);
     }
 
-    for (i=0; i<10; i++) {
+    for (i = 0; i < 10; i++) {
 
-        if (i==4) {
-            rxh.m_pkt_id=5;
-        }else{
-            if (i==5) {
-                rxh.m_pkt_id=4;
-            }else{
-                rxh.m_pkt_id=i;
+        if (i == 4) {
+            rxh.m_pkt_id = 5;
+        } else {
+            if (i == 5) {
+                rxh.m_pkt_id = 4;
+            } else {
+                rxh.m_pkt_id = i;
             }
         }
-
 
         rxh.set_dir(1);
         m_rx_check.handle_packet(&rxh);
     }
 
-    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_early,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late,2);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,0);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_early, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late, 2);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 0);
     m_rx_check.Dump(stdout);
 }
 
@@ -1805,32 +1745,32 @@ TEST_F(rx_check, rx_check_normal_aging) {
     CRx_check_header rxh;
     rxh.clean();
 
-    rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-    rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-    rxh.m_magic=RX_CHECK_MAGIC;
-    rxh.m_aging_sec=2;
+    rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+    rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+    rxh.m_magic = RX_CHECK_MAGIC;
+    rxh.m_aging_sec = 2;
 
     rxh.set_both_dir(0);
-    rxh.m_flow_id=7;
-    rxh.m_flow_size=10;
-    rxh.m_template_id=13;
+    rxh.m_flow_id = 7;
+    rxh.m_flow_size = 10;
+    rxh.m_template_id = 13;
 
-    for (i=0; i<9; i++) {
-        rxh.m_time_stamp=(uint32_t)now_sec();
-        rxh.m_pkt_id=i;
+    for (i = 0; i < 9; i++) {
+        rxh.m_time_stamp = (uint32_t)now_sec();
+        rxh.m_pkt_id = i;
         rxh.set_dir(0);
-        rxh.m_pkt_id=i;
-        if (i<5) {
-            m_rx_check.m_cur_time = (now_sec()+10);
+        rxh.m_pkt_id = i;
+        if (i < 5) {
+            m_rx_check.m_cur_time = (now_sec() + 10);
         }
         m_rx_check.tw_handle();
         m_rx_check.handle_packet(&rxh);
     }
 
-    EXPECT_EQ(m_rx_check.m_template_info[13].get_error_counter()>0?1:0,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_err_aged,4);
-    EXPECT_EQ(m_rx_check.m_stats.m_err_open_with_no_fif_pkt,4 );
-    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late,1);
+    EXPECT_EQ(m_rx_check.m_template_info[13].get_error_counter() > 0 ? 1 : 0, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_aged, 4);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_open_with_no_fif_pkt, 4);
+    EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late, 1);
 
     m_rx_check.Dump(stdout);
 }
@@ -1840,66 +1780,64 @@ TEST_F(rx_check, rx_check_normal_no_aging) {
 
     CRx_check_header rxh;
     rxh.clean();
-    rxh.m_option_type=RX_CHECK_V4_OPT_TYPE;
-    rxh.m_option_len=RX_CHECK_V4_OPT_LEN;
-    rxh.m_magic=RX_CHECK_MAGIC;
-    rxh.m_aging_sec=10;
+    rxh.m_option_type = RX_CHECK_V4_OPT_TYPE;
+    rxh.m_option_len = RX_CHECK_V4_OPT_LEN;
+    rxh.m_magic = RX_CHECK_MAGIC;
+    rxh.m_aging_sec = 10;
 
     rxh.set_both_dir(0);
-    rxh.m_flow_id=7;
-    rxh.m_flow_size=10;
+    rxh.m_flow_id = 7;
+    rxh.m_flow_size = 10;
 
-    for (i=0; i<9; i++) {
-        rxh.m_time_stamp=(uint32_t)now_sec();
-        rxh.m_pkt_id=i;
+    for (i = 0; i < 9; i++) {
+        rxh.m_time_stamp = (uint32_t)now_sec();
+        rxh.m_pkt_id = i;
         rxh.set_dir(0);
-        rxh.m_pkt_id=i;
+        rxh.m_pkt_id = i;
         m_rx_check.tw_handle();
         m_rx_check.handle_packet(&rxh);
     }
 
-    EXPECT_EQ(m_rx_check.m_stats.get_total_err(),0);
-    EXPECT_EQ(m_rx_check.m_stats.m_add,1);
-    EXPECT_EQ(m_rx_check.m_stats.m_remove,0);
+    EXPECT_EQ(m_rx_check.m_stats.get_total_err(), 0);
+    EXPECT_EQ(m_rx_check.m_stats.m_add, 1);
+    EXPECT_EQ(m_rx_check.m_stats.m_remove, 0);
 }
 
 ///////////////////////////////////////////////////////////////
 // check the generation of template and check sample of it
 
-
 class CRxCheckCallbackBase {
-public:
-    virtual void handle_packet(rte_mbuf  * m)=0;
-    void * obj;
+  public:
+    virtual void handle_packet(rte_mbuf *m) = 0;
+    void *obj;
 };
 
 class CRxCheckIF : public CVirtualIF {
 
-public:
-    CRxCheckIF(){
-        m_callback=NULL;
-        m_raw=NULL;
-        m_one_dir=true;
-        m_store_pcfg=false;
+  public:
+    CRxCheckIF() {
+        m_callback = NULL;
+        m_raw = NULL;
+        m_one_dir = true;
+        m_store_pcfg = false;
     }
-public:
 
-    virtual int open_file(std::string file_name){
+  public:
+    virtual int open_file(std::string file_name) {
         m_raw = new CCapPktRaw();
         assert(m_raw);
         return (0);
     }
 
-    virtual int close_file(void){
+    virtual int close_file(void) {
         if (m_raw) {
-            m_raw->raw=0;
+            m_raw->raw = 0;
             delete m_raw;
             m_raw = nullptr;
         }
 
         return (0);
     }
-
 
     /**
      * send one packet
@@ -1908,58 +1846,50 @@ public:
      *
      * @return
      */
-    virtual int send_node(CGenNode * node);
+    virtual int send_node(CGenNode *node);
 
-
-    virtual int update_mac_addr_from_global_cfg(pkt_dir_t       dir, uint8_t * p){
-        return (0);
-    }
-
+    virtual int update_mac_addr_from_global_cfg(pkt_dir_t dir, uint8_t *p) { return (0); }
 
     /**
      * flush all pending packets into the stream
      *
      * @return
      */
-    virtual int flush_tx_queue(void){
-        return (0);
-    }
+    virtual int flush_tx_queue(void) { return (0); }
 
-
-public:
-    bool                      m_one_dir;
-    bool                      m_store_pcfg;
-    CErfIF                    erf_vif;
-    CCapPktRaw              * m_raw;
-    CRxCheckCallbackBase    * m_callback;
+  public:
+    bool m_one_dir;
+    bool m_store_pcfg;
+    CErfIF erf_vif;
+    CCapPktRaw *m_raw;
+    CRxCheckCallbackBase *m_callback;
 };
 
+int CRxCheckIF::send_node(CGenNode *node) {
 
-int CRxCheckIF::send_node(CGenNode * node){
-
-    CFlowPktInfo * lp=node->m_pkt_info;
-    rte_mbuf_t * m=lp->generate_new_mbuf(node);
+    CFlowPktInfo *lp = node->m_pkt_info;
+    rte_mbuf_t *m = lp->generate_new_mbuf(node);
 
     /* update mac addr dest/src 12 bytes */
-    uint8_t *p=(uint8_t *)m_raw->raw;
-    uint8_t p_id = node->m_pkt_info->m_pkt_indication.m_desc.IsInitSide()?0:1;
-    memcpy(p,CGlobalInfo::m_options.get_dst_src_mac_addr(p_id),12);
+    uint8_t *p = (uint8_t *)m_raw->raw;
+    uint8_t p_id = node->m_pkt_info->m_pkt_indication.m_desc.IsInitSide() ? 0 : 1;
+    memcpy(p, CGlobalInfo::m_options.get_dst_src_mac_addr(p_id), 12);
 
-    if ( unlikely( node->is_rx_check_enabled() ) ) {
+    if (unlikely(node->is_rx_check_enabled())) {
         lp->do_generate_new_mbuf_rxcheck(m, node, m_one_dir);
     }
 
-    fill_pkt(m_raw,m);
+    fill_pkt(m_raw, m);
     CPktNsecTimeStamp t_c(node->m_time);
     m_raw->time_nsec = t_c.m_time_nsec;
-    m_raw->time_sec  = t_c.m_time_sec;
+    m_raw->time_sec = t_c.m_time_sec;
     m_raw->setInterface(node->m_pkt_info->m_pkt_indication.m_desc.IsInitSide());
 
     if (m_store_pcfg) {
         erf_vif.write_pkt(m_raw);
     }
 
-    if ((m_callback) && (node->is_rx_check_enabled()) ) {
+    if ((m_callback) && (node->is_rx_check_enabled())) {
         m_callback->handle_packet(m);
     }
 
@@ -1968,108 +1898,101 @@ int CRxCheckIF::send_node(CGenNode * node){
     return (0);
 }
 
-
 class CRxCheckBasic {
 
-public:
-    CRxCheckBasic(){
-        m_threads=1;
-        lpVf=0;
+  public:
+    CRxCheckBasic() {
+        m_threads = 1;
+        lpVf = 0;
     }
 
-    bool  init(void){
+    bool init(void) {
         CFlowGenList fl;
         fl.Create();
-        fl.load_from_yaml(CGlobalInfo::m_options.cfg_file,m_threads);
+        fl.load_from_yaml(CGlobalInfo::m_options.cfg_file, m_threads);
         CGlobalInfo::m_options.set_rxcheck_const_ts();
 
         fl.generate_p_thread_info(m_threads);
-        CFlowGenListPerThread   * lpt;
+        CFlowGenListPerThread *lpt;
         fl.m_threads_info[0]->set_vif(lpVf);
         int i;
-        for (i=0; i<m_threads; i++) {
-            lpt=fl.m_threads_info[i];
-            lpt->start_sim("t1",CGlobalInfo::m_options.preview);
+        for (i = 0; i < m_threads; i++) {
+            lpt = fl.m_threads_info[i];
+            lpt->start_sim("t1", CGlobalInfo::m_options.preview);
         }
         fl.Delete();
         return (true);
     }
 
-public:
-    int           m_threads;
-    CRxCheckIF   * lpVf;
+  public:
+    int m_threads;
+    CRxCheckIF *lpVf;
 };
-
 
 class CRxCheck1 : public CRxCheckCallbackBase {
-public:
-
-    virtual void handle_packet(rte_mbuf_t  * m){
-        rte_pktmbuf_mtod(m, char*);
-        CRx_check_header * rx_p;
-        rte_mbuf_t  * m2 = m->next;
-        rx_p=(CRx_check_header *)rte_pktmbuf_mtod(m2, char*);
+  public:
+    virtual void handle_packet(rte_mbuf_t *m) {
+        rte_pktmbuf_mtod(m, char *);
+        CRx_check_header *rx_p;
+        rte_mbuf_t *m2 = m->next;
+        rx_p = (CRx_check_header *)rte_pktmbuf_mtod(m2, char *);
         mg->handle_packet(rx_p);
-        //pkt->Dump(stdout,1);
+        // pkt->Dump(stdout,1);
     }
-    RxCheckManager * mg;
+    RxCheckManager *mg;
 };
 
+class rx_check_system : public trexTest {
+  protected:
+    virtual void SetUp() {
+        trexTest::SetUp();
+        m_rx_check.m_callback = &m_callback;
+        m_callback.mg = &m_mg;
+        m_mg.Create();
+        CParserOption *po = &CGlobalInfo::m_options;
+        po->preview.setVMode(0);
+        po->preview.setFileWrite(true);
+        po->preview.set_rx_check_enable(true);
+        set_op_mode(OP_MODE_STF);
+    }
 
-class rx_check_system  : public trexTest {
- protected:
-  virtual void SetUp() {
-      trexTest::SetUp();
-      m_rx_check.m_callback = &m_callback;
-      m_callback.mg = &m_mg;
-      m_mg.Create();
-      CParserOption * po =&CGlobalInfo::m_options;
-      po->preview.setVMode(0);
-      po->preview.setFileWrite(true);
-      po->preview.set_rx_check_enable(true);
-      set_op_mode(OP_MODE_STF);
-  }
+    virtual void TearDown() { m_mg.Delete(); }
 
-  virtual void TearDown() {
-      m_mg.Delete();
-  }
-public:
-    CRxCheckBasic  m_rxcs;
-    CRxCheckIF     m_rx_check;
-    CRxCheck1      m_callback;
+  public:
+    CRxCheckBasic m_rxcs;
+    CRxCheckIF m_rx_check;
+    CRxCheck1 m_callback;
     RxCheckManager m_mg;
-
 };
-
 
 // check DNS yaml with sample of 1/2 check that there is no errors
 TEST_F(rx_check_system, rx_system1) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
 
-    po->m_rx_check_sample=2; /* sample rate */
-    po->m_duration=100;
-    po->cfg_file ="cap2/dns.yaml";
+    po->m_rx_check_sample = 2; /* sample rate */
+    po->m_duration = 100;
+    po->cfg_file = "cap2/dns.yaml";
 
     m_rxcs.init();
     m_mg.tw_drain();
 
     m_mg.Dump(stdout);
 
-    EXPECT_EQ(m_mg.m_stats.get_total_err(),0);
+    EXPECT_EQ(m_mg.m_stats.get_total_err(), 0);
 }
 
 // check DNS with rxcheck and write results out to capture file
 TEST_F(rx_check_system, rx_system1_dns) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
 
-    po->m_rx_check_sample=1; /* sample rate */
-    po->m_duration=1;
-    po->cfg_file ="cap2/dns.yaml";
-    m_rx_check.m_store_pcfg=true;
+    po->m_rx_check_sample = 1; /* sample rate */
+    po->m_duration = 1;
+    po->cfg_file = "cap2/dns.yaml";
+    m_rx_check.m_store_pcfg = true;
 
     m_rx_check.erf_vif.set_review_mode(&CGlobalInfo::m_options.preview);
     m_rx_check.erf_vif.open_file("generated/dns_rxcheck.erf");
@@ -2079,27 +2002,27 @@ TEST_F(rx_check_system, rx_system1_dns) {
     m_rx_check.erf_vif.close_file();
 
     CErfCmp cmp;
-    cmp.dump=1;
-    EXPECT_EQ(cmp.compare("generated/dns_rxcheck.erf","exp/dns_rxcheck-ex.erf"),true);
+    cmp.dump = 1;
+    EXPECT_EQ(cmp.compare("generated/dns_rxcheck.erf", "exp/dns_rxcheck-ex.erf"), true);
 }
 
 // check DNS yaml with sample of 1/4 using IPv6 packets
 TEST_F(rx_check_system, rx_system1_ipv6) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
     po->preview.set_ipv6_mode_enable(true);
 
-    po->m_rx_check_sample=4; /* sample rate */
-    po->m_duration=100;
-    po->cfg_file ="cap2/dns.yaml";
+    po->m_rx_check_sample = 4; /* sample rate */
+    po->m_duration = 100;
+    po->cfg_file = "cap2/dns.yaml";
 
     m_rxcs.init();
     m_mg.tw_drain();
 
     m_mg.Dump(stdout);
 
-    EXPECT_EQ(m_mg.m_stats.get_total_err(),0);
+    EXPECT_EQ(m_mg.m_stats.get_total_err(), 0);
     po->preview.set_ipv6_mode_enable(false);
 }
 
@@ -2107,14 +2030,14 @@ TEST_F(rx_check_system, rx_system1_ipv6) {
 // and write results out to capture file
 TEST_F(rx_check_system, rx_system1_dns_ipv6) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
 
     po->preview.set_ipv6_mode_enable(true);
-    po->m_rx_check_sample=1; /* sample rate */
-    po->m_duration=1;
-    po->cfg_file ="cap2/dns.yaml";
-    m_rx_check.m_store_pcfg=true;
+    po->m_rx_check_sample = 1; /* sample rate */
+    po->m_duration = 1;
+    po->cfg_file = "cap2/dns.yaml";
+    m_rx_check.m_store_pcfg = true;
 
     m_rx_check.erf_vif.set_review_mode(&CGlobalInfo::m_options.preview);
     m_rx_check.erf_vif.open_file("generated/dns_ipv6_rxcheck.erf");
@@ -2124,38 +2047,38 @@ TEST_F(rx_check_system, rx_system1_dns_ipv6) {
     m_rx_check.erf_vif.close_file();
 
     CErfCmp cmp;
-    cmp.dump=1;
-    EXPECT_EQ(cmp.compare("generated/dns_ipv6_rxcheck.erf","exp/dns_ipv6_rxcheck-ex.erf"),true);
+    cmp.dump = 1;
+    EXPECT_EQ(cmp.compare("generated/dns_ipv6_rxcheck.erf", "exp/dns_ipv6_rxcheck-ex.erf"), true);
     po->preview.set_ipv6_mode_enable(false);
 }
 
 TEST_F(rx_check_system, rx_system2_plugin_one_dir) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
 
-    po->m_rx_check_sample=2; /* sample rate */
-    po->m_duration=100;
-    po->cfg_file ="cap2/rtsp_short1.yaml";
+    po->m_rx_check_sample = 2; /* sample rate */
+    po->m_duration = 100;
+    po->cfg_file = "cap2/rtsp_short1.yaml";
 
     m_rxcs.init();
     m_mg.tw_drain();
 
     m_mg.Dump(stdout);
 
-    EXPECT_EQ(m_mg.m_stats.get_total_err(),0);
+    EXPECT_EQ(m_mg.m_stats.get_total_err(), 0);
 }
 
 // check HTTP with rxcheck and write results out to capture file
 TEST_F(rx_check_system, rx_system2_plugin) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
 
-    po->m_rx_check_sample=1; /* sample rate */
-    po->m_duration=1;
-    po->cfg_file ="cap2/rtsp_short1.yaml";
-    m_rx_check.m_store_pcfg=true;
+    po->m_rx_check_sample = 1; /* sample rate */
+    po->m_duration = 1;
+    po->cfg_file = "cap2/rtsp_short1.yaml";
+    m_rx_check.m_store_pcfg = true;
 
     m_rx_check.erf_vif.set_review_mode(&CGlobalInfo::m_options.preview);
     m_rx_check.erf_vif.open_file("generated/rtsp_short1_rxcheck.erf");
@@ -2165,22 +2088,22 @@ TEST_F(rx_check_system, rx_system2_plugin) {
     m_rx_check.erf_vif.close_file();
 
     CErfCmp cmp;
-    cmp.dump=1;
-    EXPECT_EQ(cmp.compare("generated/rtsp_short1_rxcheck.erf","exp/rtsp_short1_rxcheck-ex.erf"),true);
+    cmp.dump = 1;
+    EXPECT_EQ(cmp.compare("generated/rtsp_short1_rxcheck.erf", "exp/rtsp_short1_rxcheck-ex.erf"), true);
 }
 
 // check DNS with rxcheck using IPv6 packets
 // and write results out to capture file
 TEST_F(rx_check_system, rx_system2_plugin_ipv6) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
 
     po->preview.set_ipv6_mode_enable(true);
-    po->m_rx_check_sample=1; /* sample rate */
-    po->m_duration=1;
-    po->cfg_file ="cap2/rtsp_short1.yaml";
-    m_rx_check.m_store_pcfg=true;
+    po->m_rx_check_sample = 1; /* sample rate */
+    po->m_duration = 1;
+    po->cfg_file = "cap2/rtsp_short1.yaml";
+    m_rx_check.m_store_pcfg = true;
 
     m_rx_check.erf_vif.set_review_mode(&CGlobalInfo::m_options.preview);
     m_rx_check.erf_vif.open_file("generated/rtsp_short1_ipv6_rxcheck.erf");
@@ -2190,146 +2113,138 @@ TEST_F(rx_check_system, rx_system2_plugin_ipv6) {
     m_rx_check.erf_vif.close_file();
 
     CErfCmp cmp;
-    cmp.dump=1;
-    EXPECT_EQ(cmp.compare("generated/rtsp_short1_ipv6_rxcheck.erf","exp/rtsp_short1_ipv6_rxcheck-ex.erf"),true);
+    cmp.dump = 1;
+    EXPECT_EQ(cmp.compare("generated/rtsp_short1_ipv6_rxcheck.erf", "exp/rtsp_short1_ipv6_rxcheck-ex.erf"), true);
     po->preview.set_ipv6_mode_enable(false);
 }
 
 TEST_F(rx_check_system, rx_system2_plugin_two_dir) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
 
-    po->m_rx_check_sample=2; /* sample rate */
-    po->m_duration=100;
-    po->cfg_file ="cap2/rtsp_short1_slow.yaml";
-    m_rx_check.m_one_dir=false;
+    po->m_rx_check_sample = 2; /* sample rate */
+    po->m_duration = 100;
+    po->cfg_file = "cap2/rtsp_short1_slow.yaml";
+    m_rx_check.m_one_dir = false;
 
     m_rxcs.init();
     m_mg.tw_drain();
 
     m_mg.Dump(stdout);
 
-    EXPECT_EQ(m_mg.m_stats.get_total_err(),0);
+    EXPECT_EQ(m_mg.m_stats.get_total_err(), 0);
 }
 
 TEST_F(rx_check_system, rx_system2_plugin_two_dir_2) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
 
-    po->m_rx_check_sample=2; /* sample rate */
-    po->m_duration=100;
-    po->cfg_file ="cap2/rtsp_short1.yaml";
-    m_rx_check.m_one_dir=false;
+    po->m_rx_check_sample = 2; /* sample rate */
+    po->m_duration = 100;
+    po->cfg_file = "cap2/rtsp_short1.yaml";
+    m_rx_check.m_one_dir = false;
 
     m_rxcs.init();
     m_mg.tw_drain();
 
     m_mg.Dump(stdout);
 
-    EXPECT_EQ(m_mg.m_stats.get_total_err(),0);
+    EXPECT_EQ(m_mg.m_stats.get_total_err(), 0);
 }
 
 TEST_F(rx_check_system, rx_system_two_dir) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
 
-    po->m_rx_check_sample=2; /* sample rate */
-    po->m_duration=100;
-    po->cfg_file ="cap2/dns.yaml";
-    m_rx_check.m_one_dir=false;
+    po->m_rx_check_sample = 2; /* sample rate */
+    po->m_duration = 100;
+    po->cfg_file = "cap2/dns.yaml";
+    m_rx_check.m_one_dir = false;
 
     m_rxcs.init();
     m_mg.tw_drain();
 
     m_mg.Dump(stdout);
 
-    EXPECT_EQ(m_mg.m_stats.get_total_err(),0);
+    EXPECT_EQ(m_mg.m_stats.get_total_err(), 0);
 }
-
 
 TEST_F(rx_check_system, rx_json) {
 
-    m_rxcs.lpVf=&m_rx_check;
-    CParserOption * po =&CGlobalInfo::m_options;
+    m_rxcs.lpVf = &m_rx_check;
+    CParserOption *po = &CGlobalInfo::m_options;
 
-    po->m_rx_check_sample=2; /* sample rate */
-    po->m_duration=100;
-    po->cfg_file ="cap2/dns.yaml";
+    po->m_rx_check_sample = 2; /* sample rate */
+    po->m_duration = 100;
+    po->cfg_file = "cap2/dns.yaml";
 
     m_rxcs.init();
     m_mg.tw_drain();
 
     std::string json;
     m_mg.dump_json(json);
-    printf(" %s \n",json.c_str());
+    printf(" %s \n", json.c_str());
 }
 
-class nat_check_flow_table  : public testing::Test {
- protected:
-  virtual void SetUp() {
-  }
+class nat_check_flow_table : public testing::Test {
+  protected:
+    virtual void SetUp() {}
 
-  virtual void TearDown() {
-  }
-public:
+    virtual void TearDown() {}
+
+  public:
     CNatCheckFlowTable m_ft;
 };
 
-TEST_F(nat_check_flow_table, test1) {
-    m_ft.test();
-};
+TEST_F(nat_check_flow_table, test1) { m_ft.test(); };
 
 //////////////////////////////////////////////////////////////
 
-
 class CNatCheck1 : public CRxCheckCallbackBase {
-public:
-
-    virtual void handle_packet(rte_mbuf_t  * m){
-            char *mp=rte_pktmbuf_mtod(m, char*);
-            CNatOption * option=(CNatOption *)(mp+14+20);
-            IPHeader * ipv4=(IPHeader *)(mp+14);
-            if ( ipv4->getHeaderLength()>20 ) {
-                assert(ipv4->getTimeToLive()==255);
-                /* ip option packet */
-                printf(" rx got ip option packet ! \n");
-                mg->handle_packet_ipv4(option, ipv4, true);
-                delay(10);          // delay for queue flush
-                mg->handle_aging(); // flush the RxRing
-            }
+  public:
+    virtual void handle_packet(rte_mbuf_t *m) {
+        char *mp = rte_pktmbuf_mtod(m, char *);
+        CNatOption *option = (CNatOption *)(mp + 14 + 20);
+        IPHeader *ipv4 = (IPHeader *)(mp + 14);
+        if (ipv4->getHeaderLength() > 20) {
+            assert(ipv4->getTimeToLive() == 255);
+            /* ip option packet */
+            printf(" rx got ip option packet ! \n");
+            mg->handle_packet_ipv4(option, ipv4, true);
+            delay(10);          // delay for queue flush
+            mg->handle_aging(); // flush the RxRing
+        }
     }
-    CNatRxManager * mg;
+    CNatRxManager *mg;
 };
 
+class nat_check_system : public trexTest {
+  protected:
+    virtual void SetUp() {
+        trexTest::SetUp();
+        m_rx_check.m_callback = &m_callback;
+        m_callback.mg = &m_mg;
+        m_mg.Create();
+        CParserOption *po = &CGlobalInfo::m_options;
+        po->preview.setVMode(0);
+        po->preview.setFileWrite(true);
+        po->m_learn_mode = CParserOption::LEARN_MODE_IP_OPTION;
+    }
 
+    virtual void TearDown() {
+        CParserOption *po = &CGlobalInfo::m_options;
+        po->m_learn_mode = CParserOption::LEARN_MODE_DISABLED;
+        m_mg.Delete();
+    }
 
-class nat_check_system  : public trexTest {
- protected:
-  virtual void SetUp() {
-      trexTest::SetUp();
-      m_rx_check.m_callback=&m_callback;
-      m_callback.mg   =&m_mg;
-      m_mg.Create();
-      CParserOption * po =&CGlobalInfo::m_options;
-      po->preview.setVMode(0);
-      po->preview.setFileWrite(true);
-      po->m_learn_mode = CParserOption::LEARN_MODE_IP_OPTION;
-  }
-
-  virtual void TearDown() {
-      CParserOption * po =&CGlobalInfo::m_options;
-      po->m_learn_mode = CParserOption::LEARN_MODE_DISABLED;
-      m_mg.Delete();
-  }
-public:
-    CRxCheckBasic   m_rxcs;
-    CRxCheckIF      m_rx_check;
-    CNatCheck1      m_callback;
-    CNatRxManager   m_mg;
-
+  public:
+    CRxCheckBasic m_rxcs;
+    CRxCheckIF m_rx_check;
+    CNatCheck1 m_callback;
+    CNatRxManager m_mg;
 };
 
 #if 0
@@ -2353,164 +2268,162 @@ TEST_F(nat_check_system, nat_system1) {
 
 class file_flow_info : public trexTest {
 
-protected:
-  virtual void SetUp() {
-      trexTest::SetUp();
-      assert(m_flow_info.Create());
-  }
+  protected:
+    virtual void SetUp() {
+        trexTest::SetUp();
+        assert(m_flow_info.Create());
+    }
 
-  virtual void TearDown() {
-      m_flow_info.Delete();
-  }
-public:
+    virtual void TearDown() { m_flow_info.Delete(); }
+
+  public:
     void load_cap_file_errors_helper(std::string cap_file, enum CCapFileFlowInfo::load_cap_file_err expect);
 
-public:
+  public:
     CCapFileFlowInfo m_flow_info;
 };
 
 TEST_F(file_flow_info, f1) {
-    m_flow_info.load_cap_file("cap2/delay_10_rtp_250k_short.pcap",1,7) ;
+    m_flow_info.load_cap_file("cap2/delay_10_rtp_250k_short.pcap", 1, 7);
     CFlowYamlInfo info;
     m_flow_info.update_info(&info);
-    //m_flow_info.Dump(stdout);
+    // m_flow_info.Dump(stdout);
 
     int i;
-    for (i=0; i<m_flow_info.Size(); i++) {
-            CFlowPktInfo * lp=m_flow_info.GetPacket((uint32_t)i);
-            uint16_t flow_id=lp->m_pkt_indication.m_desc.getFlowId();
-            switch (flow_id) {
-            case 0:
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxPktsPerFlow(),23);
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxFlowTimeout(),64);
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.IsBiDirectionalFlow(),1);
-                break;
-            case 1:
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxPktsPerFlow(),7);
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxFlowTimeout(),10);
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.IsBiDirectionalFlow(),0);
+    for (i = 0; i < m_flow_info.Size(); i++) {
+        CFlowPktInfo *lp = m_flow_info.GetPacket((uint32_t)i);
+        uint16_t flow_id = lp->m_pkt_indication.m_desc.getFlowId();
+        switch (flow_id) {
+        case 0:
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxPktsPerFlow(), 23);
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxFlowTimeout(), 64);
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.IsBiDirectionalFlow(), 1);
+            break;
+        case 1:
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxPktsPerFlow(), 7);
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxFlowTimeout(), 10);
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.IsBiDirectionalFlow(), 0);
 
-                break;
-            case 2:
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxPktsPerFlow(),7);
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxFlowTimeout(),5);
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.IsBiDirectionalFlow(),0);
+            break;
+        case 2:
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxPktsPerFlow(), 7);
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxFlowTimeout(), 5);
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.IsBiDirectionalFlow(), 0);
 
-                break;
-            default:
-                assert(0);
-            }
+            break;
+        default:
+            assert(0);
+        }
     }
-
 }
 
 TEST_F(file_flow_info, f2) {
-    m_flow_info.load_cap_file("cap2/citrix.pcap",1,0) ;
+    m_flow_info.load_cap_file("cap2/citrix.pcap", 1, 0);
     CFlowYamlInfo info;
     m_flow_info.update_info(&info);
 
     int i;
-    for (i=0; i<m_flow_info.Size(); i++) {
-            CFlowPktInfo * lp=m_flow_info.GetPacket((uint32_t)i);
-            uint16_t flow_id=lp->m_pkt_indication.m_desc.getFlowId();
-            switch (flow_id) {
-            case 0:
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxPktsPerFlow(),271);
-                EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxFlowTimeout(),5);
-                break;
-            default:
-                assert(0);
-            }
+    for (i = 0; i < m_flow_info.Size(); i++) {
+        CFlowPktInfo *lp = m_flow_info.GetPacket((uint32_t)i);
+        uint16_t flow_id = lp->m_pkt_indication.m_desc.getFlowId();
+        switch (flow_id) {
+        case 0:
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxPktsPerFlow(), 271);
+            EXPECT_EQ(lp->m_pkt_indication.m_desc.GetMaxFlowTimeout(), 5);
+            break;
+        default:
+            assert(0);
+        }
     }
 }
 
 TEST_F(file_flow_info, http_two_dir) {
-    m_flow_info.load_cap_file("avl/delay_10_http_browsing_0.pcap",1,0) ;
+    m_flow_info.load_cap_file("avl/delay_10_http_browsing_0.pcap", 1, 0);
     CFlowYamlInfo info;
     m_flow_info.update_info(&info);
-    CFlowPktInfo * lp=m_flow_info.GetPacket((uint32_t)0);
-    EXPECT_EQ(lp->m_pkt_indication.m_desc.IsOneDirectionalFlow(),0);
+    CFlowPktInfo *lp = m_flow_info.GetPacket((uint32_t)0);
+    EXPECT_EQ(lp->m_pkt_indication.m_desc.IsOneDirectionalFlow(), 0);
 }
 
 TEST_F(file_flow_info, one_dir) {
 
-    m_flow_info.load_cap_file("avl/delay_rtp_160k_1_1_0.pcap",1,0) ;
+    m_flow_info.load_cap_file("avl/delay_rtp_160k_1_1_0.pcap", 1, 0);
     CFlowYamlInfo info;
     m_flow_info.update_info(&info);
-    CFlowPktInfo * lp=m_flow_info.GetPacket((uint32_t)0);
-    EXPECT_EQ(lp->m_pkt_indication.m_desc.IsOneDirectionalFlow(),1);
+    CFlowPktInfo *lp = m_flow_info.GetPacket((uint32_t)0);
+    EXPECT_EQ(lp->m_pkt_indication.m_desc.IsOneDirectionalFlow(), 1);
 }
-
-
 
 TEST_F(file_flow_info, nat_option_check) {
     uint8_t buffer[8];
-    CNatOption *lp=(CNatOption *)&buffer[0];
+    CNatOption *lp = (CNatOption *)&buffer[0];
     lp->set_init_ipv4_header();
     lp->set_fid(0x12345678);
     lp->set_thread_id(7);
     lp->dump(stdout);
-    EXPECT_EQ(lp->is_valid_ipv4_magic(),true);
+    EXPECT_EQ(lp->is_valid_ipv4_magic(), true);
 
     lp->set_init_ipv6_header();
     lp->dump(stdout);
-    EXPECT_EQ(lp->is_valid_ipv6_magic(),true);
+    EXPECT_EQ(lp->is_valid_ipv6_magic(), true);
 }
 
 TEST_F(file_flow_info, http_add_ipv4_option) {
-    m_flow_info.load_cap_file("avl/delay_10_http_browsing_0.pcap",1,0) ;
+    m_flow_info.load_cap_file("avl/delay_10_http_browsing_0.pcap", 1, 0);
     CFlowYamlInfo info;
     m_flow_info.update_info(&info);
-    CFlowPktInfo * lp=m_flow_info.GetPacket((uint32_t)0);
+    CFlowPktInfo *lp = m_flow_info.GetPacket((uint32_t)0);
     printf(" before the change \n");
-    //lp->Dump(stdout);
-    //lp->m_packet->Dump(stdout,1);
-    CNatOption *lpNat =(CNatOption *)lp->push_ipv4_option_offline(8);
+    // lp->Dump(stdout);
+    // lp->m_packet->Dump(stdout,1);
+    CNatOption *lpNat = (CNatOption *)lp->push_ipv4_option_offline(8);
     lpNat->set_init_ipv4_header();
     lpNat->set_fid(0x12345678);
     lpNat->set_thread_id(7);
     lp->m_pkt_indication.l3.m_ipv4->updateCheckSum();
-    m_flow_info.save_to_erf("generated/http1_with_option.pcap",true);
+    m_flow_info.save_to_erf("generated/http1_with_option.pcap", true);
 
     m_flow_info.Delete();
     CErfCmp cmp;
-    cmp.dump=1;
-    EXPECT_EQ(cmp.compare("generated/http1_with_option.pcap","exp/http1_with_option-ex.pcap"),true);
+    cmp.dump = 1;
+    EXPECT_EQ(cmp.compare("generated/http1_with_option.pcap", "exp/http1_with_option-ex.pcap"), true);
 }
 
 TEST_F(file_flow_info, http_add_ipv6_option) {
     /* convert it to ipv6 */
-    CParserOption * po =&CGlobalInfo::m_options;
+    CParserOption *po = &CGlobalInfo::m_options;
     po->preview.set_ipv6_mode_enable(true);
 
-    m_flow_info.load_cap_file("avl/delay_10_http_browsing_0.pcap",1,0) ;
+    m_flow_info.load_cap_file("avl/delay_10_http_browsing_0.pcap", 1, 0);
     CFlowYamlInfo info;
     m_flow_info.update_info(&info);
 
-    CFlowPktInfo * lp=m_flow_info.GetPacket((uint32_t)0);
-    //lp->Dump(stdout);
-    //lp->m_packet->Dump(stdout,1);
-    CNatOption *lpNat =(CNatOption *)lp->push_ipv6_option_offline(8);
+    CFlowPktInfo *lp = m_flow_info.GetPacket((uint32_t)0);
+    // lp->Dump(stdout);
+    // lp->m_packet->Dump(stdout,1);
+    CNatOption *lpNat = (CNatOption *)lp->push_ipv6_option_offline(8);
     lpNat->set_init_ipv6_header();
     lpNat->set_fid(0x12345678);
     lpNat->set_thread_id(7);
-    m_flow_info.save_to_erf("generated/http1_with_option_ipv6.pcap",true);
+    m_flow_info.save_to_erf("generated/http1_with_option_ipv6.pcap", true);
     m_flow_info.Delete();
     CErfCmp cmp;
-    cmp.dump=1;
-    EXPECT_EQ(cmp.compare("generated/http1_with_option_ipv6.pcap","exp/http1_with_option_ipv6-ex.pcap"),true);
+    cmp.dump = 1;
+    EXPECT_EQ(cmp.compare("generated/http1_with_option_ipv6.pcap", "exp/http1_with_option_ipv6-ex.pcap"), true);
     po->preview.set_ipv6_mode_enable(false);
 }
 
-void file_flow_info::load_cap_file_errors_helper(std::string cap_file, enum CCapFileFlowInfo::load_cap_file_err expect) {
+void file_flow_info::load_cap_file_errors_helper(std::string cap_file,
+                                                 enum CCapFileFlowInfo::load_cap_file_err expect) {
     enum CCapFileFlowInfo::load_cap_file_err err;
 
     err = m_flow_info.load_cap_file(cap_file, 1, 0);
-    if (err == 0) err = m_flow_info.is_valid_template_load_time();
+    if (err == 0)
+        err = m_flow_info.is_valid_template_load_time();
     if (err != expect) {
         printf("Error in testing file %s. Expected error to be %d, but it is %d\n", cap_file.c_str(), expect, err);
     }
-    assert (err == expect);
+    assert(err == expect);
 }
 
 // Test error conditions when loading cap file
@@ -2528,7 +2441,7 @@ TEST_F(file_flow_info, load_cap_file_errors) {
     load_cap_file_errors_helper("./exp/bad_not_ip.pcap", CCapFileFlowInfo::kPktProcessFail);
     load_cap_file_errors_helper("./exp/tcp_2_pkts.pcap", CCapFileFlowInfo::kOK);
     // more than 1 flow in cap file
-    load_cap_file_errors_helper("./exp/syn_attack.pcap",  CCapFileFlowInfo::kCapFileErr);
+    load_cap_file_errors_helper("./exp/syn_attack.pcap", CCapFileFlowInfo::kCapFileErr);
 
     po->m_learn_mode = CParserOption::LEARN_MODE_IP_OPTION;
     load_cap_file_errors_helper("cap2/dns.pcap", CCapFileFlowInfo::kOK);
@@ -2545,32 +2458,31 @@ TEST_F(file_flow_info, load_cap_file_errors) {
     // open this if we do allow IP options in the future
     //    load_cap_file_errors_helper("./exp/many_ip_options.pcap", CCapFileFlowInfo::kTCPOffsetTooBig);
     load_cap_file_errors_helper("./exp/tcp_2_pkts.pcap", CCapFileFlowInfo::kOK);
-    load_cap_file_errors_helper("./exp/no_tcp_syn_ack.pcap",  CCapFileFlowInfo::kOK);
+    load_cap_file_errors_helper("./exp/no_tcp_syn_ack.pcap", CCapFileFlowInfo::kOK);
 
     po->m_learn_mode = CParserOption::LEARN_MODE_TCP_ACK;
     // too short. only two packets
     load_cap_file_errors_helper("./exp/tcp_2_pkts.pcap", CCapFileFlowInfo::kTCPLearnModeBadFlow);
     // no SYN+ACK
-    load_cap_file_errors_helper("./exp/no_tcp_syn_ack.pcap",  CCapFileFlowInfo::kNoTCPSynAck);
+    load_cap_file_errors_helper("./exp/no_tcp_syn_ack.pcap", CCapFileFlowInfo::kNoTCPSynAck);
     // IPG between TCP handshake packets too low
-    load_cap_file_errors_helper("./exp/tcp_low_ipg.pcap",  CCapFileFlowInfo::kTCPIpgTooLow);
+    load_cap_file_errors_helper("./exp/tcp_low_ipg.pcap", CCapFileFlowInfo::kTCPIpgTooLow);
 }
 
 //////////////////////////////////////////////////////////////
 
 class time_histogram : public trexTest {
 
-protected:
-  virtual void SetUp() {
-      trexTest::SetUp();
-      m_hist.Create();
-      m_hist.set_hot_max_cnt(0);
-  }
+  protected:
+    virtual void SetUp() {
+        trexTest::SetUp();
+        m_hist.Create();
+        m_hist.set_hot_max_cnt(0);
+    }
 
-  virtual void TearDown() {
-      m_hist.Delete();
-  }
-public:
+    virtual void TearDown() { m_hist.Delete(); }
+
+  public:
     CTimeHistogram m_hist;
 };
 
@@ -2584,8 +2496,8 @@ TEST_F(time_histogram, test_average) {
         m_hist.update();
         // Latency is calculated using low pass filter, with initial value of 0
         EXPECT_EQ(m_hist.get_average_latency(), 1000.0 - (1000.0 / (2 << j)));
-        EXPECT_EQ(m_hist.get_count(), 2001 * (j+1));
-        EXPECT_EQ(m_hist.get_high_count(), 2001 * (j+1) - (11 * (j+1)));
+        EXPECT_EQ(m_hist.get_count(), 2001 * (j + 1));
+        EXPECT_EQ(m_hist.get_high_count(), 2001 * (j + 1) - (11 * (j + 1)));
         EXPECT_EQ(m_hist.get_max_latency(), 2000);
     }
 
@@ -2595,81 +2507,81 @@ TEST_F(time_histogram, test_average) {
 TEST_F(time_histogram, test_json) {
     int i;
     int j;
-    for (j=0; j<10; j++) {
-        for (i=0; i<100; i++) {
+    for (j = 0; j < 10; j++) {
+        for (i = 0; i < 100; i++) {
             m_hist.Add(10e-6);
         }
-        for (i=0; i<100; i++) {
+        for (i = 0; i < 100; i++) {
             m_hist.Add(10e-3);
         }
         m_hist.update();
     }
 
     m_hist.Dump(stdout);
-    std::string  json ;
-    m_hist.dump_json("myHis",json );
-    printf(" %s \n",json.c_str());
+    std::string json;
+    m_hist.dump_json("myHis", json);
+    printf(" %s \n", json.c_str());
 }
 
-class gt_jitter  : public trexTest {
-public:
+class gt_jitter : public trexTest {
+  public:
     CJitter m_jitter;
 };
 
-class gt_jitter_uint  : public trexTest {
-public:
+class gt_jitter_uint : public trexTest {
+  public:
     CJitterUint m_jitter;
 };
 
 TEST_F(gt_jitter, jitter1) {
     int i;
-    double a=0.000030;
-    for (i=0; i<100; i++) {
-        if (i%2) {
-            a+=0.000100;
-        }else{
-            a-=0.000100;
+    double a = 0.000030;
+    for (i = 0; i < 100; i++) {
+        if (i % 2) {
+            a += 0.000100;
+        } else {
+            a -= 0.000100;
         }
         m_jitter.calc(a);
     }
-    EXPECT_EQ((uint32_t)(m_jitter.get_jitter()*1000000.0), 99);
+    EXPECT_EQ((uint32_t)(m_jitter.get_jitter() * 1000000.0), 99);
 }
 
 TEST_F(gt_jitter_uint, jitter2) {
     int i;
-    int32_t a=30;
-    for (i=0; i<100; i++) {
-        if (i%2) {
-            a+=20;
-        }else{
-            a-=20;
+    int32_t a = 30;
+    for (i = 0; i < 100; i++) {
+        if (i % 2) {
+            a += 20;
+        } else {
+            a -= 20;
         }
         m_jitter.calc(a);
     }
     EXPECT_EQ((uint32_t)(m_jitter.get_jitter()), 19);
 }
 
-class gt_ring  : public trexTest {};
+class gt_ring : public trexTest {};
 
 TEST_F(gt_ring, ring1) {
 
     CTRingSp<uint32_t> my;
-    bool res=my.Create("a",1024,0);
+    bool res = my.Create("a", 1024, 0);
     assert(res);
 
     int i;
-    for (i=0; i<10; i++) {
-        uint32_t *p=new uint32_t();
-        *p=i;
-        assert(my.Enqueue(p)==0);
+    for (i = 0; i < 10; i++) {
+        uint32_t *p = new uint32_t();
+        *p = i;
+        assert(my.Enqueue(p) == 0);
     }
-    for (i=0; i<10; i++) {
+    for (i = 0; i < 10; i++) {
         uint32_t *p;
-        assert(my.Dequeue(p)==0);
+        assert(my.Dequeue(p) == 0);
         EXPECT_EQ_UINT32(*p, i);
     }
     uint32_t *p;
-    assert(my.Dequeue(p)!=0);
+    assert(my.Dequeue(p) != 0);
 
     EXPECT_EQ(my.isEmpty(), true);
     EXPECT_EQ(my.isFull(), false);
@@ -2677,25 +2589,24 @@ TEST_F(gt_ring, ring1) {
     my.Delete();
 }
 
-
 TEST_F(gt_ring, ring2) {
     CMessagingManager ringmg;
     ringmg.Create(8, "test");
 
     int i;
-    for (i=0; i<8; i++) {
-        CNodeRing * ln=ringmg.getRingDpToCp(i);
+    for (i = 0; i < 8; i++) {
+        CNodeRing *ln = ringmg.getRingDpToCp(i);
         assert(ln);
-        CGenNode * node=new CGenNode();
-        node->m_flow_id=i;
-        assert(ln->Enqueue(node)==0);
+        CGenNode *node = new CGenNode();
+        node->m_flow_id = i;
+        assert(ln->Enqueue(node) == 0);
     }
 
-    for (i=0; i<8; i++) {
-        CNodeRing * ln=ringmg.getRingDpToCp(i);
+    for (i = 0; i < 8; i++) {
+        CNodeRing *ln = ringmg.getRingDpToCp(i);
         assert(ln);
-        CGenNode * node;
-        assert(ln->Dequeue(node)==0);
+        CGenNode *node;
+        assert(ln->Dequeue(node) == 0);
         EXPECT_EQ(node->m_flow_id, i);
         delete node;
     }
@@ -2703,45 +2614,38 @@ TEST_F(gt_ring, ring2) {
     ringmg.Delete();
 }
 
-
-
-
-
-
-
-void my_free_map_uint32_t(uint32_t *p){
-    printf("before free %d \n",*p);
+void my_free_map_uint32_t(uint32_t *p) {
+    printf("before free %d \n", *p);
     delete p;
 }
 
-
 TEST_F(gt_ring, ring3) {
 
-    typedef  CGenericMap<uint32_t,uint32_t> my_test_map;
+    typedef CGenericMap<uint32_t, uint32_t> my_test_map;
     my_test_map my_map;
 
     my_map.Create();
     int i;
 
     uint32_t *p;
-    for (i=0; i<10;i++) {
-        p=new uint32_t(i);
-        my_map.add((uint32_t)i,p);
+    for (i = 0; i < 10; i++) {
+        p = new uint32_t(i);
+        my_map.add((uint32_t)i, p);
     }
 
-    for (i=0; i<10;i++) {
-        p=my_map.lookup((uint32_t)i);
-        printf(" %d \n",*p);
+    for (i = 0; i < 10; i++) {
+        p = my_map.lookup((uint32_t)i);
+        printf(" %d \n", *p);
     }
 
     my_map.remove_all(my_free_map_uint32_t);
-    #if 0
+#if 0
     for (i=0; i<10;i++) {
         p=my_map.remove((uint32_t)i);
         assert(p);
         delete p;
     }
-    #endif
+#endif
     my_map.Delete();
 }
 
@@ -2750,41 +2654,38 @@ class ipg_calc : public trexTest {};
 
 TEST_F(ipg_calc, test1) {
 
-    CCalcIpgDiff dcalc(20/1000000.0);
+    CCalcIpgDiff dcalc(20 / 1000000.0);
     int i;
-    for (i=0; i<40; i++) {
-        uint32_t ticks=dcalc.do_calc(1.0/1000000.0);
-        if (i==19 || (i==39)) {
-            EXPECT_EQ(ticks,1);
-        }else{
-            EXPECT_EQ(ticks,0);
+    for (i = 0; i < 40; i++) {
+        uint32_t ticks = dcalc.do_calc(1.0 / 1000000.0);
+        if (i == 19 || (i == 39)) {
+            EXPECT_EQ(ticks, 1);
+        } else {
+            EXPECT_EQ(ticks, 0);
         }
     }
 }
 
 TEST_F(ipg_calc, test2) {
 
-    CCalcIpgDiff dcalc(20/1000000.0);
+    CCalcIpgDiff dcalc(20 / 1000000.0);
     int i;
-    for (i=0; i<40; i++) {
-        uint32_t ticks=dcalc.do_calc(40.0/1000000.0);
-        EXPECT_EQ(ticks,2);
+    for (i = 0; i < 40; i++) {
+        uint32_t ticks = dcalc.do_calc(40.0 / 1000000.0);
+        EXPECT_EQ(ticks, 2);
     }
 }
 
 TEST_F(ipg_calc, test3) {
 
-    CCalcIpgDiff dcalc(20/1000000.0);
+    CCalcIpgDiff dcalc(20 / 1000000.0);
     int i;
-    for (i=0; i<1; i++) {
-        uint32_t ticks=dcalc.do_calc(2*((double)UINT32_MAX)*20.0/1000000.0);
-        //printf(" %ul \n",ticks,);
-        EXPECT_EQ(ticks,UINT32_MAX);
+    for (i = 0; i < 1; i++) {
+        uint32_t ticks = dcalc.do_calc(2 * ((double)UINT32_MAX) * 20.0 / 1000000.0);
+        // printf(" %ul \n",ticks,);
+        EXPECT_EQ(ticks, UINT32_MAX);
     }
 }
-
-
-
 
 TEST_F(ipg_calc, test4) {
 
@@ -2793,145 +2694,132 @@ TEST_F(ipg_calc, test4) {
     a.set_name("03:00.0");
     std::string err;
     a.parse(err);
-    if (a.parse(err)!=0){
-        fprintf(stdout,"%s\n",err.c_str());
+    if (a.parse(err) != 0) {
+        fprintf(stdout, "%s\n", err.c_str());
     }
     a.dump(stdout);
 
     printf(" 2 \n");
 
     a.set_name("03:00.0/1");
-    if (a.parse(err)!=0){
-        fprintf(stdout,"%s\n",err.c_str());
+    if (a.parse(err) != 0) {
+        fprintf(stdout, "%s\n", err.c_str());
     }
     a.dump(stdout);
 
     printf(" 2.1 \n");
 
     a.set_name("03:00.02");
-    if (a.parse(err)!=0){
-        fprintf(stdout,"%s\n",err.c_str());
+    if (a.parse(err) != 0) {
+        fprintf(stdout, "%s\n", err.c_str());
     }
     a.dump(stdout);
 
     printf(" 3 \n");
     a.set_name("03:00.0/");
-    if (a.parse(err)!=0){
-        fprintf(stdout,"%s\n",err.c_str());
+    if (a.parse(err) != 0) {
+        fprintf(stdout, "%s\n", err.c_str());
     }
     a.dump(stdout);
 
-
     printf(" 4 \n");
     a.set_name("/12");
-    if (a.parse(err)!=0){
-        fprintf(stdout,"%s\n",err.c_str());
+    if (a.parse(err) != 0) {
+        fprintf(stdout, "%s\n", err.c_str());
     }
     a.dump(stdout);
 
     printf(" 5 \n");
     a.set_name("03:00.0/a");
-    if (a.parse(err)!=0){
-        fprintf(stdout,"%s\n",err.c_str());
+    if (a.parse(err) != 0) {
+        fprintf(stdout, "%s\n", err.c_str());
     }
     a.dump(stdout);
 }
 
-int expect_vec(dpdk_map_args_t &port_map,
-               int * array,
-               int array_size){
+int expect_vec(dpdk_map_args_t &port_map, int *array, int array_size) {
     int i;
-    EXPECT_EQ(port_map.size(),array_size);
+    EXPECT_EQ(port_map.size(), array_size);
 
-    for (i=0; i<array_size; i++ ) {
-        EXPECT_EQ(port_map[i],array[i]);
+    for (i = 0; i < array_size; i++) {
+        EXPECT_EQ(port_map[i], array[i]);
     }
-    return(0);
+    return (0);
 }
 
 TEST_F(ipg_calc, test5) {
     CPciPorts ports;
 
-
-    const char *ivec_s[] = {"03:00.0/1", "03:00.0/0","02:00.0/0","02:00.0/1"};
-    dpdk_input_args_t  ivec(ivec_s,std::end(ivec_s));
-    const char *dpdk_s[] ={"02:00.0","02:00.0","03:00.0","03:00.0"};
-    int expect[]={3,2,0,1};
-    dpdk_input_args_t  dpdk_scan(dpdk_s,std::end(dpdk_s));
+    const char *ivec_s[] = {"03:00.0/1", "03:00.0/0", "02:00.0/0", "02:00.0/1"};
+    dpdk_input_args_t ivec(ivec_s, std::end(ivec_s));
+    const char *dpdk_s[] = {"02:00.0", "02:00.0", "03:00.0", "03:00.0"};
+    int expect[] = {3, 2, 0, 1};
+    dpdk_input_args_t dpdk_scan(dpdk_s, std::end(dpdk_s));
     dpdk_map_args_t port_map;
-    std::string  err;
+    std::string err;
 
-    EXPECT_EQ(ports.set_cfg_input(ivec,err),0);
-    EXPECT_EQ(ports.get_map_args(dpdk_scan, port_map,err),0);
+    EXPECT_EQ(ports.set_cfg_input(ivec, err), 0);
+    EXPECT_EQ(ports.get_map_args(dpdk_scan, port_map, err), 0);
 
     ports.dump(stdout);
 
-    expect_vec(port_map,expect,4);
+    expect_vec(port_map, expect, 4);
 }
-
 
 TEST_F(ipg_calc, test6) {
     CPciPorts ports;
 
-
-    const char *ivec_s[] = {"03:00.0", "03:00.1","02:00.0","02:00.1"};
-    dpdk_input_args_t  ivec(ivec_s,std::end(ivec_s));
-    const char *dpdk_s[] ={"02:00.0","02:00.1","03:00.0","03:00.1"};
-    int expect[]={2,3,0,1};
-    dpdk_input_args_t  dpdk_scan(dpdk_s,std::end(dpdk_s));
+    const char *ivec_s[] = {"03:00.0", "03:00.1", "02:00.0", "02:00.1"};
+    dpdk_input_args_t ivec(ivec_s, std::end(ivec_s));
+    const char *dpdk_s[] = {"02:00.0", "02:00.1", "03:00.0", "03:00.1"};
+    int expect[] = {2, 3, 0, 1};
+    dpdk_input_args_t dpdk_scan(dpdk_s, std::end(dpdk_s));
     dpdk_map_args_t port_map;
-    std::string  err;
+    std::string err;
 
-    EXPECT_EQ(ports.set_cfg_input(ivec,err),0);
-    EXPECT_EQ(ports.get_map_args(dpdk_scan, port_map,err),0);
+    EXPECT_EQ(ports.set_cfg_input(ivec, err), 0);
+    EXPECT_EQ(ports.get_map_args(dpdk_scan, port_map, err), 0);
 
     ports.dump(stdout);
 
-    expect_vec(port_map,expect,4);
+    expect_vec(port_map, expect, 4);
 }
 
 TEST_F(ipg_calc, test7) {
     CPciPorts ports;
 
-
-    const char *ivec_s[] = {"03:00.0", "03:00.1","02:00.0","02:00.1"};
-    dpdk_input_args_t  ivec(ivec_s,std::end(ivec_s));
-    const char *dpdk_s[] ={"02:00.0","02:00.1"};
-    //int expect[]={2,3,0,1};
-    dpdk_input_args_t  dpdk_scan(dpdk_s,std::end(dpdk_s));
+    const char *ivec_s[] = {"03:00.0", "03:00.1", "02:00.0", "02:00.1"};
+    dpdk_input_args_t ivec(ivec_s, std::end(ivec_s));
+    const char *dpdk_s[] = {"02:00.0", "02:00.1"};
+    // int expect[]={2,3,0,1};
+    dpdk_input_args_t dpdk_scan(dpdk_s, std::end(dpdk_s));
     dpdk_map_args_t port_map;
-    std::string  err;
+    std::string err;
 
-    EXPECT_EQ(ports.set_cfg_input(ivec,err),0);
-    EXPECT_EQ(ports.get_map_args(dpdk_scan, port_map,err),-1);
+    EXPECT_EQ(ports.set_cfg_input(ivec, err), 0);
+    EXPECT_EQ(ports.get_map_args(dpdk_scan, port_map, err), -1);
 
+    // ports.dump(stdout);
 
-    //ports.dump(stdout);
-
-    //expect_vec(port_map,expect,4);
+    // expect_vec(port_map,expect,4);
 }
 
 #include <inttypes.h>
 TEST_F(ipg_calc, test8) {
     CPciPorts ports;
 
-
-    const char *ivec_s[] = {"03:00.0/0", "03:00.0/1","02:00.0","02:00.1"};
-    dpdk_input_args_t  ivec(ivec_s,std::end(ivec_s));
-    const char *dpdk_s[] ={"02:00.0","02:00.1","03:00.0","03:00.1"};
-    //int expect[]={2,3,0,1};
-    dpdk_input_args_t  dpdk_scan(dpdk_s,std::end(dpdk_s));
+    const char *ivec_s[] = {"03:00.0/0", "03:00.0/1", "02:00.0", "02:00.1"};
+    dpdk_input_args_t ivec(ivec_s, std::end(ivec_s));
+    const char *dpdk_s[] = {"02:00.0", "02:00.1", "03:00.0", "03:00.1"};
+    // int expect[]={2,3,0,1};
+    dpdk_input_args_t dpdk_scan(dpdk_s, std::end(dpdk_s));
     dpdk_map_args_t port_map;
-    std::string  err;
+    std::string err;
 
-    EXPECT_EQ(ports.set_cfg_input(ivec,err),0);
-    EXPECT_EQ(ports.get_map_args(dpdk_scan, port_map,err),-1);
-    printf(" error %s \n",err.c_str());
-    //ports.dump(stdout);
+    EXPECT_EQ(ports.set_cfg_input(ivec, err), 0);
+    EXPECT_EQ(ports.get_map_args(dpdk_scan, port_map, err), -1);
+    printf(" error %s \n", err.c_str());
+    // ports.dump(stdout);
 
-    //expect_vec(port_map,expect,4);
-
+    // expect_vec(port_map,expect,4);
 }
-
-
-

@@ -33,23 +33,19 @@ TrexSTX::TrexSTX(const TrexSTXCfg &cfg) : m_rpc_server(cfg.m_rpc_req_resp_cfg), 
     m_ticket_id = 1; // 0 is reserved for initial configs
 }
 
-
 /**
  * release all memory
  *
  * @author imarom (08-Oct-15)
  */
-TrexSTX::~TrexSTX() {
-}
+TrexSTX::~TrexSTX() {}
 
-uint64_t TrexSTX::get_ticket(void) {
-    return m_ticket_id++;
-}
+uint64_t TrexSTX::get_ticket(void) { return m_ticket_id++; }
 
 #define MAX_STX_TICKETS 50
 
 void clean_old_tickets(async_ticket_map_t &ticket_map) {
-    while ( ticket_map.size() > MAX_STX_TICKETS ) {
+    while (ticket_map.size() > MAX_STX_TICKETS) {
         ticket_map.erase(ticket_map.begin());
     }
 }
@@ -61,7 +57,7 @@ void TrexSTX::add_task_by_ticket(uint64_t ticket_id, async_ticket_task_t &task) 
 
 bool TrexSTX::get_task_by_ticket(uint64_t ticket_id, async_ticket_task_t &task) {
     auto it = m_async_task_by_ticket.find(ticket_id);
-    if ( it == m_async_task_by_ticket.end() ) {
+    if (it == m_async_task_by_ticket.end()) {
         return false;
     }
     task = it->second;
@@ -73,39 +69,30 @@ bool TrexSTX::get_task_by_ticket(uint64_t ticket_id, async_ticket_task_t &task) 
  * fetch a port by ID
  *
  */
-TrexPort *
-TrexSTX::get_port_by_id(uint8_t port_id) {
+TrexPort *TrexSTX::get_port_by_id(uint8_t port_id) {
     if (m_ports.find(port_id) == m_ports.end()) {
         throw TrexException("Port index out of range");
     }
 
     return m_ports[port_id];
-
 }
-
-
 
 /**
  * returns the port count
  */
-uint8_t
-TrexSTX::get_port_count() const {
-    return m_ports.size();
-}
-
+uint8_t TrexSTX::get_port_count() const { return m_ports.size(); }
 
 /**
  * sends a message to all the DP cores
  * (regardless of ports)
  */
-void
-TrexSTX::send_msg_to_all_dp(TrexCpToDpMsgBase *msg) {
+void TrexSTX::send_msg_to_all_dp(TrexCpToDpMsgBase *msg) {
 
-    int max_threads=(int)CMsgIns::Ins()->getCpDp()->get_num_threads();
+    int max_threads = (int)CMsgIns::Ins()->getCpDp()->get_num_threads();
 
     for (int i = 0; i < max_threads; i++) {
         CNodeRing *ring = CMsgIns::Ins()->getCpDp()->getRingCpToDp((uint8_t)i);
-        ring->SecureEnqueue((CGenNode*)msg->clone());
+        ring->SecureEnqueue((CGenNode *)msg->clone());
     }
 
     delete msg;
@@ -114,69 +101,59 @@ TrexSTX::send_msg_to_all_dp(TrexCpToDpMsgBase *msg) {
 /**
  * sends a message to a DP core
  */
-void
-TrexSTX::send_msg_to_dp(uint8_t core_id, TrexCpToDpMsgBase *msg) {
+void TrexSTX::send_msg_to_dp(uint8_t core_id, TrexCpToDpMsgBase *msg) {
     CNodeRing *ring = CMsgIns::Ins()->getCpDp()->getRingCpToDp(core_id);
-    ring->SecureEnqueue((CGenNode*)msg->clone());
+    ring->SecureEnqueue((CGenNode *)msg->clone());
     delete msg;
 }
 
 /**
  * send message to RX core
  */
-void
-TrexSTX::send_msg_to_rx(TrexCpToRxMsgBase *msg) const {
+void TrexSTX::send_msg_to_rx(TrexCpToRxMsgBase *msg) const {
 
     CNodeRing *ring = CMsgIns::Ins()->getCpRx()->getRingCpToDp(0);
     ring->SecureEnqueue((CGenNode *)msg);
 }
 
-
 /**
  * check for a message from DP core
  *
  */
-void
-TrexSTX::check_for_dp_message_from_core(int thread_id) {
+void TrexSTX::check_for_dp_message_from_core(int thread_id) {
 
     CNodeRing *ring = CMsgIns::Ins()->getCpDp()->getRingDpToCp(thread_id);
 
     /* fast path check */
-    if ( likely ( ring->isEmpty() ) ) {
+    if (likely(ring->isEmpty())) {
         return;
     }
 
     /* limit the number of handling messages at once to avoid watchdog timeout,
      * and give a chance to handle a waiting message by RPC server thread.
      */
-    for ( int handle_cnt = 0; handle_cnt < 100; handle_cnt++ ) {
-        CGenNode * node = NULL;
+    for (int handle_cnt = 0; handle_cnt < 100; handle_cnt++) {
+        CGenNode *node = NULL;
         if (ring->Dequeue(node) != 0) {
             break;
         }
         assert(node);
 
-        TrexDpToCpMsgBase * msg = (TrexDpToCpMsgBase *)node;
+        TrexDpToCpMsgBase *msg = (TrexDpToCpMsgBase *)node;
         msg->handle();
         delete msg;
     }
-
 }
 
-void
-TrexSTX::dp_core_finished(int thread_id, uint32_t profile_id) {
-}
+void TrexSTX::dp_core_finished(int thread_id, uint32_t profile_id) {}
 
-void
-TrexSTX::dp_core_error(int thread_id, uint32_t profile_id, const std::string &err) {
-}
+void TrexSTX::dp_core_error(int thread_id, uint32_t profile_id, const std::string &err) {}
 
 /**
  * check for messages that arrived from DP to CP
  *
  */
-void
-TrexSTX::check_for_dp_messages() {
+void TrexSTX::check_for_dp_messages() {
 
     /* for all the cores - check for a new message */
     for (int i = 0; i < m_dp_core_count; i++) {
@@ -187,11 +164,10 @@ TrexSTX::check_for_dp_messages() {
     }
 }
 
-bool
-TrexSTX::has_dp_messages() {
+bool TrexSTX::has_dp_messages() {
     for (int i = 0; i < m_dp_core_count; i++) {
         CNodeRing *ring = CMsgIns::Ins()->getCpDp()->getRingDpToCp(i);
-        if ( ! ring->isEmpty() ) {
+        if (!ring->isEmpty()) {
             return true;
         }
     }

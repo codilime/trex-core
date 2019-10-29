@@ -32,29 +32,24 @@ limitations under the License.
  */
 class TrexVmSplitter {
 
-public:
-
-    TrexVmSplitter() {
-        m_dp_core_count = 0;
-    }
+  public:
+    TrexVmSplitter() { m_dp_core_count = 0; }
 
     /**
      * split a stream's VM to per core streams
      */
     void split(TrexStream *stream, std::vector<TrexStream *> core_streams);
 
-
-private:
+  private:
     bool split_internal();
     void split_flow_var(const StreamVmInstructionVar *instr);
 
     void duplicate_vm();
     void compile_vm();
 
-    TrexStream                 *m_stream;
-    std::vector<TrexStream *>  *m_core_streams;
-    uint8_t                     m_dp_core_count;
+    TrexStream *m_stream;
+    std::vector<TrexStream *> *m_core_streams;
+    uint8_t m_dp_core_count;
 };
-
 
 #endif /* __TREX_STL_VM_SPLITTER_H__ */

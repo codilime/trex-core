@@ -23,7 +23,6 @@
 #include "trex_pkt.h"
 #include <assert.h>
 
-
 /**
  * copy MBUF to a flat buffer
  *
@@ -45,7 +44,6 @@ void mbuf_to_buffer(uint8_t *dest, const rte_mbuf_t *m) {
     }
 }
 
-
 /**
  * duplicate MBUF into target port ID pool
  *
@@ -55,7 +53,7 @@ void mbuf_to_buffer(uint8_t *dest, const rte_mbuf_t *m) {
  *
  * @return pointer to new mbuf
  */
-rte_mbuf_t * duplicate_mbuf(const rte_mbuf_t *m, uint8_t port_id) {
+rte_mbuf_t *duplicate_mbuf(const rte_mbuf_t *m, uint8_t port_id) {
 
     /* allocate */
     rte_mbuf_t *clone_mbuf = CGlobalInfo::pktmbuf_alloc_by_port(port_id, rte_pktmbuf_pkt_len(m));
@@ -87,9 +85,9 @@ TrexPkt::TrexPkt(const rte_mbuf_t *m, int port, origin_e origin, uint64_t index)
     /* generate a packet timestamp */
     m_timestamp = now_sec();
 
-    m_port   = port;
+    m_port = port;
     m_origin = origin;
-    m_index  = index;
+    m_index = index;
 }
 
 TrexPkt::TrexPkt(const TrexPkt &other) {
@@ -99,11 +97,10 @@ TrexPkt::TrexPkt(const TrexPkt &other) {
 
     m_timestamp = other.m_timestamp;
 
-    m_port   = other.m_port;
+    m_port = other.m_port;
     m_origin = other.m_origin;
-    m_index  = other.m_index;
+    m_index = other.m_index;
 }
-
 
 /**************************************
  * TRex packet buffer
@@ -111,15 +108,15 @@ TrexPkt::TrexPkt(const TrexPkt &other) {
  *************************************/
 
 TrexPktBuffer::TrexPktBuffer(uint64_t size, mode_e mode) {
-    m_mode             = mode;
-    m_buffer           = nullptr;
-    m_head             = 0;
-    m_tail             = 0;
-    m_bytes            = 0;
-    m_size             = (size + 1); // for the empty/full difference 1 slot reserved
+    m_mode = mode;
+    m_buffer = nullptr;
+    m_head = 0;
+    m_tail = 0;
+    m_bytes = 0;
+    m_size = (size + 1); // for the empty/full difference 1 slot reserved
 
     /* generate queue */
-    m_buffer = new const TrexPkt*[m_size](); // zeroed
+    m_buffer = new const TrexPkt *[m_size](); // zeroed
 }
 
 TrexPktBuffer::~TrexPktBuffer() {
@@ -129,14 +126,13 @@ TrexPktBuffer::~TrexPktBuffer() {
         const TrexPkt *pkt = pop();
         delete pkt;
     }
-    delete [] m_buffer;
+    delete[] m_buffer;
 }
 
 /**
  * packet will be copied to an internal object
  */
-void
-TrexPktBuffer::push(const rte_mbuf_t *m, int port, TrexPkt::origin_e origin, uint64_t pkt_index) {
+void TrexPktBuffer::push(const rte_mbuf_t *m, int port, TrexPkt::origin_e origin, uint64_t pkt_index) {
 
     /* if full - decide by the policy */
     if (is_full()) {
@@ -155,8 +151,7 @@ TrexPktBuffer::push(const rte_mbuf_t *m, int port, TrexPkt::origin_e origin, uin
  * packet will be handled internally
  * packet pointer is invalid after this call
  */
-void
-TrexPktBuffer::push(const TrexPkt *pkt, uint64_t pkt_index) {
+void TrexPktBuffer::push(const TrexPkt *pkt, uint64_t pkt_index) {
     /* if full - decide by the policy */
     if (is_full()) {
         if (m_mode == MODE_DROP_HEAD) {
@@ -178,9 +173,7 @@ TrexPktBuffer::push(const TrexPkt *pkt, uint64_t pkt_index) {
     push_internal(dup);
 }
 
-
-void
-TrexPktBuffer::push_internal(const TrexPkt *pkt) {
+void TrexPktBuffer::push_internal(const TrexPkt *pkt) {
     /* push the packet */
     m_buffer[m_head] = pkt;
     m_bytes += pkt->get_size();
@@ -188,8 +181,7 @@ TrexPktBuffer::push_internal(const TrexPkt *pkt) {
     m_head = next(m_head);
 }
 
-const TrexPkt *
-TrexPktBuffer::pop() {
+const TrexPkt *TrexPktBuffer::pop() {
     assert(!is_empty());
 
     const TrexPkt *pkt = m_buffer[m_tail];
@@ -200,17 +192,15 @@ TrexPktBuffer::pop() {
     return pkt;
 }
 
-uint32_t
-TrexPktBuffer::get_element_count() const {
+uint32_t TrexPktBuffer::get_element_count() const {
     if (m_head >= m_tail) {
         return (m_head - m_tail);
     } else {
-        return ( get_capacity() - (m_tail - m_head - 1) );
+        return (get_capacity() - (m_tail - m_head - 1));
     }
 }
 
-Json::Value
-TrexPktBuffer::to_json() const {
+Json::Value TrexPktBuffer::to_json() const {
 
     Json::Value output = Json::arrayValue;
 
@@ -224,13 +214,11 @@ TrexPktBuffer::to_json() const {
     return output;
 }
 
+void TrexPktBuffer::to_json_status(Json::Value &output) const {
 
-void
-TrexPktBuffer::to_json_status(Json::Value &output) const {
-
-    output["count"]  = get_element_count();
-    output["bytes"]  = get_bytes();
-    output["limit"]  = get_capacity();
+    output["count"] = get_element_count();
+    output["bytes"] = get_bytes();
+    output["limit"] = get_capacity();
 
     switch (m_mode) {
     case MODE_DROP_TAIL:
@@ -243,14 +231,10 @@ TrexPktBuffer::to_json_status(Json::Value &output) const {
 
     default:
         assert(0);
-
     }
 }
 
-
-
-TrexPktBuffer *
-TrexPktBuffer::pop_n(uint32_t count) {
+TrexPktBuffer *TrexPktBuffer::pop_n(uint32_t count) {
     /* can't pop more than total */
     assert(count <= get_element_count());
 

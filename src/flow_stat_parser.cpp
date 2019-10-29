@@ -32,7 +32,7 @@
 
 CFlowStatParser::CFlowStatParser(CFlowStatParser_mode mode) {
     reset();
-    switch(mode) {
+    switch (mode) {
     case FLOW_STAT_PARSER_MODE_HW:
         m_flags = FSTAT_PARSER_VLAN_SUPP;
         break;
@@ -61,7 +61,7 @@ void CFlowStatParser::reset() {
 std::string CFlowStatParser::get_error_str(CFlowStatParser_err_t err) {
     std::string base = "Failed parsing given packet for flow stat. ";
 
-    switch(err) {
+    switch (err) {
     case FSTAT_PARSER_E_OK:
         return "";
     case FSTAT_PARSER_E_TOO_SHORT:
@@ -87,15 +87,15 @@ std::string CFlowStatParser::get_error_str(CFlowStatParser_err_t err) {
 CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
     CFlowStatParser_err_t res = _parse(p, len);
     if (get_vxlan_skip() && (res == FSTAT_PARSER_E_OK)) {
-      uint16_t vxlan_skip = get_vxlan_rx_payload_offset(p,len);
-      if (vxlan_skip) {
-        res = _parse(p + vxlan_skip, len - vxlan_skip);
-      }
+        uint16_t vxlan_skip = get_vxlan_rx_payload_offset(p, len);
+        if (vxlan_skip) {
+            res = _parse(p + vxlan_skip, len - vxlan_skip);
+        }
     }
     return (res);
 }
 
-CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len) {
+CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t *p, uint16_t len) {
     int min_len = ETH_HDR_LEN;
     if (len < min_len)
         return FSTAT_PARSER_E_TOO_SHORT;
@@ -111,32 +111,32 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len) {
     m_len = len;
 
     p += min_len;
-    while (! finished) {
-        switch( next_hdr ) {
-        case EthernetHeader::Protocol::IP :
+    while (!finished) {
+        switch (next_hdr) {
+        case EthernetHeader::Protocol::IP:
             min_len += IPV4_HDR_LEN;
             if (len < min_len)
                 return FSTAT_PARSER_E_SHORT_IP_HDR;
-            m_ipv4 = (IPHeader *) p;
+            m_ipv4 = (IPHeader *)p;
             m_l4 = ((uint8_t *)m_ipv4) + m_ipv4->getHeaderLength();
             m_l4_proto = m_ipv4->getProtocol();
             finished = true;
             break;
-        case EthernetHeader::Protocol::IPv6 :
+        case EthernetHeader::Protocol::IPv6:
             min_len += IPV6_HDR_LEN;
             if (len < min_len)
                 return FSTAT_PARSER_E_SHORT_IP_HDR;
-            m_ipv6 = (IPv6Header *) p;
+            m_ipv6 = (IPv6Header *)p;
             finished = true;
             break;
-        case EthernetHeader::Protocol::QINQ :
-            if (! (m_flags & FSTAT_PARSER_QINQ_SUPP))
+        case EthernetHeader::Protocol::QINQ:
+            if (!(m_flags & FSTAT_PARSER_QINQ_SUPP))
                 return FSTAT_PARSER_E_QINQ_NOT_SUP;
-        case EthernetHeader::Protocol::VLAN :
-            if (! (m_flags & FSTAT_PARSER_VLAN_SUPP))
+        case EthernetHeader::Protocol::VLAN:
+            if (!(m_flags & FSTAT_PARSER_VLAN_SUPP))
                 return FSTAT_PARSER_E_VLAN_NOT_SUP;
             // In QINQ, we also allow multiple 0x8100 headers
-            if (has_vlan && (! (m_flags & FSTAT_PARSER_QINQ_SUPP)))
+            if (has_vlan && (!(m_flags & FSTAT_PARSER_QINQ_SUPP)))
                 return FSTAT_PARSER_E_QINQ_NOT_SUP;
             has_vlan = true;
             min_len += sizeof(VLANHeader);
@@ -146,9 +146,9 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len) {
             p += sizeof(VLANHeader);
             next_hdr = vlan->getNextProtocolHostOrder();
             break;
-        case EthernetHeader::Protocol::MPLS_Unicast :
-        case EthernetHeader::Protocol::MPLS_Multicast :
-            if (! (m_flags & FSTAT_PARSER_MPLS_SUPP))
+        case EthernetHeader::Protocol::MPLS_Unicast:
+        case EthernetHeader::Protocol::MPLS_Multicast:
+            if (!(m_flags & FSTAT_PARSER_MPLS_SUPP))
                 return FSTAT_PARSER_E_MPLS_NOT_SUP;
             break;
         default:
@@ -156,7 +156,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len) {
         }
     }
 
-    if (unlikely(m_flags & FSTAT_PARSER_VLAN_NEEDED) && ! has_vlan) {
+    if (unlikely(m_flags & FSTAT_PARSER_VLAN_NEEDED) && !has_vlan) {
         return FSTAT_PARSER_E_VLAN_NEEDED;
     }
     return FSTAT_PARSER_E_OK;
@@ -166,13 +166,13 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len) {
 
 uint16_t CFlowStatParser::get_vxlan_payload_offset(uint8_t *pkt, uint16_t len) {
     uint16_t payload_len;
-    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
+    if (get_payload_len(pkt, len, payload_len) < 0) {
         throw TrexFStatEx("Failed getting payload len", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
     }
-    if ( m_l4_proto != IPPROTO_UDP ) {
+    if (m_l4_proto != IPPROTO_UDP) {
         throw TrexFStatEx("VXLAN tunnel requires UDP", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
     }
-    if ( payload_len < VXLAN_LEN + ETH_HDR_LEN ) {
+    if (payload_len < VXLAN_LEN + ETH_HDR_LEN) {
         throw TrexFStatEx("Packet is too small to have VXLAN tunnel", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
     }
     return len - payload_len + VXLAN_LEN;
@@ -180,13 +180,13 @@ uint16_t CFlowStatParser::get_vxlan_payload_offset(uint8_t *pkt, uint16_t len) {
 
 uint16_t CFlowStatParser::get_vxlan_rx_payload_offset(uint8_t *pkt, uint16_t len) {
     uint16_t payload_len;
-    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
+    if (get_payload_len(pkt, len, payload_len) < 0) {
         return 0;
     }
-    if ( m_l4_proto != IPPROTO_UDP ) {
+    if (m_l4_proto != IPPROTO_UDP) {
         return 0;
     }
-    if ( payload_len < VXLAN_LEN + ETH_HDR_LEN ) {
+    if (payload_len < VXLAN_LEN + ETH_HDR_LEN) {
         return 0;
     }
     return len - payload_len + VXLAN_LEN;
@@ -209,7 +209,7 @@ int CFlowStatParser::get_ip_id(uint32_t &ip_id) {
 
 void CFlowStatParser::set_ip_id(uint32_t new_id) {
     if (m_ipv4) {
-        uint16_t ipv4_ip_id = (uint16_t) new_id;
+        uint16_t ipv4_ip_id = (uint16_t)new_id;
         // Updating checksum, not recalculating, so if someone put bad checksum on purpose, it will stay bad
         m_ipv4->updateCheckSum(PKT_NTOHS(m_ipv4->getId()), PKT_NTOHS(ipv4_ip_id));
         m_ipv4->setId(ipv4_ip_id);
@@ -224,8 +224,7 @@ void CFlowStatParser::set_ip_id(uint32_t new_id) {
 void CFlowStatParser::set_tos_to_cpu() {
     if (m_ipv4) {
         // Updating checksum, not recalculating, so if someone put bad checksum on purpose, it will stay bad
-        m_ipv4->updateCheckSum(PKT_NTOHS(m_ipv4->getFirstWord()), PKT_NTOHS(m_ipv4->getFirstWord()
-                                                                            | TOS_GO_TO_CPU));
+        m_ipv4->updateCheckSum(PKT_NTOHS(m_ipv4->getFirstWord()), PKT_NTOHS(m_ipv4->getFirstWord() | TOS_GO_TO_CPU));
         m_ipv4->setTOS(m_ipv4->getTOS() | TOS_GO_TO_CPU);
     }
 
@@ -233,7 +232,6 @@ void CFlowStatParser::set_tos_to_cpu() {
         m_ipv6->setTrafficClass(m_ipv6->getTrafficClass() | TOS_GO_TO_CPU);
     }
 }
-
 
 int CFlowStatParser::get_l3_proto(uint16_t &proto) {
     if (m_ipv4) {
@@ -269,17 +267,17 @@ int CFlowStatParser::get_l4_proto(uint8_t &proto) {
 }
 
 uint16_t CFlowStatParser::get_pkt_size() {
-    uint16_t ip_len=0;
+    uint16_t ip_len = 0;
 
     if (m_ipv4) {
         ip_len = m_ipv4->getTotalLength();
     } else if (m_ipv6) {
         ip_len = m_ipv6->getHeaderLength() + m_ipv6->getPayloadLen();
     }
-    return ( ip_len + m_vlan_offset + ETH_HDR_LEN);
+    return (ip_len + m_vlan_offset + ETH_HDR_LEN);
 }
 
-uint8_t CFlowStatParser::get_protocol(){
+uint8_t CFlowStatParser::get_protocol() {
     uint8_t proto = 0;
     if (m_ipv4) {
         proto = m_ipv4->getProtocol();
@@ -290,7 +288,7 @@ uint8_t CFlowStatParser::get_protocol(){
     return (proto);
 }
 
-bool CFlowStatParser::is_fs_latency(){
+bool CFlowStatParser::is_fs_latency() {
     uint8_t tos = 0;
     if (m_ipv4) {
         tos = m_ipv4->getTOS();
@@ -298,21 +296,22 @@ bool CFlowStatParser::is_fs_latency(){
     if (m_ipv6) {
         tos = m_ipv6->getTrafficClass();
     }
-    return ((tos&0x01)==0x01)?true:false;
+    return ((tos & 0x01) == 0x01) ? true : false;
 }
 
-uint8_t CFlowStatParser::get_ttl(){
+uint8_t CFlowStatParser::get_ttl() {
     if (m_ipv4) {
-        return ( m_ipv4->getTimeToLive() );
+        return (m_ipv4->getTimeToLive());
     }
     if (m_ipv6) {
-        return ( m_ipv6->getHopLimit() );
+        return (m_ipv6->getHopLimit());
     }
     return (0);
 }
 
 // calculate the payload len. Do not want to do this in parse(), since this is required only in
-// specific cases, while parse is used in many places (including on packet RX path, where we want to be as fast as possible)
+// specific cases, while parse is used in many places (including on packet RX path, where we want to be as fast as
+// possible)
 int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload_len) {
     uint16_t l2_header_len;
     uint16_t l4_header_len;
@@ -340,7 +339,7 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
         break;
     case IPPROTO_TCP:
         if ((p_l4 + TCP_HEADER_LEN) > (p + len)) {
-            //Not enough space for TCP header
+            // Not enough space for TCP header
             payload_len = 0;
             return -2;
         }
@@ -368,9 +367,9 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
 static const uint16_t TEST_IP_ID = 0xabcd;
 static const uint16_t TEST_IP_ID2 = 0xabcd;
 
-
-int CFlowStatParserTest::verify_pkt_one_parser(uint8_t * p, uint16_t pkt_size, uint16_t payload_len, uint32_t ip_id
-                                               , uint8_t l4_proto, CFlowStatParser &parser, CFlowStatParser_err_t exp_ret) {
+int CFlowStatParserTest::verify_pkt_one_parser(uint8_t *p, uint16_t pkt_size, uint16_t payload_len, uint32_t ip_id,
+                                               uint8_t l4_proto, CFlowStatParser &parser,
+                                               CFlowStatParser_err_t exp_ret) {
     CFlowStatParser_err_t ret;
     uint32_t pkt_ip_id = 0;
     uint8_t pkt_l4_proto;
@@ -398,8 +397,8 @@ int CFlowStatParserTest::verify_pkt_one_parser(uint8_t * p, uint16_t pkt_size, u
     return 0;
 }
 
-int CFlowStatParserTest::verify_pkt(uint8_t *p, uint16_t pkt_size, uint16_t payload_len, uint32_t ip_id, uint8_t l4_proto
-                                    , CFlowStatParserTest_exp_err_t exp_err) {
+int CFlowStatParserTest::verify_pkt(uint8_t *p, uint16_t pkt_size, uint16_t payload_len, uint32_t ip_id,
+                                    uint8_t l4_proto, CFlowStatParserTest_exp_err_t exp_err) {
     int ret;
     int ret_val = 0;
     CFlowStatParser parser_hw(CFlowStatParser::FLOW_STAT_PARSER_MODE_HW);
@@ -407,7 +406,7 @@ int CFlowStatParserTest::verify_pkt(uint8_t *p, uint16_t pkt_size, uint16_t payl
     CFlowStatParser parser82599(CFlowStatParser::FLOW_STAT_PARSER_MODE_82599);
     CFlowStatParser parser82599_vlan(CFlowStatParser::FLOW_STAT_PARSER_MODE_82599_vlan);
 
-    printf ("  ");
+    printf("  ");
     printf("Hardware mode parser");
     ret = verify_pkt_one_parser(p, pkt_size, payload_len, ip_id, l4_proto, parser_hw, exp_err.m_hw);
     ret_val = ret;
@@ -453,8 +452,8 @@ int CFlowStatParserTest::verify_pkt(uint8_t *p, uint16_t pkt_size, uint16_t payl
     return 0;
 }
 
-int CFlowStatParserTest::test_one_pkt(const char *name, uint16_t ether_type, uint8_t l4_proto, int vlan_num
-                                      , CFlowStatParserTest_exp_err_t exp_err) {
+int CFlowStatParserTest::test_one_pkt(const char *name, uint16_t ether_type, uint8_t l4_proto, int vlan_num,
+                                      CFlowStatParserTest_exp_err_t exp_err) {
     CTestPktGen gen;
     uint8_t *p;
     int pkt_size;
@@ -508,7 +507,8 @@ int CFlowStatParserTest::test() {
     exp_ret.m_hw = FSTAT_PARSER_E_OK;
     exp_ret.m_sw = FSTAT_PARSER_E_OK;
     exp_ret.m_82599 = FSTAT_PARSER_E_VLAN_NOT_SUP;
-    exp_ret.m_82599_vlan = FSTAT_PARSER_E_OK;;
+    exp_ret.m_82599_vlan = FSTAT_PARSER_E_OK;
+    ;
     test_one_pkt("IPv4 TCP VLAN", ipv4, tcp, 1, exp_ret);
     test_one_pkt("IPv4 UDP VLAN", ipv4, udp, 1, exp_ret);
     test_one_pkt("IPv4 ICMP VLAN", ipv4, icmp, 1, exp_ret);
@@ -550,56 +550,56 @@ CFlowStatParser_err_t CPassAllParser::parse(uint8_t *pkt, uint16_t len) {
     return FSTAT_PARSER_E_OK;
 }
 
-bool CSimplePacketParser::Parse(){
+bool CSimplePacketParser::Parse() {
 
-    rte_mbuf_t * m=m_m;
-    uint8_t *p=rte_pktmbuf_mtod(m, uint8_t*);
+    rte_mbuf_t *m = m_m;
+    uint8_t *p = rte_pktmbuf_mtod(m, uint8_t *);
     EthernetHeader *m_ether = (EthernetHeader *)p;
-    IPHeader * ipv4=0;
-    IPv6Header * ipv6=0;
-    m_vlan_offset=0;
+    IPHeader *ipv4 = 0;
+    IPv6Header *ipv6 = 0;
+    m_vlan_offset = 0;
     uint8_t protocol = 0;
 
     // Retrieve the protocol type from the packet
-    switch( m_ether->getNextProtocol() ) {
-    case EthernetHeader::Protocol::IP :
+    switch (m_ether->getNextProtocol()) {
+    case EthernetHeader::Protocol::IP:
         // IPv4 packet
-        ipv4=(IPHeader *)(p+14);
+        ipv4 = (IPHeader *)(p + 14);
         m_l4 = (uint8_t *)ipv4 + ipv4->getHeaderLength();
         protocol = ipv4->getProtocol();
         break;
-    case EthernetHeader::Protocol::IPv6 :
+    case EthernetHeader::Protocol::IPv6:
         // IPv6 packet
-        ipv6=(IPv6Header *)(p+14);
+        ipv6 = (IPv6Header *)(p + 14);
         m_l4 = (uint8_t *)ipv6 + ipv6->getHeaderLength();
         protocol = ipv6->getNextHdr();
         break;
-    case EthernetHeader::Protocol::VLAN :
+    case EthernetHeader::Protocol::VLAN:
         m_vlan_offset = 4;
-        switch ( m_ether->getVlanProtocol() ){
+        switch (m_ether->getVlanProtocol()) {
         case EthernetHeader::Protocol::IP:
             // IPv4 packet
-            ipv4=(IPHeader *)(p+18);
+            ipv4 = (IPHeader *)(p + 18);
             m_l4 = (uint8_t *)ipv4 + ipv4->getHeaderLength();
             protocol = ipv4->getProtocol();
             break;
-        case EthernetHeader::Protocol::IPv6 :
+        case EthernetHeader::Protocol::IPv6:
             // IPv6 packet
-            ipv6=(IPv6Header *)(p+18);
+            ipv6 = (IPv6Header *)(p + 18);
             m_l4 = (uint8_t *)ipv6 + ipv6->getHeaderLength();
             protocol = ipv6->getNextHdr();
             break;
         default:
-        break;
+            break;
         }
-        default:
+    default:
         break;
     }
-    m_protocol =protocol;
-    m_ipv4=ipv4;
-    m_ipv6=ipv6;
+    m_protocol = protocol;
+    m_ipv4 = ipv4;
+    m_ipv6 = ipv6;
 
-    if ( protocol == 0 ){
+    if (protocol == 0) {
         return (false);
     }
     return (true);

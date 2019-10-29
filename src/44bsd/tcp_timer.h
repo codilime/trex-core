@@ -40,12 +40,12 @@
  * Definitions of the TCP timers.  These timers are counted
  * down PR_SLOWHZ times a second.
  */
-#define TCPT_NTIMERS    4
+#define TCPT_NTIMERS 4
 
-#define TCPT_REXMT  0       /* retransmit */
-#define TCPT_PERSIST    1       /* retransmit persistance */
-#define TCPT_KEEP   2       /* keep alive */
-#define TCPT_2MSL   3       /* 2*msl quiet time timer */
+#define TCPT_REXMT 0   /* retransmit */
+#define TCPT_PERSIST 1 /* retransmit persistance */
+#define TCPT_KEEP 2    /* keep alive */
+#define TCPT_2MSL 3    /* 2*msl quiet time timer */
 
 /*
  * The TCPT_REXMT timer is used to force retransmissions.
@@ -87,48 +87,44 @@
  * Time constants.
  */
 
-#define PR_SLOWHZ   2       /* 2 slow timeouts per second */
-#define PR_FASTHZ   5       /* 5 fast timeouts per second */
-
+#define PR_SLOWHZ 2 /* 2 slow timeouts per second */
+#define PR_FASTHZ 5 /* 5 fast timeouts per second */
 
 /* reduce the 2MSL to 2 sec from 30 sec */
-#define TCPTV_2MSL   ( 1)     /* max seg lifetime (hah!) */
-#define TCPTV_SRTTBASE  0           /* base roundtrip time;
-                           if 0, no idea yet */
-#define TCPTV_SRTTDFLT  (2)     /* assumed RTT if no info */
+#define TCPTV_2MSL (1) /* max seg lifetime (hah!) */
+#define TCPTV_SRTTBASE                                                                                                 \
+    0                      /* base roundtrip time;                                                                     \
+                  if 0, no idea yet */
+#define TCPTV_SRTTDFLT (2) /* assumed RTT if no info */
 
-#define TCPTV_PERSMIN   (  5*PR_SLOWHZ)     /* retransmit persistance */
-#define TCPTV_PERSMAX   ( 10*PR_SLOWHZ)     /* maximum persist interval */
+#define TCPTV_PERSMIN (5 * PR_SLOWHZ)  /* retransmit persistance */
+#define TCPTV_PERSMAX (10 * PR_SLOWHZ) /* maximum persist interval */
 
-#define TCPTV_KEEP_INIT ( 5*PR_SLOWHZ)     /* initial connect keep alive */
-#define TCPTV_KEEP_IDLE ( 5*PR_SLOWHZ) /* dflt time before probing */
-#define TCPTV_KEEPINTVL ( 7*PR_SLOWHZ)     /* default probe interval */
-#define TCPTV_KEEPCNT   8           /* max probes before drop */
+#define TCPTV_KEEP_INIT (5 * PR_SLOWHZ) /* initial connect keep alive */
+#define TCPTV_KEEP_IDLE (5 * PR_SLOWHZ) /* dflt time before probing */
+#define TCPTV_KEEPINTVL (7 * PR_SLOWHZ) /* default probe interval */
+#define TCPTV_KEEPCNT 8                 /* max probes before drop */
 
-#define TCPTV_MIN       (1)     /* minimum allowable value */
-#define TCPTV_REXMTMAX  ( 5*PR_SLOWHZ)     /* max allowable REXMT value */
+#define TCPTV_MIN (1)                  /* minimum allowable value */
+#define TCPTV_REXMTMAX (5 * PR_SLOWHZ) /* max allowable REXMT value */
 
-#define TCP_LINGERTIME  120         /* linger at most 2 minutes */
+#define TCP_LINGERTIME 120 /* linger at most 2 minutes */
 
-#define TCP_MAXRXTSHIFT 5          /* maximum retransmits */
-
-
+#define TCP_MAXRXTSHIFT 5 /* maximum retransmits */
 
 /*
  * Force a time value to be in a certain range.
  */
-#define TCPT_RANGESET(tv, value, tvmin, tvmax) { \
-    (tv) = (value); \
-    if ((tv) < (tvmin)) \
-        (tv) = (tvmin); \
-    else if ((tv) > (tvmax)) \
-        (tv) = (tvmax); \
-}
-
+#define TCPT_RANGESET(tv, value, tvmin, tvmax)                                                                         \
+    {                                                                                                                  \
+        (tv) = (value);                                                                                                \
+        if ((tv) < (tvmin))                                                                                            \
+            (tv) = (tvmin);                                                                                            \
+        else if ((tv) > (tvmax))                                                                                       \
+            (tv) = (tvmax);                                                                                            \
+    }
 
 extern const int tcp_backoff[];
 extern const int tcp_syn_backoff[];
-
-
 
 #endif

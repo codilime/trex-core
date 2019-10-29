@@ -34,18 +34,17 @@ void CSyncBarrier::reset(double timeout_sec) {
     rte_atomic32_init(&m_atomic);
     m_timeout_sec = timeout_sec;
 
-    for (int i=0; i<m_max_ids; i++) {
-        m_arr[i]=0;
+    for (int i = 0; i < m_max_ids; i++) {
+        m_arr[i] = 0;
     }
 }
 
-
-void CSyncBarrier::throw_err(){
+void CSyncBarrier::throw_err() {
     char timeout_str[10];
     snprintf(timeout_str, sizeof(timeout_str), "%.3f", m_timeout_sec);
     string err = "Sync barrier timeout " + string(timeout_str) + " sec, active DP threads:";
-    for (int i=0; i<m_max_ids; i++) {
-        if ( m_arr[i] == 0 ) {
+    for (int i = 0; i < m_max_ids; i++) {
+        if (m_arr[i] == 0) {
             err += " " + to_string(i);
         }
     }
@@ -54,8 +53,8 @@ void CSyncBarrier::throw_err(){
 
 int CSyncBarrier::sync_barrier(uint16_t thread_id) {
 
-    assert(m_atomic.cnt!=m_max_ids); // This one is already used
-    m_arr[thread_id]=1;
+    assert(m_atomic.cnt != m_max_ids); // This one is already used
+    m_arr[thread_id] = 1;
     rte_atomic32_inc(&m_atomic);
     return listen(false);
 }
@@ -65,14 +64,14 @@ int CSyncBarrier::listen(bool throw_error) {
     int left;
     while (true) {
         left = m_atomic.cnt - m_max_ids;
-        if (left == 0){
+        if (left == 0) {
             break;
         }
-        if ((now_sec()-s_time)>m_timeout_sec){
-            if ( throw_error ) {
+        if ((now_sec() - s_time) > m_timeout_sec) {
+            if (throw_error) {
                 throw_err();
             }
-            return(left);
+            return (left);
         }
         rte_pause();
     }
@@ -80,10 +79,7 @@ int CSyncBarrier::listen(bool throw_error) {
     return (0);
 }
 
-CSyncBarrier::~CSyncBarrier(){
-    delete []m_arr;
-}
-
+CSyncBarrier::~CSyncBarrier() { delete[] m_arr; }
 
 CSpinLock::CSpinLock(rte_spinlock_t *lock) {
     m_lock = lock;
@@ -91,17 +87,11 @@ CSpinLock::CSpinLock(rte_spinlock_t *lock) {
     m_locked = true;
 }
 
-CSpinLock::~CSpinLock() {
-    unlock();
-}
+CSpinLock::~CSpinLock() { unlock(); }
 
 void CSpinLock::unlock() {
-    if ( m_locked ) {
+    if (m_locked) {
         m_locked = false;
         rte_spinlock_unlock(m_lock);
     }
 }
-
-
-
-

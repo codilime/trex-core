@@ -29,46 +29,43 @@
 
 typedef uint8_t repid_t; /* DPDK port id  */
 
-
-void i40e_trex_dump_fdir_regs(struct i40e_hw *hw)
-{
+void i40e_trex_dump_fdir_regs(struct i40e_hw *hw) {
     int reg_nums[] = {31, 33, 34, 35, 41, 43};
     int i;
     uint32_t reg;
 
-    for (i =0; i < sizeof (reg_nums)/sizeof(int); i++) {
-	reg = I40E_READ_REG(hw,I40E_PRTQF_FD_INSET(reg_nums[i], 0));
+    for (i = 0; i < sizeof(reg_nums) / sizeof(int); i++) {
+        reg = I40E_READ_REG(hw, I40E_PRTQF_FD_INSET(reg_nums[i], 0));
         printf("I40E_PRTQF_FD_INSET(%d, 0): 0x%08x\n", reg_nums[i], reg);
-	reg = I40E_READ_REG(hw,I40E_PRTQF_FD_INSET(reg_nums[i], 1));
+        reg = I40E_READ_REG(hw, I40E_PRTQF_FD_INSET(reg_nums[i], 1));
         printf("I40E_PRTQF_FD_INSET(%d, 1): 0x%08x\n", reg_nums[i], reg);
     }
 }
 
-void i40e_trex_fdir_reg_init(repid_t repid, int mode)
-{
+void i40e_trex_fdir_reg_init(repid_t repid, int mode) {
     struct rte_eth_dev *dev = &rte_eth_devices[repid];
-	struct i40e_hw *hw = I40E_DEV_PRIVATE_TO_HW(dev->data->dev_private);
+    struct i40e_hw *hw = I40E_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 
-	I40E_WRITE_REG(hw, I40E_GLQF_ORT(12), 0x00000062);
-	I40E_WRITE_REG(hw, I40E_GLQF_PIT(2), 0x000024A0);
-	I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV4_UDP, 0), 0);
-	I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV4_TCP, 0), 0);
-	I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV4_OTHER, 0), 0);
-	I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_UDP, 0), 0);
-	I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_TCP, 0), 0);
+    I40E_WRITE_REG(hw, I40E_GLQF_ORT(12), 0x00000062);
+    I40E_WRITE_REG(hw, I40E_GLQF_PIT(2), 0x000024A0);
+    I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV4_UDP, 0), 0);
+    I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV4_TCP, 0), 0);
+    I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV4_OTHER, 0), 0);
+    I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_UDP, 0), 0);
+    I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_TCP, 0), 0);
     I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_OTHER, 0), 0);
     I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_FRAG_IPV4, 0), 0);
     I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_FRAG_IPV6, 0), 0);
 
-    switch(mode) {
+    switch (mode) {
     case I40E_TREX_INIT_STL:
         // stateless - filter according to IP id or IPv6 identification
         I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV4_UDP, 1), 0x00100000);
         I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV4_TCP, 1), 0x00100000);
         I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV4_OTHER, 1), 0x00100000);
         I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_FRAG_IPV4, 1), 0x00100000);
-        I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_UDP, 1),   0x0000000000200000ULL);
-        I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_TCP, 1),   0x0000000000200000ULL);
+        I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_UDP, 1), 0x0000000000200000ULL);
+        I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_TCP, 1), 0x0000000000200000ULL);
         I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_OTHER, 1), 0x0000000000200000ULL);
         I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_FRAG_IPV6, 1), 0x0000000000200000ULL);
         break;
@@ -102,9 +99,9 @@ void i40e_trex_fdir_reg_init(repid_t repid, int mode)
         I40E_WRITE_REG(hw, I40E_PRTQF_FD_INSET(I40E_FILTER_PCTYPE_NONF_IPV6_SCTP, 1), 0x00080000);
         break;
     }
-	I40E_WRITE_REG(hw, I40E_GLQF_FD_MSK(0, 34), 0x000DFF00);
-	I40E_WRITE_REG(hw, I40E_GLQF_FD_MSK(0,44), 0x000C00FF);
-	I40E_WRITE_FLUSH(hw);
+    I40E_WRITE_REG(hw, I40E_GLQF_FD_MSK(0, 34), 0x000DFF00);
+    I40E_WRITE_REG(hw, I40E_GLQF_FD_MSK(0, 44), 0x000C00FF);
+    I40E_WRITE_FLUSH(hw);
 }
 
 int i40e_trex_get_pf_id(repid_t repid, uint8_t *pf_id) {
@@ -120,9 +117,7 @@ int i40e_trex_get_pf_id(repid_t repid, uint8_t *pf_id) {
 // fill stats array with fdir rules match count statistics
 // Notice that we read statistics from start to start + len, but we fill the stats are
 //  starting from 0 with len values
-void
-i40e_trex_fdir_stats_get(struct rte_eth_dev *dev, uint32_t *stats, uint32_t start, uint32_t len)
-{
+void i40e_trex_fdir_stats_get(struct rte_eth_dev *dev, uint32_t *stats, uint32_t start, uint32_t len) {
     int i;
     struct i40e_hw *hw = I40E_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 
@@ -131,9 +126,7 @@ i40e_trex_fdir_stats_get(struct rte_eth_dev *dev, uint32_t *stats, uint32_t star
     }
 }
 
-void
-i40e_trex_fdir_stats_reset(struct rte_eth_dev *dev, uint32_t *stats, uint32_t start, uint32_t len)
-{
+void i40e_trex_fdir_stats_reset(struct rte_eth_dev *dev, uint32_t *stats, uint32_t start, uint32_t len) {
     int i;
     struct i40e_hw *hw = I40E_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 
@@ -145,41 +138,35 @@ i40e_trex_fdir_stats_reset(struct rte_eth_dev *dev, uint32_t *stats, uint32_t st
     }
 }
 
-int
-i40e_trex_get_fw_ver(struct rte_eth_dev *dev, uint32_t *nvm_ver)
-{
+int i40e_trex_get_fw_ver(struct rte_eth_dev *dev, uint32_t *nvm_ver) {
     struct i40e_hw *hw = I40E_DEV_PRIVATE_TO_HW(dev->data->dev_private);
 
     *nvm_ver = hw->nvm.version;
     return 0;
 }
 
+int rte_eth_dev_pci_addr(repid_t repid, char *p, int size) {
 
-int rte_eth_dev_pci_addr(repid_t repid,char *p,int size){
-
-    struct rte_devargs * lp=rte_eth_devices[repid].device->devargs;
+    struct rte_devargs *lp = rte_eth_devices[repid].device->devargs;
     struct rte_pci_addr *pci_addr = NULL;
 
     struct rte_eth_dev *dev = &rte_eth_devices[repid];
     struct rte_pci_device *pci_dev = RTE_ETH_DEV_TO_PCI(dev);
     pci_addr = &(pci_dev->addr);
     if (pci_addr) {
-        rte_pci_device_name(pci_addr,p, size);
+        rte_pci_device_name(pci_addr, p, size);
         return (0);
     }
-    return(-1);
+    return (-1);
 }
 
-
 // return in stats, statistics starting from start, for len counters.
-int
-rte_eth_fdir_stats_get(repid_t repid, uint32_t *stats, uint32_t start, uint32_t len)
-{
-	struct rte_eth_dev *dev;
+int rte_eth_fdir_stats_get(repid_t repid, uint32_t *stats, uint32_t start, uint32_t len) {
+    struct rte_eth_dev *dev;
 
-	RTE_ETH_VALID_PORTID_OR_ERR_RET(repid, -EINVAL);
+    RTE_ETH_VALID_PORTID_OR_ERR_RET(repid, -EINVAL);
 
-	dev = &rte_eth_devices[repid];
+    dev = &rte_eth_devices[repid];
 
     // Only xl710 support this
     i40e_trex_fdir_stats_get(dev, stats, start, len);
@@ -188,14 +175,12 @@ rte_eth_fdir_stats_get(repid_t repid, uint32_t *stats, uint32_t start, uint32_t 
 }
 
 // zero statistics counters, starting from start, for len counters.
-int
-rte_eth_fdir_stats_reset(repid_t repid, uint32_t *stats, uint32_t start, uint32_t len)
-{
-	struct rte_eth_dev *dev;
+int rte_eth_fdir_stats_reset(repid_t repid, uint32_t *stats, uint32_t start, uint32_t len) {
+    struct rte_eth_dev *dev;
 
-	RTE_ETH_VALID_PORTID_OR_ERR_RET(repid, -EINVAL);
+    RTE_ETH_VALID_PORTID_OR_ERR_RET(repid, -EINVAL);
 
-	dev = &rte_eth_devices[repid];
+    dev = &rte_eth_devices[repid];
 
     // Only xl710 support this
     i40e_trex_fdir_stats_reset(dev, stats, start, len);
@@ -203,16 +188,13 @@ rte_eth_fdir_stats_reset(repid_t repid, uint32_t *stats, uint32_t start, uint32_
     return 0;
 }
 
-int
-rte_eth_get_fw_ver(repid_t repid, uint32_t *version)
-{
-	struct rte_eth_dev *dev;
+int rte_eth_get_fw_ver(repid_t repid, uint32_t *version) {
+    struct rte_eth_dev *dev;
 
-	RTE_ETH_VALID_PORTID_OR_ERR_RET(repid, -EINVAL);
+    RTE_ETH_VALID_PORTID_OR_ERR_RET(repid, -EINVAL);
 
-	dev = &rte_eth_devices[repid];
+    dev = &rte_eth_devices[repid];
 
     // Only xl710 support this
     return i40e_trex_get_fw_ver(dev, version);
 }
-

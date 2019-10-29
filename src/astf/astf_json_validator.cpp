@@ -24,133 +24,130 @@ limitations under the License.
 using std::cerr;
 using std::endl;
 
-
-bool CAstfJsonValidator::Create(std::string input_schema_file){
+bool CAstfJsonValidator::Create(std::string input_schema_file) {
     m_input_schema_file = input_schema_file;
     if (!valijson::utils::loadDocument(m_input_schema_file, m_schema_doc)) {
-        return(false);
+        return (false);
     }
 
     m_schema_adapter = new JsonCppAdapter(m_schema_doc);
-    if ( m_schema_adapter == nullptr ) {
+    if (m_schema_adapter == nullptr) {
         printf("Could not create instance of JsonCppAdapter\n");
         return false;
     }
 
     try {
         m_parser.populateSchema(*m_schema_adapter, m_schema);
-    } catch(const std::exception &e) {
+    } catch (const std::exception &e) {
         delete m_schema_adapter;
         printf("Populate ASTF JSON schema failed. Error:\n%s\n", e.what());
         return false;
     }
-    return(true);
+    return (true);
 }
 
-int CAstfJsonValidator::get_max_buffer(Json::Value  program){
+int CAstfJsonValidator::get_max_buffer(Json::Value program) {
 
-    int max_val=-1;
-    Json::Value commands=program["commands"];
+    int max_val = -1;
+    Json::Value commands = program["commands"];
     int i;
-    for (i=0; i<commands.size(); i++) {
-        Json::Value cmd=commands[i];
-        Json::Value buf_index=cmd["buf_index"];
-        if (buf_index != Json::nullValue){
-            if ( max_val <buf_index.asInt() ){
-                max_val =buf_index.asInt();
+    for (i = 0; i < commands.size(); i++) {
+        Json::Value cmd = commands[i];
+        Json::Value buf_index = cmd["buf_index"];
+        if (buf_index != Json::nullValue) {
+            if (max_val < buf_index.asInt()) {
+                max_val = buf_index.asInt();
             }
         }
     }
-    return(max_val);
+    return (max_val);
 }
 
+bool CAstfJsonValidator::validate_ip_gen(Json::Value ip_gen, std::string &err) {
 
-bool CAstfJsonValidator::validate_ip_gen(Json::Value  ip_gen,
-                                        std::string & err){
-
-    std::string a[]={"ip_start","ip_end","ip_offset"};
+    std::string a[] = {"ip_start", "ip_end", "ip_offset"};
     for (const std::string &key : a) {
-        std::string s=ip_gen[key].asString();
+        std::string s = ip_gen[key].asString();
 
         int rc;
         uint32_t ip_num;
         rc = my_inet_pton4(s.c_str(), (unsigned char *)&ip_num);
         if (!rc) {
             std::stringstream ss;
-            ss << "Validation failed : Bad IP address " << s <<std::endl;
+            ss << "Validation failed : Bad IP address " << s << std::endl;
             err = ss.str();
-            return(false);
+            return (false);
         }
     }
-    return(true);;
+    return (true);
+    ;
 }
 
-
-bool CAstfJsonValidator::validate_program(Json::Value  profile,
-                                          std::string & err){
-    int program_size = profile["program_list"].size() ;
+bool CAstfJsonValidator::validate_program(Json::Value profile, std::string &err) {
+    int program_size = profile["program_list"].size();
     if (program_size < 1) {
         err = "Validation failed: profile must have at least one programs";
-        return(false);
+        return (false);
     }
 
-    int max_temp=-1;
-    int ip_gen_max=-1;
+    int max_temp = -1;
+    int ip_gen_max = -1;
     int i;
-    for (i=0; i<profile["templates"].size(); i++) {
-        Json::Value temp= profile["templates"][i];
-        int pinx_c=temp["client_template"]["program_index"].asInt();
-        int pinx_s=temp["server_template"]["program_index"].asInt();
-        int ip_gen_c=temp["client_template"]["ip_gen"]["dist_client"]["index"].asInt();
-        int ip_gen_s=temp["client_template"]["ip_gen"]["dist_server"]["index"].asInt();
-        max_temp  = std::max(max_temp,std::max(pinx_c,pinx_s));
-        ip_gen_max = std::max(ip_gen_max,std::max(ip_gen_c,ip_gen_s));
+    for (i = 0; i < profile["templates"].size(); i++) {
+        Json::Value temp = profile["templates"][i];
+        int pinx_c = temp["client_template"]["program_index"].asInt();
+        int pinx_s = temp["server_template"]["program_index"].asInt();
+        int ip_gen_c = temp["client_template"]["ip_gen"]["dist_client"]["index"].asInt();
+        int ip_gen_s = temp["client_template"]["ip_gen"]["dist_server"]["index"].asInt();
+        max_temp = std::max(max_temp, std::max(pinx_c, pinx_s));
+        ip_gen_max = std::max(ip_gen_max, std::max(ip_gen_c, ip_gen_s));
     }
 
     /* check #templates */
-    if ( max_temp >= profile["program_list"].size() ) {
+    if (max_temp >= profile["program_list"].size()) {
         std::stringstream ss;
-        ss << "Validation failed : max program index is " << max_temp << " bigger than the number of programs " << profile["program_list"].size() <<std::endl;
+        ss << "Validation failed : max program index is " << max_temp << " bigger than the number of programs "
+           << profile["program_list"].size() << std::endl;
         err = ss.str();
-        return(false);
+        return (false);
     }
     /* check # ip_gen */
-    if ( ip_gen_max >= profile["ip_gen_dist_list"].size() ) {
+    if (ip_gen_max >= profile["ip_gen_dist_list"].size()) {
         std::stringstream ss;
-        ss << "Validation failed : max ip generator index is " << ip_gen_max << " bigger than the number of generators " << profile["ip_gen_dist_list"].size() <<std::endl;
+        ss << "Validation failed : max ip generator index is " << ip_gen_max << " bigger than the number of generators "
+           << profile["ip_gen_dist_list"].size() << std::endl;
         err = ss.str();
-        return(false);
+        return (false);
     }
 
     /* check # buffers */
-    int max_buffer=-1;
-    for (i=0; i<program_size; i++) {
-        Json::Value program= profile["program_list"][i];
-        max_buffer=std::max(max_buffer,get_max_buffer(program));
+    int max_buffer = -1;
+    for (i = 0; i < program_size; i++) {
+        Json::Value program = profile["program_list"][i];
+        max_buffer = std::max(max_buffer, get_max_buffer(program));
     }
 
     /* check buffer size */
-    if ( (max_buffer >= profile["buf_list"].size()) && (profile["buf_list"].size()>0)) {
+    if ((max_buffer >= profile["buf_list"].size()) && (profile["buf_list"].size() > 0)) {
         std::stringstream ss;
-        ss << "Validation failed : max buffer size is " << max_buffer << " bigger than " << profile["buf_list"].size() <<std::endl;
+        ss << "Validation failed : max buffer size is " << max_buffer << " bigger than " << profile["buf_list"].size()
+           << std::endl;
         err = ss.str();
-        return(false);
+        return (false);
     }
 
     /* validate generator IPs */
-    for (i=0; i<profile["ip_gen_dist_list"].size(); i++) {
-        Json::Value ip_gen= profile["ip_gen_dist_list"][i];
-        if (!validate_ip_gen(ip_gen,err)){
-            return(false);
+    for (i = 0; i < profile["ip_gen_dist_list"].size(); i++) {
+        Json::Value ip_gen = profile["ip_gen_dist_list"][i];
+        if (!validate_ip_gen(ip_gen, err)) {
+            return (false);
         }
     }
 
-    return(true);
+    return (true);
 }
 
-
-bool CAstfJsonValidator::validate_profile(Json::Value  profile,
-                                          std::string & err){
+bool CAstfJsonValidator::validate_profile(Json::Value profile, std::string &err) {
 
     Validator validator;
     JsonCppAdapter myTargetAdapter(profile);
@@ -172,31 +169,26 @@ bool CAstfJsonValidator::validate_profile(Json::Value  profile,
             ++errorNum;
         }
         err = ss.str();
-        return(false);
+        return (false);
     }
-    return (validate_program(profile,err));
+    return (validate_program(profile, err));
 }
 
-bool CAstfJsonValidator::validate_profile_file(std::string  input_json_filename,
-                                               std::string & err){
+bool CAstfJsonValidator::validate_profile_file(std::string input_json_filename, std::string &err) {
     Json::Value myTargetDoc;
 
     if (!valijson::utils::loadDocument(input_json_filename, myTargetDoc)) {
         std::stringstream ss;
-        ss << "ERROR loading "<< input_json_filename<< "  \n";
+        ss << "ERROR loading " << input_json_filename << "  \n";
         err = ss.str();
-        return(false);
+        return (false);
     }
     return (validate_profile(myTargetDoc, err));
 }
 
-void CAstfJsonValidator::Delete(){
+void CAstfJsonValidator::Delete() {
     if (m_schema_adapter) {
-        delete  m_schema_adapter;
-        m_schema_adapter= NULL;
+        delete m_schema_adapter;
+        m_schema_adapter = NULL;
     }
 }
-
-
-
-

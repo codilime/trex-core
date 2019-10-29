@@ -41,13 +41,12 @@ limitations under the License.
 
 class TrexRpcCmdAddStream;
 
+static inline uint16_t get_log2_size(uint16_t size) {
 
-static inline uint16_t get_log2_size(uint16_t size){
-
-    uint16_t _sizes[]={64,128,256,512,1024,2048};
+    uint16_t _sizes[] = {64, 128, 256, 512, 1024, 2048};
     int i;
-    for (i=0; i<sizeof(_sizes)/sizeof(_sizes[0]); i++) {
-        if (size<=_sizes[i]) {
+    for (i = 0; i < sizeof(_sizes) / sizeof(_sizes[0]); i++) {
+        if (size <= _sizes[i]) {
             return (_sizes[i]);
         }
     }
@@ -59,10 +58,12 @@ static inline uint16_t get_log2_size(uint16_t size){
  *  calculate the size of writable mbuf in bytes. maximum size if packet size
  *
  * @param max_offset_writable
- *                 the last byte that we don't write too. for example when 63 it means that bytes [62] in the array is written (zero base)
+ *                 the last byte that we don't write too. for example when 63 it means that bytes [62] in the array is
+ * written (zero base)
  * @param pkt_size packet size in bytes
  *
- * @return the writable size of the first mbuf . the idea is to give at least 64 bytes const mbuf else all packet will be writeable
+ * @return the writable size of the first mbuf . the idea is to give at least 64 bytes const mbuf else all packet will
+ * be writeable
  *
  * examples:
  *       max_offset_writable =63
@@ -71,42 +72,38 @@ static inline uint16_t get_log2_size(uint16_t size){
  *
  */
 
-static inline uint16_t calc_writable_mbuf_size(uint16_t max_offset_writable,
-                                               uint16_t pkt_size){
+static inline uint16_t calc_writable_mbuf_size(uint16_t max_offset_writable, uint16_t pkt_size) {
 
-    if (pkt_size<=128) {
+    if (pkt_size <= 128) {
         return (pkt_size);
     }
 
-    //pkt_size> 128
+    // pkt_size> 128
     // if reside is less than 64 keep it as a single packet
-    uint16_t non_writable = pkt_size - (max_offset_writable +1) ;
-    if ( non_writable<64 ) {
+    uint16_t non_writable = pkt_size - (max_offset_writable + 1);
+    if (non_writable < 64) {
         return (pkt_size);
     }
 
     // keep the r/w at least 60 byte
-    if ((max_offset_writable+1)<=60) {
+    if ((max_offset_writable + 1) <= 60) {
         return 60;
     }
-    return max_offset_writable+1;
+    return max_offset_writable + 1;
 }
 
-
-
 struct CStreamPktData {
-        uint8_t      *binary;
-        uint16_t      len;
+    uint8_t *binary;
+    uint16_t len;
 
-        std::string   meta;
+    std::string meta;
 
-public:
-        inline void clone(uint8_t  * in_binary,
-                          uint32_t in_pkt_size){
-            binary = new uint8_t[in_pkt_size];
-            len    = in_pkt_size;
-            memcpy(binary,in_binary,in_pkt_size);
-        }
+  public:
+    inline void clone(uint8_t *in_binary, uint32_t in_pkt_size) {
+        binary = new uint8_t[in_pkt_size];
+        len = in_pkt_size;
+        memcpy(binary, in_binary, in_pkt_size);
+    }
 };
 
 class TrexStream;
@@ -118,29 +115,20 @@ class TrexStream;
  */
 class TrexStreamRate {
 
-
-public:
-
-    enum rate_type_e {
-        RATE_INVALID,
-        RATE_PPS,
-        RATE_BPS_L1,
-        RATE_BPS_L2,
-        RATE_PERCENTAGE
-    };
+  public:
+    enum rate_type_e { RATE_INVALID, RATE_PPS, RATE_BPS_L1, RATE_BPS_L2, RATE_PERCENTAGE };
 
     TrexStreamRate(TrexStream &stream) : m_stream(stream) {
-        m_pps        = 0;
-        m_bps_L1     = 0;
-        m_bps_L2     = 0;
+        m_pps = 0;
+        m_bps_L1 = 0;
+        m_bps_L2 = 0;
         m_percentage = 0;
     }
 
-
-    TrexStreamRate& operator=(const TrexStreamRate& other) {
-        m_pps        = other.m_pps;
-        m_bps_L1     = other.m_bps_L1;
-        m_bps_L2     = other.m_bps_L2;
+    TrexStreamRate &operator=(const TrexStreamRate &other) {
+        m_pps = other.m_pps;
+        m_bps_L1 = other.m_bps_L1;
+        m_bps_L2 = other.m_bps_L2;
         m_percentage = other.m_percentage;
 
         return (*this);
@@ -152,12 +140,12 @@ public:
      *
      */
     void set_base_rate(rate_type_e type, double value) {
-        m_pps        = 0;
-        m_bps_L1     = 0;
-        m_bps_L2     = 0;
+        m_pps = 0;
+        m_bps_L1 = 0;
+        m_bps_L2 = 0;
         m_percentage = 0;
 
-        if ( value <= 0 ) {
+        if (value <= 0) {
             throw TrexException("Rate value should be positive.");
         }
 
@@ -177,7 +165,6 @@ public:
 
         default:
             throw TrexException("Invalid rate type.");
-
         }
     }
 
@@ -209,21 +196,16 @@ public:
         return m_percentage;
     }
 
-
-
     /* update the rate by a factor */
     void update_factor(double factor) {
         /* if all are non zero - it works, if only one (base) is also works */
-        m_pps        *= factor;
-        m_bps_L1     *= factor;
-        m_bps_L2     *= factor;
+        m_pps *= factor;
+        m_bps_L1 *= factor;
+        m_bps_L2 *= factor;
         m_percentage *= factor;
     }
 
-
-
-private:
-
+  private:
     /**
      * calculates all the rates from the base rate
      *
@@ -240,47 +222,43 @@ private:
             calculate_from_percentage();
         } else {
             throw TrexException("Rate value shound be positive.");
-       }
+        }
     }
-
 
     uint64_t get_line_speed_bps();
     double get_pkt_size();
 
     void calculate_from_pps() {
-        m_bps_L1     = m_pps * (get_pkt_size() + 20) * 8;
-        m_bps_L2     = m_pps * get_pkt_size() * 8;
+        m_bps_L1 = m_pps * (get_pkt_size() + 20) * 8;
+        m_bps_L2 = m_pps * get_pkt_size() * 8;
         m_percentage = (m_bps_L1 / get_line_speed_bps()) * 100.0;
     }
-
 
     void calculate_from_bps_L1() {
-        m_bps_L2     = m_bps_L1 * ( get_pkt_size() / (get_pkt_size() + 20.0) );
-        m_pps        = m_bps_L2 / (8 * get_pkt_size());
+        m_bps_L2 = m_bps_L1 * (get_pkt_size() / (get_pkt_size() + 20.0));
+        m_pps = m_bps_L2 / (8 * get_pkt_size());
         m_percentage = (m_bps_L1 / get_line_speed_bps()) * 100.0;
     }
 
-
     void calculate_from_bps_L2() {
-        m_bps_L1     = m_bps_L2 * ( (get_pkt_size() + 20.0) / get_pkt_size());
-        m_pps        = m_bps_L2 / (8 * get_pkt_size());
+        m_bps_L1 = m_bps_L2 * ((get_pkt_size() + 20.0) / get_pkt_size());
+        m_pps = m_bps_L2 / (8 * get_pkt_size());
         m_percentage = (m_bps_L1 / get_line_speed_bps()) * 100.0;
     }
 
     void calculate_from_percentage() {
-        m_bps_L1     = (m_percentage / 100.0) * get_line_speed_bps();
-        m_bps_L2     = m_bps_L1 * ( get_pkt_size() / (get_pkt_size() + 20.0) );
-        m_pps        = m_bps_L2 / (8 * get_pkt_size());
-
+        m_bps_L1 = (m_percentage / 100.0) * get_line_speed_bps();
+        m_bps_L2 = m_bps_L1 * (get_pkt_size() / (get_pkt_size() + 20.0));
+        m_pps = m_bps_L2 / (8 * get_pkt_size());
     }
 
-    double       m_pps;
-    double       m_bps_L1;
-    double       m_bps_L2;
-    double       m_percentage;
+    double m_pps;
+    double m_bps_L1;
+    double m_bps_L2;
+    double m_percentage;
 
     /* reference to the owner class */
-    TrexStream  &m_stream;
+    TrexStream &m_stream;
 };
 
 /**
@@ -288,65 +266,44 @@ private:
  *
  */
 class TrexStream {
-friend class TrexStreamRate;
+    friend class TrexStreamRate;
 
-public:
-    enum STREAM_TYPE {
-        stNONE         = 0,
-        stCONTINUOUS   = 4,
-        stSINGLE_BURST = 5,
-        stMULTI_BURST  = 6
-    };
+  public:
+    enum STREAM_TYPE { stNONE = 0, stCONTINUOUS = 4, stSINGLE_BURST = 5, stMULTI_BURST = 6 };
 
-    typedef uint8_t stream_type_t ;
+    typedef uint8_t stream_type_t;
 
-    enum DST_MAC_TYPE {
-        stCFG_FILE     = 0,
-        stPKT          = 1,
-        stARP          = 2
-    };
+    enum DST_MAC_TYPE { stCFG_FILE = 0, stPKT = 1, stARP = 2 };
 
-    typedef uint8_t stream_dst_mac_t ;
-
+    typedef uint8_t stream_dst_mac_t;
 
     static std::string get_stream_type_str(stream_type_t stream_type);
 
-public:
-    TrexStream(uint8_t type,uint8_t port_id, uint32_t stream_id) : TrexStream(type, port_id, stream_id, stream_id) {}
+  public:
+    TrexStream(uint8_t type, uint8_t port_id, uint32_t stream_id) : TrexStream(type, port_id, stream_id, stream_id) {}
     virtual ~TrexStream();
 
     /* provides storage for the stream json*/
     void store_stream_json(const Json::Value &stream_json);
 
     /* access the stream json */
-    const Json::Value & get_stream_json();
+    const Json::Value &get_stream_json();
 
     /* compress the stream id to be zero based */
-    void fix_dp_stream_id(uint32_t my_stream_id,int next_stream_id){
-        m_stream_id      = my_stream_id;
+    void fix_dp_stream_id(uint32_t my_stream_id, int next_stream_id) {
+        m_stream_id = my_stream_id;
         m_next_stream_id = next_stream_id;
     }
 
+    double get_pps() { return m_rate.get_pps(); }
 
-    double get_pps() {
-        return m_rate.get_pps();
-    }
+    double get_bps_L1() { return m_rate.get_bps_L1(); }
 
-    double get_bps_L1() {
-        return m_rate.get_bps_L1();
-    }
+    double get_bps_L2() { return m_rate.get_bps_L2(); }
 
-    double get_bps_L2() {
-        return m_rate.get_bps_L2();
-    }
+    double get_bw_percentage() { return m_rate.get_percentage(); }
 
-    double get_bw_percentage() {
-        return m_rate.get_percentage();
-    }
-
-    void set_rate(TrexStreamRate::rate_type_e type, double value) {
-        m_rate.set_base_rate(type, value);
-    }
+    void set_rate(TrexStreamRate::rate_type_e type, double value) { m_rate.set_base_rate(type, value); }
 
     void update_rate_factor(double factor) {
         /* fixed rate streams cannot be updated in rate */
@@ -355,26 +312,18 @@ public:
         }
     }
 
-    void set_type(uint8_t type){
-        m_type = type;
-    }
+    void set_type(uint8_t type) { m_type = type; }
 
-    void set_null_stream(bool enable) {
-        m_null_stream = enable;
-    }
+    void set_null_stream(bool enable) { m_null_stream = enable; }
 
-    bool is_null_stream() const {
-        return m_null_stream;
-    }
+    bool is_null_stream() const { return m_null_stream; }
 
-    uint8_t get_type(void) const {
-        return ( m_type );
-    }
+    uint8_t get_type(void) const { return (m_type); }
 
     bool is_dp_next_stream() {
-        if (m_next_stream_id<0) {
+        if (m_next_stream_id < 0) {
             return (false);
-        }else{
+        } else {
             return (true);
         }
     }
@@ -383,17 +332,11 @@ public:
         return (m_rx_check.m_enabled && (m_rx_check.m_rule_type == TrexPlatformApi::IF_STAT_PAYLOAD));
     }
 
-    bool need_flow_stats() const {
-        return m_rx_check.m_enabled && !m_null_stream;
-    }
+    bool need_flow_stats() const { return m_rx_check.m_enabled && !m_null_stream; }
 
-    bool has_explicit_dst_mac() {
-        return get_override_dst_mac_mode() == TrexStream::stPKT;
-    }
+    bool has_explicit_dst_mac() { return get_override_dst_mac_mode() == TrexStream::stPKT; }
 
-    bool is_fixed_rate_stream() const {
-        return is_latency_stream();
-    }
+    bool is_fixed_rate_stream() const { return is_latency_stream(); }
 
     /* can this stream be split ? */
     bool is_splitable(uint8_t dp_core_count) const {
@@ -409,24 +352,18 @@ public:
         }
 
         return (m_burst_total_pkts >= dp_core_count);
-
     }
 
-    void set_multi_burst(uint32_t   burst_total_pkts,
-                         uint32_t   num_bursts,
-                         double     ibg_usec) {
+    void set_multi_burst(uint32_t burst_total_pkts, uint32_t num_bursts, double ibg_usec) {
         m_burst_total_pkts = burst_total_pkts;
-        m_num_bursts       = num_bursts;
-        m_ibg_usec         = ibg_usec;
+        m_num_bursts = num_bursts;
+        m_ibg_usec = ibg_usec;
     }
 
-    void set_single_burst(uint32_t   burst_total_pkts){
-        set_multi_burst(burst_total_pkts,1,0.0);
-    }
-
+    void set_single_burst(uint32_t burst_total_pkts) { set_multi_burst(burst_total_pkts, 1, 0.0); }
 
     /* create new stream */
-    TrexStream * clone(bool full = false) const {
+    TrexStream *clone(bool full = false) const {
 
         /* not all fields will be cloned */
 
@@ -435,7 +372,6 @@ public:
         /* on full clone we copy also VM */
         if (full) {
             m_vm.clone(dp->m_vm);
-
         }
 
         /* copy VM DP product */
@@ -445,38 +381,38 @@ public:
             dp->m_vm_dp = NULL;
         }
 
-        dp->m_isg_usec                = m_isg_usec;
+        dp->m_isg_usec = m_isg_usec;
 
         /* multi core phase parameters */
-        dp->m_mc_phase_pre_sec            = m_mc_phase_pre_sec;
-        dp->m_mc_phase_post_sec           = m_mc_phase_post_sec;
+        dp->m_mc_phase_pre_sec = m_mc_phase_pre_sec;
+        dp->m_mc_phase_post_sec = m_mc_phase_post_sec;
 
-        dp->m_next_stream_id          = m_next_stream_id;
+        dp->m_next_stream_id = m_next_stream_id;
 
-        dp->m_enabled    = m_enabled;
+        dp->m_enabled = m_enabled;
         dp->m_self_start = m_self_start;
         dp->m_start_paused = m_start_paused;
 
         /* deep copy */
-        dp->m_pkt.clone(m_pkt.binary,m_pkt.len);
+        dp->m_pkt.clone(m_pkt.binary, m_pkt.len);
 
-        dp->m_pkt_len_data          =   m_pkt_len_data;
-        dp->m_rx_check              =   m_rx_check;
-        dp->m_burst_total_pkts      =   m_burst_total_pkts;
-        dp->m_num_bursts            =   m_num_bursts;
-        dp->m_ibg_usec              =   m_ibg_usec;
-        dp->m_flags                 =   m_flags;
-        dp->m_cache_size            =   m_cache_size;
-        dp->m_action_count          =   m_action_count;
-        dp->m_random_seed           =   m_random_seed;
-        dp->m_null_stream           =   m_null_stream;
+        dp->m_pkt_len_data = m_pkt_len_data;
+        dp->m_rx_check = m_rx_check;
+        dp->m_burst_total_pkts = m_burst_total_pkts;
+        dp->m_num_bursts = m_num_bursts;
+        dp->m_ibg_usec = m_ibg_usec;
+        dp->m_flags = m_flags;
+        dp->m_cache_size = m_cache_size;
+        dp->m_action_count = m_action_count;
+        dp->m_random_seed = m_random_seed;
+        dp->m_null_stream = m_null_stream;
 
-        dp->m_rate                  =   m_rate;
+        dp->m_rate = m_rate;
 
-        dp->m_core_id_specified     = m_core_id_specified;
-        dp->m_core_id               = m_core_id;
+        dp->m_core_id_specified = m_core_id_specified;
+        dp->m_core_id = m_core_id;
 
-        return(dp);
+        return (dp);
     }
 
     /* release the DP object */
@@ -487,23 +423,15 @@ public:
         }
     }
 
-    double get_burst_length_usec()  {
-        return ( ( (m_burst_total_pkts - 1) / get_pps()) * 1000 * 1000);
-    }
+    double get_burst_length_usec() { return (((m_burst_total_pkts - 1) / get_pps()) * 1000 * 1000); }
 
-    double get_ipg_sec() {
-        return (1.0 / get_pps());
-    }
+    double get_ipg_sec() { return (1.0 / get_pps()); }
 
     /* return the delay before starting a stream */
-    inline double get_start_delay_sec() {
-        return usec_to_sec(m_isg_usec) + m_mc_phase_pre_sec;
-    }
+    inline double get_start_delay_sec() { return usec_to_sec(m_isg_usec) + m_mc_phase_pre_sec; }
 
     /* return the delay before starting the next stream */
-    inline double get_next_stream_delay_sec() {
-        return m_mc_phase_post_sec;
-    }
+    inline double get_next_stream_delay_sec() { return m_mc_phase_post_sec; }
 
     /* return the delay between scheduling a new burst in a multi burst stream */
     inline double get_next_burst_delay_sec() {
@@ -512,9 +440,7 @@ public:
 
     void Dump(FILE *fd);
 
-    StreamVmDp * getDpVm(){
-        return (m_vm_dp);
-    }
+    StreamVmDp *getDpVm() { return (m_vm_dp); }
 
     /**
      * internal compilation of stream (for DP)
@@ -522,81 +448,70 @@ public:
      */
     void vm_compile();
 
-public:
+  public:
+    void set_override_src_mac_by_pkt_data(bool enable) { btSetMaskBit16(m_flags, 0, 0, enable ? 1 : 0); }
 
-    void set_override_src_mac_by_pkt_data(bool enable){
-        btSetMaskBit16(m_flags,0,0,enable?1:0);
-    }
+    bool get_override_src_mac_by_pkt_data() { return (btGetMaskBit16(m_flags, 0, 0) ? true : false); }
 
-    bool get_override_src_mac_by_pkt_data(){
-        return (btGetMaskBit16(m_flags,0,0) ?true:false);
-    }
+    void set_override_dst_mac_mode(stream_dst_mac_t val) { btSetMaskBit16(m_flags, 2, 1, val & 0x3); }
 
-    void set_override_dst_mac_mode(stream_dst_mac_t  val){
-        btSetMaskBit16(m_flags,2,1,val&0x3);
-    }
+    stream_dst_mac_t get_override_dst_mac_mode() { return ((stream_dst_mac_t)btGetMaskBit16(m_flags, 2, 1)); }
 
-    stream_dst_mac_t get_override_dst_mac_mode(){
-        return ((stream_dst_mac_t)btGetMaskBit16(m_flags,2,1));
-    }
-
-public:
+  public:
     /* basic */
-    uint8_t       m_type;
-    uint8_t       m_port_id;
-    uint16_t      m_flags;
+    uint8_t m_type;
+    uint8_t m_port_id;
+    uint16_t m_flags;
 
-    uint32_t      m_stream_id;              /* id from RPC can be anything, will be overriden by DP ID */
-    const uint32_t m_user_stream_id;        /* backup of stream_id coming from user/CP */
-    uint32_t      m_action_count;
-    uint16_t      m_cache_size;
-    uint32_t      m_random_seed;
-
+    uint32_t m_stream_id;            /* id from RPC can be anything, will be overriden by DP ID */
+    const uint32_t m_user_stream_id; /* backup of stream_id coming from user/CP */
+    uint32_t m_action_count;
+    uint16_t m_cache_size;
+    uint32_t m_random_seed;
 
     /* config fields */
-    double        m_mc_phase_pre_sec;
-    double        m_mc_phase_post_sec;
+    double m_mc_phase_pre_sec;
+    double m_mc_phase_post_sec;
 
-    double        m_isg_usec;
-    int           m_next_stream_id;
-    uint8_t       m_core_id;
+    double m_isg_usec;
+    int m_next_stream_id;
+    uint8_t m_core_id;
 
     /* indicators */
-    bool          m_enabled;
-    bool          m_self_start;
-    bool          m_start_paused;
-    bool          m_core_id_specified;
+    bool m_enabled;
+    bool m_self_start;
+    bool m_start_paused;
+    bool m_core_id_specified;
 
     /* null stream (a dummy stream) */
-    bool          m_null_stream;
+    bool m_null_stream;
 
     /* VM CP and DP */
-    StreamVm      m_vm;
-    StreamVmDp   *m_vm_dp;
+    StreamVm m_vm;
+    StreamVmDp *m_vm_dp;
 
-    CStreamPktData   m_pkt;
+    CStreamPktData m_pkt;
 
     TrexStreamPktLenData m_pkt_len_data;
 
     /* pkt */
 
-
     /* RX check */
     struct {
-        bool      m_enabled;
-        bool      m_seq_enabled;
-        bool      m_latency;
-        bool      m_vxlan_skip;
-        uint16_t  m_rule_type;
-        uint32_t  m_pg_id;
-        uint16_t  m_hw_id;
+        bool m_enabled;
+        bool m_seq_enabled;
+        bool m_latency;
+        bool m_vxlan_skip;
+        uint16_t m_rule_type;
+        uint32_t m_pg_id;
+        uint16_t m_hw_id;
     } m_rx_check;
 
-    uint32_t   m_burst_total_pkts; /* valid in case of burst stSINGLE_BURST,stMULTI_BURST*/
+    uint32_t m_burst_total_pkts; /* valid in case of burst stSINGLE_BURST,stMULTI_BURST*/
 
-    uint32_t   m_num_bursts; /* valid in case of stMULTI_BURST */
+    uint32_t m_num_bursts; /* valid in case of stMULTI_BURST */
 
-    double     m_ibg_usec;  /* valid in case of stMULTI_BURST */
+    double m_ibg_usec; /* valid in case of stMULTI_BURST */
 
     /* original template provided by requester */
     Json::Value m_stream_json;
@@ -617,7 +532,7 @@ public:
         return &m_pkt_len_data;
     }
 
-private:
+  private:
     // additional constructor for clone() to save const m_user_stream_id
     TrexStream(uint8_t type, uint8_t port_id, uint32_t stream_id, uint32_t user_stream_id);
 
@@ -625,14 +540,12 @@ private:
     TrexStreamRate m_rate;
 };
 
-
 /**
  * holds all the streams
  *
  */
 class TrexStreamTable {
-public:
-
+  public:
     TrexStreamTable();
     ~TrexStreamTable();
 
@@ -647,13 +560,12 @@ public:
      */
     void remove_stream(TrexStream *stream);
 
-
     /**
      * fetch a stream if exists
      * o.w NULL
      *
      */
-    TrexStream * get_stream_by_id(uint32_t stream_id);
+    TrexStream *get_stream_by_id(uint32_t stream_id);
 
     /**
      * get max stream ID assigned
@@ -684,10 +596,10 @@ public:
      */
     int size();
 
-    std::unordered_map<int, TrexStream *>::iterator begin() {return m_stream_table.begin();}
-    std::unordered_map<int, TrexStream *>::iterator end() {return m_stream_table.end();}
+    std::unordered_map<int, TrexStream *>::iterator begin() { return m_stream_table.begin(); }
+    std::unordered_map<int, TrexStream *>::iterator end() { return m_stream_table.end(); }
 
-private:
+  private:
     /**
      * holds all the stream in a hash table by stream id
      *
@@ -696,4 +608,3 @@ private:
 };
 
 #endif /* __TREX_STL_STREAM_H__ */
-

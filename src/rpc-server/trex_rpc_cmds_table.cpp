@@ -21,28 +21,19 @@ limitations under the License.
 #include "trex_rpc_cmds_table.h"
 #include <iostream>
 
-
 using namespace std;
-
 
 /************* table related methods ***********/
 
-TrexRpcCommandsTable::TrexRpcCommandsTable() {
-    m_is_init = false;
-}
+TrexRpcCommandsTable::TrexRpcCommandsTable() { m_is_init = false; }
 
-
-TrexRpcCommandsTable::~TrexRpcCommandsTable() {
-    reset();
-}
-
+TrexRpcCommandsTable::~TrexRpcCommandsTable() { reset(); }
 
 /**
  * init the RPC table with configuration name and version
  *
  */
-void
-TrexRpcCommandsTable::init(const std::string &config_name, int major, int minor) {
+void TrexRpcCommandsTable::init(const std::string &config_name, int major, int minor) {
 
     /* reset any previous data */
     reset();
@@ -53,9 +44,7 @@ TrexRpcCommandsTable::init(const std::string &config_name, int major, int minor)
     m_is_init = true;
 }
 
-
-void
-TrexRpcCommandsTable::reset() {
+void TrexRpcCommandsTable::reset() {
     /* delete all components loaded */
     for (auto comp : m_rpc_components) {
         delete comp;
@@ -65,12 +54,10 @@ TrexRpcCommandsTable::reset() {
     m_is_init = false;
 }
 
-
 /**
  * load a component to the table
  */
-void
-TrexRpcCommandsTable::load_component(TrexRpcComponent *comp) {
+void TrexRpcCommandsTable::load_component(TrexRpcComponent *comp) {
 
     /* set the component to the right API version / config */
     comp->set_rpc_api_ver(&m_api_ver);
@@ -84,17 +71,11 @@ TrexRpcCommandsTable::load_component(TrexRpcComponent *comp) {
     }
 }
 
-
 /**
  * register a new command to the table
  *
  */
-void
-TrexRpcCommandsTable::register_command(TrexRpcCommand *command) {
-
-    m_rpc_cmd_table[command->get_name()] = command;
-}
-
+void TrexRpcCommandsTable::register_command(TrexRpcCommand *command) { m_rpc_cmd_table[command->get_name()] = command; }
 
 /**
  * query for all the commands
@@ -106,9 +87,7 @@ void TrexRpcCommandsTable::query(vector<string> &cmds) {
     }
 }
 
-
-TrexRpcCommand *
-TrexRpcCommandsTable::lookup(const string &method_name) {
+TrexRpcCommand *TrexRpcCommandsTable::lookup(const string &method_name) {
     auto search = m_rpc_cmd_table.find(method_name);
 
     if (search != m_rpc_cmd_table.end()) {
@@ -117,5 +96,3 @@ TrexRpcCommandsTable::lookup(const string &method_name) {
         return NULL;
     }
 }
-
-

@@ -21,70 +21,52 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 #include <queue>
 #include <algorithm>
 
-
-class CSimEventDriven ;
+class CSimEventDriven;
 
 class CSimEventBase {
-public:
-    double   m_time;
-public:
-    virtual ~CSimEventBase(){
-    };
+  public:
+    double m_time;
+
+  public:
+    virtual ~CSimEventBase(){};
 
     /* do somthing return true for quit  */
-    virtual bool on_event(CSimEventDriven *sched,
-                          bool & reschedule)=0;
+    virtual bool on_event(CSimEventDriven *sched, bool &reschedule) = 0;
 };
-
 
 struct CSimEventBaseCompare {
-   bool operator() (const CSimEventBase * lhs, const CSimEventBase * rhs)
-   {
-       return lhs->m_time > rhs->m_time;
-   }
+    bool operator()(const CSimEventBase *lhs, const CSimEventBase *rhs) { return lhs->m_time > rhs->m_time; }
 };
 
-
-typedef std::priority_queue<CSimEventBase *, std::vector<CSimEventBase *>,CSimEventBaseCompare> pqueue_sim_t;
+typedef std::priority_queue<CSimEventBase *, std::vector<CSimEventBase *>, CSimEventBaseCompare> pqueue_sim_t;
 
 class CSimEventDriven {
 
-public:
-    CSimEventDriven(){
+  public:
+    CSimEventDriven() {
         m_verbose = false;
-        m_c_time =0.0;
+        m_c_time = 0.0;
     }
 
-    void set_verbose(bool verbose){
-        m_verbose = verbose;
-    }
+    void set_verbose(bool verbose) { m_verbose = verbose; }
 
-    void  add_event(CSimEventBase * event){
-        m_p_queue.push(event);
-    }
+    void add_event(CSimEventBase *event) { m_p_queue.push(event); }
 
-    int size(){
-        return(m_p_queue.size());
-    }
+    int size() { return (m_p_queue.size()); }
 
-    double get_time(){
-        return (m_c_time);
-    }
+    double get_time() { return (m_c_time); }
 
     void remove_all();
 
     bool run_sim();
 
-private:
-    double        m_c_time;
-    bool          m_verbose;
-    pqueue_sim_t  m_p_queue;
+  private:
+    double m_c_time;
+    bool m_verbose;
+    pqueue_sim_t m_p_queue;
 };
 
-
 #endif
-

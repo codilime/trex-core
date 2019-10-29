@@ -33,10 +33,8 @@ limitations under the License.
  *
  */
 class TrexRpcCmdsASTF : public TrexRpcComponent {
-public:
+  public:
     TrexRpcCmdsASTF();
 };
 
 #endif /* __TREX_ASTF_RPC_CMDS_H__ */
-
-

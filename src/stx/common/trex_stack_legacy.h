@@ -33,20 +33,19 @@
 using namespace std;
 
 class CLegacyNode : public CNodeBase {
-public:
+  public:
     CLegacyNode(const string &mac_buf);
     ~CLegacyNode();
     void conf_vlan_internal(const vlan_list_t &vlans, const vlan_list_t &tpids);
     void conf_ip4_internal(const string &ip4_buf, const string &gw4_buf);
 
-private:
+  private:
     void set_mac(const string &addr);
-    dsec_t                  m_grat_arp_sent_time_sec;
+    dsec_t m_grat_arp_sent_time_sec;
 };
 
-
 class CStackLegacy : public CStackBase {
-public:
+  public:
     CStackLegacy(RXFeatureAPI *api, CRXCoreIgnoreStat *ignore_stats);
     ~CStackLegacy();
 
@@ -60,17 +59,16 @@ public:
     // node -> TRex port
     uint16_t handle_tx(uint16_t limit);
 
-private:
+  private:
     bool is_grat_active();
-    CNodeBase* add_node_internal(const std::string &mac_buf);
+    CNodeBase *add_node_internal(const std::string &mac_buf);
     void del_node_internal(const std::string &mac_buf);
     uint16_t send_grat_arp();
     void handle_icmp(RXPktParser &parser);
     void handle_arp(RXPktParser &parser);
     rte_mbuf_t *duplicate_mbuf(const rte_mbuf_t *m);
 
-    dsec_t          m_next_grat_arp_sec;
+    dsec_t m_next_grat_arp_sec;
 };
-
 
 #endif /* __TREX_STACK_LEGACY_H__ */

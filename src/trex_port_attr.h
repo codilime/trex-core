@@ -29,25 +29,22 @@ limitations under the License.
 #include "trex_rx_defs.h"
 #include "trex_vlan.h"
 
-
-
-
-
 class TRexPortAttr {
-public:
+  public:
+    virtual ~TRexPortAttr() {}
 
-    virtual ~TRexPortAttr(){}
-
-/*    UPDATES    */
+    /*    UPDATES    */
     virtual void update_link_status() = 0;
     virtual bool update_link_status_nowait() = 0; // returns true if the status was changed
     virtual void reset_xstats() = 0;
 
-/*    GETTERS    */
+    /*    GETTERS    */
     virtual bool get_promiscuous() = 0;
     virtual bool get_multicast() = 0;
     virtual void get_hw_src_mac(struct ether_addr *mac_addr) = 0;
-    virtual uint32_t get_link_speed() { return m_link.link_speed < ETH_SPEED_NUM_100G? m_link.link_speed: ETH_SPEED_NUM_100G; } // L1 Mbps
+    virtual uint32_t get_link_speed() {
+        return m_link.link_speed < ETH_SPEED_NUM_100G ? m_link.link_speed : ETH_SPEED_NUM_100G;
+    } // L1 Mbps
     virtual bool is_link_duplex() { return (m_link.link_duplex ? true : false); }
     virtual bool is_link_autoneg() { return (m_link.link_autoneg ? true : false); }
     virtual bool is_link_up() { return (m_link.link_status ? true : false); }
@@ -63,28 +60,26 @@ public:
     virtual bool is_vxlan_fs_supported() { return flag_is_vxlan_fs_supported; }
     virtual const std::string &get_description() { return intf_info_st.description; }
     virtual int get_numa(void) { return intf_info_st.numa_node; }
-    virtual const std::string& get_pci_addr(void) { return intf_info_st.pci_addr; }
+    virtual const std::string &get_pci_addr(void) { return intf_info_st.pci_addr; }
     virtual void get_supported_speeds(supp_speeds_t &supp_speeds) = 0;
     virtual bool is_loopback() const = 0;
-    virtual const struct rte_pci_device* get_pci_dev() const {
+    virtual const struct rte_pci_device *get_pci_dev() const {
         assert(flag_has_pci);
         return &m_pci_dev;
     }
-    virtual const struct rte_eth_dev_info* get_dev_info() const { return &m_dev_info; }
+    virtual const struct rte_eth_dev_info *get_dev_info() const { return &m_dev_info; }
 
     virtual std::string get_rx_filter_mode() const;
 
-/*    SETTERS    */
+    /*    SETTERS    */
     virtual int set_promiscuous(bool enabled) = 0;
     virtual int set_multicast(bool enabled) = 0;
-    virtual int add_mac(char * mac) = 0;
+    virtual int add_mac(char *mac) = 0;
     virtual int set_link_up(bool up) = 0;
     virtual int set_flow_ctrl(int mode) = 0;
     virtual int set_led(bool on) = 0;
     virtual int set_rx_filter_mode(rx_filter_mode_e mode) = 0;
     virtual int set_vxlan_fs(vxlan_fs_ports_t &vxlan_fs_ports) = 0;
-
-
 
     /* DUMPS */
     virtual void dump_link(FILE *fd) = 0;
@@ -92,52 +87,48 @@ public:
     /* dump object status to JSON */
     void to_json(Json::Value &output);
 
-    uint8_t get_port_id() const {
-        return m_port_id;
-    }
+    uint8_t get_port_id() const { return m_port_id; }
 
-protected:
-
+  protected:
     virtual void update_device_info() = 0;
     virtual void update_description() = 0;
 
-    uint8_t                   m_port_id;
-    rte_eth_link              m_link;
+    uint8_t m_port_id;
+    rte_eth_link m_link;
 
-    struct rte_eth_dev_info   m_dev_info;
-    struct rte_pci_device     m_pci_dev;
+    struct rte_eth_dev_info m_dev_info;
+    struct rte_pci_device m_pci_dev;
 
     rx_filter_mode_e m_rx_filter_mode;
 
-    bool       flag_has_pci;
-    bool       flag_is_virtual;
-    bool       flag_is_fc_change_supported;
-    bool       flag_is_led_change_supported;
-    bool       flag_is_link_change_supported;
-    bool       flag_is_prom_change_supported;
-    bool       flag_is_vxlan_fs_supported;
+    bool flag_has_pci;
+    bool flag_is_virtual;
+    bool flag_is_fc_change_supported;
+    bool flag_is_led_change_supported;
+    bool flag_is_link_change_supported;
+    bool flag_is_prom_change_supported;
+    bool flag_is_vxlan_fs_supported;
 
     struct intf_info_st {
-        std::string     pci_addr;
-        std::string     description;
-        int             numa_node;
-    }intf_info_st;
+        std::string pci_addr;
+        std::string description;
+        int numa_node;
+    } intf_info_st;
 
     vxlan_fs_ports_t m_vxlan_fs_ports;
 };
 
 class DpdkTRexPortAttr : public TRexPortAttr {
-public:
+  public:
+    DpdkTRexPortAttr(uint8_t tvpid, uint8_t repid, bool is_virtual, bool fc_change_allowed, bool is_prom_allowed,
+                     bool is_vxlan_fs_allowed, bool has_pci);
 
-    DpdkTRexPortAttr(uint8_t tvpid, uint8_t repid, bool is_virtual, bool fc_change_allowed,
-            bool is_prom_allowed, bool is_vxlan_fs_allowed, bool has_pci);
-
-/*    UPDATES    */
+    /*    UPDATES    */
     virtual void update_link_status();
     virtual bool update_link_status_nowait(); // returns true if the status was changed
     virtual void reset_xstats();
 
-/*    GETTERS    */
+    /*    GETTERS    */
     virtual bool get_promiscuous();
     virtual bool get_multicast();
     virtual void get_hw_src_mac(struct ether_addr *mac_addr);
@@ -147,10 +138,10 @@ public:
     virtual void get_supported_speeds(supp_speeds_t &supp_speeds);
     virtual bool is_loopback() const;
 
-/*    SETTERS    */
+    /*    SETTERS    */
     virtual int set_promiscuous(bool enabled);
     virtual int set_multicast(bool enabled);
-    virtual int add_mac(char * mac);
+    virtual int add_mac(char *mac);
     virtual int set_link_up(bool up);
     virtual int set_flow_ctrl(int mode);
     virtual int set_led(bool on);
@@ -158,21 +149,20 @@ public:
     virtual int set_rx_filter_mode(rx_filter_mode_e mode);
     virtual int set_vxlan_fs(vxlan_fs_ports_t &vxlan_fs_ports);
 
-/*    DUMPS    */
+    /*    DUMPS    */
     virtual void dump_link(FILE *fd);
 
-protected:
+  protected:
     virtual void update_device_info();
     virtual void update_description();
 
-private:
-    uint8_t         m_tvpid;
-    uint8_t         m_repid;
+  private:
+    uint8_t m_tvpid;
+    uint8_t m_repid;
 
     rte_eth_fc_conf fc_conf_tmp;
-    std::vector <struct rte_eth_xstat> xstats_values_tmp;
-    std::vector <struct rte_eth_xstat_name> xstats_names_tmp;
-
+    std::vector<struct rte_eth_xstat> xstats_values_tmp;
+    std::vector<struct rte_eth_xstat_name> xstats_names_tmp;
 };
 
 /*
@@ -180,18 +170,17 @@ Example:
 In order to use custom methods of port attributes per driver, need to instantiate this within driver.
 */
 class DpdkTRexPortAttrMlnx5G : public DpdkTRexPortAttr {
-public:
+  public:
     virtual int set_link_up(bool up);
 };
 
-
 class SimTRexPortAttr : public TRexPortAttr {
-public:
+  public:
     SimTRexPortAttr() {
-        m_link.link_speed   = 10000;
-        m_link.link_duplex  = 1;
+        m_link.link_speed = 10000;
+        m_link.link_duplex = 1;
         m_link.link_autoneg = 0;
-        m_link.link_status  = 1;
+        m_link.link_status = 1;
         flag_has_pci = false;
         flag_is_virtual = true;
         flag_is_fc_change_supported = false;
@@ -215,7 +204,7 @@ public:
     void get_supported_speeds(supp_speeds_t &supp_speeds) {}
     int set_promiscuous(bool enabled) { return -ENOTSUP; }
     int set_multicast(bool enabled) { return -ENOTSUP; }
-    int add_mac(char * mac) { return -ENOTSUP; }
+    int add_mac(char *mac) { return -ENOTSUP; }
     int set_link_up(bool up) { return -ENOTSUP; }
     int set_flow_ctrl(int mode) { return -ENOTSUP; }
     int set_led(bool on) { return -ENOTSUP; }
@@ -223,8 +212,9 @@ public:
     int set_rx_filter_mode(rx_filter_mode_e mode) { return -ENOTSUP; }
     int set_vxlan_fs(vxlan_fs_ports_t &vxlan_fs_ports) { return -ENOTSUP; }
     bool is_loopback() const { return false; }
-    std::string get_rx_filter_mode() {return "";}
-protected:
+    std::string get_rx_filter_mode() { return ""; }
+
+  protected:
     void update_device_info() {}
     void update_description() {
         intf_info_st.pci_addr = "N/A";
@@ -232,6 +222,5 @@ protected:
         intf_info_st.numa_node = -1;
     }
 };
-
 
 #endif /* __TREX_PORT_ATTR_H__ */

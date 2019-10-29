@@ -28,36 +28,28 @@
 #include "common/base64.h"
 #include "os_time.h"
 
-
 /**
  * copies MBUF to a flat buffer
  *
  */
 void mbuf_to_buffer(uint8_t *dest, const rte_mbuf_t *m);
 
-
 /**
  * duplicate MBUF into target port ID pool
  *
  */
-rte_mbuf_t * duplicate_mbuf(const rte_mbuf_t *m, uint8_t port_id);
-
+rte_mbuf_t *duplicate_mbuf(const rte_mbuf_t *m, uint8_t port_id);
 
 /**************************************
  * TRex packet
  *
  *************************************/
 class TrexPkt {
-public:
-
+  public:
     /**
      * origin of the created packet
      */
-    enum origin_e {
-        ORIGIN_NONE = 1,
-        ORIGIN_TX,
-        ORIGIN_RX
-    };
+    enum origin_e { ORIGIN_NONE = 1, ORIGIN_TX, ORIGIN_RX };
 
     /**
      * generate a packet from MBUF
@@ -69,36 +61,31 @@ public:
      */
     TrexPkt(const TrexPkt &other);
 
-
     /**
      * sets a packet index
      * used by a buffer of packets
      */
-    void set_index(uint64_t index) {
-        m_index = index;
-    }
+    void set_index(uint64_t index) { m_index = index; }
 
-    uint64_t get_index() const {
-        return m_index;
-    }
+    uint64_t get_index() const { return m_index; }
 
     /* slow path and also RVO - pass by value is ok */
     Json::Value to_json() const {
         Json::Value output;
-        output["ts"]      = m_timestamp;
-        output["binary"]  = base64_encode(m_raw, m_size);
-        output["port"]    = m_port;
-        output["index"]   = Json::UInt64(m_index);
+        output["ts"] = m_timestamp;
+        output["binary"] = base64_encode(m_raw, m_size);
+        output["port"] = m_port;
+        output["index"] = Json::UInt64(m_index);
 
         switch (m_origin) {
         case ORIGIN_TX:
-            output["origin"]  = "TX";
+            output["origin"] = "TX";
             break;
         case ORIGIN_RX:
-            output["origin"]  = "RX";
+            output["origin"] = "RX";
             break;
         default:
-            output["origin"]  = "NONE";
+            output["origin"] = "NONE";
             break;
         }
 
@@ -107,44 +94,33 @@ public:
 
     ~TrexPkt() {
         if (m_raw) {
-            delete [] m_raw;
+            delete[] m_raw;
         }
     }
 
-    origin_e get_origin() const {
-        return m_origin;
-    }
+    origin_e get_origin() const { return m_origin; }
 
-    int get_port() const {
-        return m_port;
-    }
+    int get_port() const { return m_port; }
 
-    uint16_t get_size() const {
-        return m_size;
-    }
+    uint16_t get_size() const { return m_size; }
 
-    dsec_t get_ts() const {
-        return m_timestamp;
-    }
+    dsec_t get_ts() const { return m_timestamp; }
 
-private:
-
-    uint8_t   *m_raw;
-    uint16_t   m_size;
-    dsec_t     m_timestamp;
-    origin_e   m_origin;
-    int        m_port;
-    uint64_t   m_index;
+  private:
+    uint8_t *m_raw;
+    uint16_t m_size;
+    dsec_t m_timestamp;
+    origin_e m_origin;
+    int m_port;
+    uint64_t m_index;
 };
-
 
 /**************************************
  * TRex packet buffer
  *
  *************************************/
 class TrexPktBuffer {
-public:
-
+  public:
     /**
      * two modes for operations:
      *
@@ -167,9 +143,7 @@ public:
      * packet will be generated from a MBUF
      *
      */
-    void push(const rte_mbuf_t *m,
-              int port = -1,
-              TrexPkt::origin_e origin = TrexPkt::ORIGIN_NONE,
+    void push(const rte_mbuf_t *m, int port = -1, TrexPkt::origin_e origin = TrexPkt::ORIGIN_NONE,
               uint64_t pkt_index = 0);
 
     /**
@@ -183,7 +157,7 @@ public:
      * pops a packet from the buffer
      * usually for internal usage
      */
-    const TrexPkt * pop();
+    const TrexPkt *pop();
 
     /**
      * pops N packets from the buffer
@@ -191,8 +165,7 @@ public:
      *
      * returns a new buffer
      */
-    TrexPktBuffer * pop_n(uint32_t count);
-
+    TrexPktBuffer *pop_n(uint32_t count);
 
     /**
      * generate a JSON output of the queue
@@ -200,22 +173,15 @@ public:
      */
     Json::Value to_json() const;
 
-
     /**
      * generate a JSON of the status of the capture
      * write the relevant info in place on output
      */
     void to_json_status(Json::Value &output) const;
 
+    bool is_empty() const { return (m_head == m_tail); }
 
-
-    bool is_empty() const {
-        return (m_head == m_tail);
-    }
-
-    bool is_full() const {
-        return ( next(m_head) == m_tail);
-    }
+    bool is_full() const { return (next(m_head) == m_tail); }
 
     /**
      * return the total amount of space possible
@@ -229,9 +195,7 @@ public:
      * see mode_e
      *
      */
-    mode_e get_mode() const {
-        return m_mode;
-    }
+    mode_e get_mode() const { return m_mode; }
 
     /**
      * returns how many elements are in the queue
@@ -241,25 +205,19 @@ public:
     /**
      * current bytes holded by the buffer
      */
-    uint32_t get_bytes() const {
-        return m_bytes;
-    }
+    uint32_t get_bytes() const { return m_bytes; }
 
-
-private:
-    int next(int v) const {
-        return ( (v + 1) % m_size );
-    }
+  private:
+    int next(int v) const { return ((v + 1) % m_size); }
 
     void push_internal(const TrexPkt *pkt);
 
-    mode_e          m_mode;
-    int             m_head;
-    int             m_tail;
-    int             m_size;
-    uint32_t        m_bytes;
+    mode_e m_mode;
+    int m_head;
+    int m_tail;
+    int m_size;
+    uint32_t m_bytes;
     const TrexPkt **m_buffer;
 };
-
 
 #endif /* __TREX_PKT_H__*/

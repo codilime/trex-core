@@ -19,47 +19,31 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 #include "os_time.h"
 #include <stdio.h>
 
-COsTimeGlobalData  timer_gd;
-
-
+COsTimeGlobalData timer_gd;
 
 #include <time.h>
 #include <sys/times.h>
 #include <unistd.h>
 
 // Returns time in milliseconds...
-uint32_t SANB_tickGet()
-{
+uint32_t SANB_tickGet() {
     struct tms buffer; // we don't really use that
-    clock_t ticks =  times(&buffer);
+    clock_t ticks = times(&buffer);
     return (uint32_t)ticks;
 }
 
 // ... so rate is 1000.
-int SANB_sysClkRateGet()
-{
+int SANB_sysClkRateGet() {
     int rate = sysconf(_SC_CLK_TCK);
-    if (rate == -1)
-    {
-        fprintf(stderr,"SANB_sysClkRateGet, sysconf FAILED, something very basic is wrong....!\n");
+    if (rate == -1) {
+        fprintf(stderr, "SANB_sysClkRateGet, sysconf FAILED, something very basic is wrong....!\n");
     }
     return rate;
 }
 
-uint32_t os_get_time_msec(){
-    return (SANB_tickGet());
-}
+uint32_t os_get_time_msec() { return (SANB_tickGet()); }
 
-uint32_t os_get_time_freq(){
-    return (SANB_sysClkRateGet());
-}
-
-
-
-
-
-
+uint32_t os_get_time_freq() { return (SANB_sysClkRateGet()); }

@@ -26,14 +26,8 @@ limitations under the License.
 
 using namespace std;
 
-TrexAstfPort::TrexAstfPort(uint8_t port_id) : TrexPort(port_id) {
-}
+TrexAstfPort::TrexAstfPort(uint8_t port_id) : TrexPort(port_id) {}
 
-TrexAstfPort::~TrexAstfPort() {
-}
+TrexAstfPort::~TrexAstfPort() {}
 
-void TrexAstfPort::change_state(port_state_e state) {
-    m_port_state = state;
-}
-
-
+void TrexAstfPort::change_state(port_state_e state) { m_port_state = state; }

@@ -38,32 +38,26 @@ limitations under the License.
  * ZMQ based request-response server
  *
  */
-TrexRpcServerReqRes::TrexRpcServerReqRes(const TrexRpcServerConfig &cfg) : TrexRpcServerInterface(cfg, "ZMQ sync request-response") {
+TrexRpcServerReqRes::TrexRpcServerReqRes(const TrexRpcServerConfig &cfg)
+    : TrexRpcServerInterface(cfg, "ZMQ sync request-response") {}
 
-}
-
-void TrexRpcServerReqRes::_prepare() {
-    m_context = zmq_ctx_new();
-}
-
+void TrexRpcServerReqRes::_prepare() { m_context = zmq_ctx_new(); }
 
 /**
  * any error from the thread will be forward to here
  * it will print out a message and exit
  */
-void
-TrexRpcServerReqRes::error(const std::string &msg, bool abnormal) {
-   std::cout <<  "*** RPC thread has encountred error: '" << msg << "'";
-   std::cout << "\nExiting...\n\n";
+void TrexRpcServerReqRes::error(const std::string &msg, bool abnormal) {
+    std::cout << "*** RPC thread has encountred error: '" << msg << "'";
+    std::cout << "\nExiting...\n\n";
 
-   /* if the error is normal - simply exit, otherwise produce a core file */
-   if (abnormal) {
-       abort();
-   } else {
-       exit(-1);
-   }
+    /* if the error is normal - simply exit, otherwise produce a core file */
+    if (abnormal) {
+        abort();
+    } else {
+        exit(-1);
+    }
 }
-
 
 /**
  * main entry point for the server
@@ -83,8 +77,6 @@ void TrexRpcServerReqRes::_rpc_thread_cb() noexcept {
     }
 }
 
-
-
 void TrexRpcServerReqRes::_rpc_thread_cb_int() {
     std::stringstream ss;
     int zmq_rc;
@@ -96,11 +88,11 @@ void TrexRpcServerReqRes::_rpc_thread_cb_int() {
 
     /* create a socket based on the configuration */
 
-    m_socket  = zmq_socket (m_context, ZMQ_REP);
+    m_socket = zmq_socket(m_context, ZMQ_REP);
 
     /* to make sure the watchdog gets tickles form time to time we give a timeout of 500ms */
     int timeout = 500;
-    zmq_rc = zmq_setsockopt (m_socket, ZMQ_RCVTIMEO, &timeout, sizeof(int));
+    zmq_rc = zmq_setsockopt(m_socket, ZMQ_RCVTIMEO, &timeout, sizeof(int));
     assert(zmq_rc == 0);
 
     switch (m_cfg.get_protocol()) {
@@ -115,7 +107,7 @@ void TrexRpcServerReqRes::_rpc_thread_cb_int() {
     ss << m_cfg.get_port();
 
     /* bind the scoket */
-    zmq_rc = zmq_bind (m_socket, ss.str().c_str());
+    zmq_rc = zmq_bind(m_socket, ss.str().c_str());
     if (zmq_rc != 0) {
         error("unable to bind ZMQ server at: " + ss.str());
     }
@@ -142,8 +134,7 @@ void TrexRpcServerReqRes::_rpc_thread_cb_int() {
     m_monitor.disable();
 }
 
-bool
-TrexRpcServerReqRes::fetch_one_request(std::string &msg) {
+bool TrexRpcServerReqRes::fetch_one_request(std::string &msg) {
 
     zmq_msg_t zmq_msg;
     int rc;
@@ -154,7 +145,7 @@ TrexRpcServerReqRes::fetch_one_request(std::string &msg) {
     while (true) {
         m_monitor.tickle();
 
-        rc = zmq_msg_recv (&zmq_msg, m_socket, 0);
+        rc = zmq_msg_recv(&zmq_msg, m_socket, 0);
         if (rc != -1) {
             break;
         }
@@ -172,12 +163,10 @@ TrexRpcServerReqRes::fetch_one_request(std::string &msg) {
             return false;
         } else {
             /* abnormal error - abort */
-            printf(" ZMQ unhandled error code %d ",errno);
-            //error("ZMQ unhandled error code: " + std::to_string(errno), false);
+            printf(" ZMQ unhandled error code %d ", errno);
+            // error("ZMQ unhandled error code: " + std::to_string(errno), false);
         }
     }
-
-
 
     const char *data = (const char *)zmq_msg_data(&zmq_msg);
     size_t len = zmq_msg_size(&zmq_msg);
@@ -196,9 +185,7 @@ void TrexRpcServerReqRes::_stop_rpc_thread() {
     if (m_context) {
         zmq_term(m_context);
     }
-
 }
-
 
 /**
  * handles a request given to the server
@@ -207,8 +194,9 @@ void TrexRpcServerReqRes::_stop_rpc_thread() {
 void TrexRpcServerReqRes::handle_request(const std::string &request) {
     std::string response;
 
-    if ( request.size() > MAX_RPC_MSG_LEN ) {
-        std::string err_msg = "Request is too large (" + std::to_string(request.size()) + " bytes). Consider splitting to smaller chunks.";
+    if (request.size() > MAX_RPC_MSG_LEN) {
+        std::string err_msg = "Request is too large (" + std::to_string(request.size()) +
+                              " bytes). Consider splitting to smaller chunks.";
         TrexJsonRpcV2Parser::generate_common_error(response, err_msg);
     } else {
         process_request(request, response);
@@ -224,7 +212,6 @@ void TrexRpcServerReqRes::process_request(const std::string &request, std::strin
     } else {
         process_request_raw(request, response);
     }
-
 }
 
 /**
@@ -251,7 +238,7 @@ void TrexRpcServerReqRes::process_request_raw(const std::string &request, std::s
         Json::Value single_response;
 
 #ifndef TREX_SIM
-        m_monitor.disable();    // to avoid watchdog during lock waiting
+        m_monitor.disable(); // to avoid watchdog during lock waiting
 #endif
         /* the command itself should be protected */
         std::unique_lock<std::recursive_mutex> lock(*m_lock);
@@ -267,19 +254,18 @@ void TrexRpcServerReqRes::process_request_raw(const std::string &request, std::s
 
         /* batch is like getting all the messages one by one - it should not be considered as stuck thread */
         /* need to think if this is a good thing */
-        //m_monitor.tickle();
+        // m_monitor.tickle();
     }
 
     /* write the JSON to string and sever on ZMQ */
 
     if (index == 1) {
-      response = writer.write(response_json[0]);
+        response = writer.write(response_json[0]);
     } else {
-      response = writer.write(response_json);
+        response = writer.write(response_json);
     }
 
     verbose_json("Server Replied:  ", response);
-
 }
 
 void TrexRpcServerReqRes::process_zipped_request(const std::string &request, std::string &response) {
@@ -293,23 +279,22 @@ void TrexRpcServerReqRes::process_zipped_request(const std::string &request, std
 
     /* process the request */
     std::string raw_response;
-    if ( unzipped.size() > MAX_RPC_MSG_LEN ) {
-        std::string err_msg = "Request is too large (" + std::to_string(unzipped.size()) + " bytes). Consider splitting to smaller chunks.";
+    if (unzipped.size() > MAX_RPC_MSG_LEN) {
+        std::string err_msg = "Request is too large (" + std::to_string(unzipped.size()) +
+                              " bytes). Consider splitting to smaller chunks.";
         TrexJsonRpcV2Parser::generate_common_error(raw_response, err_msg);
     } else {
         process_request_raw(unzipped, raw_response);
     }
 
     TrexRpcZip::compress(raw_response, response);
-
 }
 
 /**
  * handles a server error
  *
  */
-void
-TrexRpcServerReqRes::handle_server_error(const std::string &specific_err) {
+void TrexRpcServerReqRes::handle_server_error(const std::string &specific_err) {
     std::string response;
 
     /* generate error */
@@ -320,14 +305,10 @@ TrexRpcServerReqRes::handle_server_error(const std::string &specific_err) {
     zmq_send(m_socket, response.c_str(), response.size(), 0);
 }
 
-
-
-std::string
-TrexRpcServerReqRes::test_inject_request(const std::string &req) {
+std::string TrexRpcServerReqRes::test_inject_request(const std::string &req) {
     std::string response;
 
     process_request(req, response);
 
     return response;
 }
-

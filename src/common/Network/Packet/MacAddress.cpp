@@ -16,9 +16,4 @@ limitations under the License.
 
 #include "MacAddress.h"
 
-
-void    MacAddress::dump(FILE *fd) const
-{
-
-}
-
+void MacAddress::dump(FILE *fd) const {}

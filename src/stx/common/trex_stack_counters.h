@@ -27,10 +27,9 @@
 #include "utl_counter.h"
 #include "utl_dbl_human.h"
 
-
 class CRxCounters {
 
-public:
+  public:
     enum {
         /* TX/RX */
         CNT_RX,
@@ -53,34 +52,28 @@ public:
         CNT_UMB_TYPE,
     };
 
-
     bool Create();
     void Delete();
 
     void clear_counters();
     void dump();
-    void dump_meta(std::string name,
-                   Json::Value & json);
+    void dump_meta(std::string name, Json::Value &json);
 
-    void dump_values(std::string name,
-                     bool zeros,
-                     Json::Value & obj);
+    void dump_values(std::string name, bool zeros, Json::Value &obj);
 
-public:
-    uint64_t            m_gen_cnt[CNT_RX_TX_SIZE][CNT_TYPE][CNT_UMB_TYPE];
-    uint64_t            m_tx_err_small_pkt;
-    uint64_t            m_tx_err_big_9k;
-    uint64_t            m_rx_err_invalid_pkt;
-    uint64_t            m_rx_bcast_filtered;
-    uint64_t            m_rx_mcast_filtered;
+  public:
+    uint64_t m_gen_cnt[CNT_RX_TX_SIZE][CNT_TYPE][CNT_UMB_TYPE];
+    uint64_t m_tx_err_small_pkt;
+    uint64_t m_tx_err_big_9k;
+    uint64_t m_rx_err_invalid_pkt;
+    uint64_t m_rx_bcast_filtered;
+    uint64_t m_rx_mcast_filtered;
 
-    CPPSMeasure         m_rx_pps;
-    CPPSMeasure         m_tx_pps;
+    CPPSMeasure m_rx_pps;
+    CPPSMeasure m_tx_pps;
 
-    CGTblClmCounters    m_clm; /* utility for dump */
-    CTblGCounters       m_tbl;
+    CGTblClmCounters m_clm; /* utility for dump */
+    CTblGCounters m_tbl;
 };
-
-
 
 #endif /* __TREX_STACK_COUNTERS_H__ */

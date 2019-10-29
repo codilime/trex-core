@@ -21,75 +21,59 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 #include <string>
 
-#define _1MB_DOUBLE ((double)(1024.0*1024.0))
-#define _1GB_DOUBLE ((double)(1024.0*1024.0*1024.0))
+#define _1MB_DOUBLE ((double)(1024.0 * 1024.0))
+#define _1GB_DOUBLE ((double)(1024.0 * 1024.0 * 1024.0))
 
-#define _1Mb_DOUBLE ((double)(1000.0*1000.0))
+#define _1Mb_DOUBLE ((double)(1000.0 * 1000.0))
 
-#define _1MB ((1024*1024)ULL)
+#define _1MB ((1024 * 1024) ULL)
 #define _1GB 1000000000ULL
-#define _500GB (_1GB*500)
+#define _500GB (_1GB * 500)
 
+typedef enum { KBYE_1024, KBYE_1000 } human_kbyte_t;
 
-typedef enum {
-    KBYE_1024,
-    KBYE_1000
-} human_kbyte_t;
-
-std::string double_to_human_str(double num,
-                                std::string units,
-                                human_kbyte_t etype);
-
+std::string double_to_human_str(double num, std::string units, human_kbyte_t etype);
 
 class CPPSMeasure {
-public:
-    CPPSMeasure(){
-        reset();
-    }
-    //reset
+  public:
+    CPPSMeasure() { reset(); }
+    // reset
     void reset(void);
-    //add packet size
+    // add packet size
     float add(uint64_t pkts);
 
     void start(uint32_t time_msec);
 
-private:
-    float calc_pps(uint32_t dtime_msec,
-                   uint32_t pkts);
+  private:
+    float calc_pps(uint32_t dtime_msec, uint32_t pkts);
 
-public:
-   bool      m_start;
-   uint32_t  m_last_time_msec;
-   uint64_t  m_last_pkts;
-   float     m_last_result;
+  public:
+    bool m_start;
+    uint32_t m_last_time_msec;
+    uint64_t m_last_pkts;
+    float m_last_result;
 };
 
-
-
 class CBwMeasure {
-public:
+  public:
     CBwMeasure();
-    //reset
+    // reset
     void reset(void);
-    //add packet size
+    // add packet size
     double add(uint64_t size);
 
     void start(uint32_t time_msec);
 
-private:
-    double calc_MBsec(uint32_t dtime_msec,
-                     uint64_t dbytes);
+  private:
+    double calc_MBsec(uint32_t dtime_msec, uint64_t dbytes);
 
-public:
-   bool      m_start;
-   uint32_t  m_last_time_msec;
-   uint64_t  m_last_bytes;
-   double    m_last_result;
+  public:
+    bool m_start;
+    uint32_t m_last_time_msec;
+    uint64_t m_last_bytes;
+    double m_last_result;
 };
-
-
 
 #endif

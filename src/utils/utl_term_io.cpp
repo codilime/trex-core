@@ -28,23 +28,16 @@ limitations under the License.
 #include <inttypes.h>
 #include <fcntl.h>
 
-static  struct termios oldterm;
+static struct termios oldterm;
 struct termios orig_termios;
 
-static void exit_handler1(void){
-    tcsetattr(fileno(stdin), TCSANOW, &oldterm);
-}
+static void exit_handler1(void) { tcsetattr(fileno(stdin), TCSANOW, &oldterm); }
 
-static void save_termio(void){
-    tcgetattr(0, &oldterm);
-}
+static void save_termio(void) { tcgetattr(0, &oldterm); }
 
+void reset_terminal_mode(void) { tcsetattr(0, TCSANOW, &orig_termios); }
 
-void reset_terminal_mode(void){
-    tcsetattr(0, TCSANOW, &orig_termios);
-}
-
-static void set_conio_terminal_mode(void){
+static void set_conio_terminal_mode(void) {
 
     struct termios oldterm, term;
 
@@ -56,14 +49,14 @@ static void set_conio_terminal_mode(void){
 }
 
 static int kbhit(void) {
-    struct timeval tv = { 0L, 0L };
+    struct timeval tv = {0L, 0L};
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(0, &fds);
     return select(1, &fds, NULL, NULL, &tv);
 }
 
-static int getch(void){
+static int getch(void) {
     int r;
     unsigned char c;
     if ((r = read(0, &c, sizeof(c))) < 0) {
@@ -73,8 +66,7 @@ static int getch(void){
     }
 }
 
-
-int utl_termio_init(){
+int utl_termio_init() {
     atexit(exit_handler1);
     save_termio();
     set_conio_terminal_mode();
@@ -88,18 +80,15 @@ int utl_termio_init(){
     return (0);
 }
 
-
-int utl_termio_try_getch(void){
-    if ( kbhit() ){
+int utl_termio_try_getch(void) {
+    if (kbhit()) {
         return (getch());
-    }else{
+    } else {
         return (0);
     }
 }
 
-int utl_termio_reset(void){
+int utl_termio_reset(void) {
     tcsetattr(fileno(stdin), TCSANOW, &oldterm);
     return (0);
 }
-
-

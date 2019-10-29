@@ -18,36 +18,36 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 */
-#ifndef  NAT_CHECK_FLOW_TABLE_H
-#define  NAT_CHECK_FLOW_TABLE_H
+#ifndef NAT_CHECK_FLOW_TABLE_H
+#define NAT_CHECK_FLOW_TABLE_H
 #include <map>
 
 class CNatData;
 class CNatCheckFlowTableList;
 
-typedef std::map<uint64_t, CNatData *, std::less<uint64_t> > nat_check_flow_map_t;
+typedef std::map<uint64_t, CNatData *, std::less<uint64_t>> nat_check_flow_map_t;
 typedef nat_check_flow_map_t::const_iterator nat_check_flow_map_iter_t;
 typedef nat_check_flow_map_t::iterator nat_check_flow_map_iter_no_const_t;
 
 // One element of list and map
 class CNatData {
     friend class CNatCheckFlowTableList; // access m_next and m_prev
-    friend std::ostream& operator<<(std::ostream& os, const CNatCheckFlowTableList& cf);
-    friend std::ostream& operator<<(std::ostream& os, const CNatData &cn);
+    friend std::ostream &operator<<(std::ostream &os, const CNatCheckFlowTableList &cf);
+    friend std::ostream &operator<<(std::ostream &os, const CNatData &cn);
 
- public:
-    uint32_t get_data() {return m_data;}
-    void set_data(uint32_t val) {m_data = val;}
-    uint32_t get_key() {return m_key;}
-    void set_key(uint32_t val) {m_key = val;}
-    double get_timestamp() {return m_timestamp;}
-    void set_timestamp(double val) {m_timestamp = val;}
+  public:
+    uint32_t get_data() { return m_data; }
+    void set_data(uint32_t val) { m_data = val; }
+    uint32_t get_key() { return m_key; }
+    void set_key(uint32_t val) { m_key = val; }
+    double get_timestamp() { return m_timestamp; }
+    void set_timestamp(double val) { m_timestamp = val; }
     CNatData() {
         m_next = NULL;
         m_prev = NULL;
     }
 
- private:
+  private:
     double m_timestamp;
     uint64_t m_key;
     CNatData *m_prev;
@@ -55,30 +55,30 @@ class CNatData {
     uint32_t m_data;
 };
 
-class CNatCheckFlowTableMap   {
+class CNatCheckFlowTableMap {
     friend class CNatCheckFlowTable;
-    friend std::ostream& operator<<(std::ostream& os, const CNatCheckFlowTableMap& cf);
+    friend std::ostream &operator<<(std::ostream &os, const CNatCheckFlowTableMap &cf);
 
- private:
-    void clear(void) {m_map.clear();}
+  private:
+    void clear(void) { m_map.clear(); }
     CNatData *erase(uint64_t key);
     bool find(uint64_t key, uint32_t &val);
     CNatData *insert(uint64_t key, uint32_t val, double time);
     bool verify(uint32_t *arr, int size);
-    uint64_t size(void) {return m_map.size();}
+    uint64_t size(void) { return m_map.size(); }
 
- private:
+  private:
     nat_check_flow_map_t m_map;
 };
 
-class CNatCheckFlowTableList   {
+class CNatCheckFlowTableList {
     friend class CNatCheckFlowTable;
-    friend std::ostream& operator<<(std::ostream& os, const CNatCheckFlowTableList& cf);
+    friend std::ostream &operator<<(std::ostream &os, const CNatCheckFlowTableList &cf);
 
- private:
+  private:
     void dump_short(FILE *fd);
     void erase(CNatData *data);
-    CNatData *get_head() {return m_head;}
+    CNatData *get_head() { return m_head; }
     void insert(CNatData *data);
     bool verify(uint32_t *arr, int size);
 
@@ -87,15 +87,15 @@ class CNatCheckFlowTableList   {
         m_tail = NULL;
     }
 
- private:
+  private:
     CNatData *m_head;
     CNatData *m_tail;
 };
 
 class CNatCheckFlowTable {
-    friend std::ostream& operator<<(std::ostream& os, const CNatCheckFlowTable& cf);
+    friend std::ostream &operator<<(std::ostream &os, const CNatCheckFlowTable &cf);
 
- public:
+  public:
     ~CNatCheckFlowTable();
     void clear_old(double time);
     void dump(FILE *fd);
@@ -103,7 +103,7 @@ class CNatCheckFlowTable {
     bool insert(uint64_t key, uint32_t val, double time);
     bool test();
 
- private:
+  private:
     CNatCheckFlowTableMap m_map;
     CNatCheckFlowTableList m_list;
 };

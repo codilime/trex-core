@@ -36,9 +36,8 @@ limitations under the License.
  */
 class TrexRpcCommandsTable {
 
-public:
-
-    static TrexRpcCommandsTable& get_instance() {
+  public:
+    static TrexRpcCommandsTable &get_instance() {
         static TrexRpcCommandsTable instance;
         return instance;
     }
@@ -73,7 +72,7 @@ public:
      * lookup for a command
      *
      */
-    TrexRpcCommand * lookup(const std::string &method_name);
+    TrexRpcCommand *lookup(const std::string &method_name);
 
     /**
      * query all commands registered
@@ -81,15 +80,12 @@ public:
      */
     void query(std::vector<std::string> &cmds);
 
-
     /**
      * returns the config name
      */
-    const std::string & get_config_name() const {
-        return m_api_ver.get_name();
-    }
+    const std::string &get_config_name() const { return m_api_ver.get_name(); }
 
-private:
+  private:
     TrexRpcCommandsTable();
     ~TrexRpcCommandsTable();
 
@@ -100,9 +96,8 @@ private:
     void reset();
 
     /* c++ 2011 style singleton */
-    TrexRpcCommandsTable(TrexRpcCommandsTable const&)  = delete;
-    void operator=(TrexRpcCommandsTable const&)        = delete;
-
+    TrexRpcCommandsTable(TrexRpcCommandsTable const &) = delete;
+    void operator=(TrexRpcCommandsTable const &) = delete;
 
     /**
      * holds all the loaded RPC components
@@ -116,8 +111,8 @@ private:
      */
     std::unordered_map<std::string, TrexRpcCommand *> m_rpc_cmd_table;
 
-    TrexRpcAPIVersion   m_api_ver;
-    bool                m_is_init;
+    TrexRpcAPIVersion m_api_ver;
+    bool m_is_init;
 };
 
 #endif /* __TREX_RPC_CMDS_TABLE_H__ */

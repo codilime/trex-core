@@ -31,7 +31,6 @@ limitations under the License.
 #include "bp_sim.h"
 #include "stx/astf/trex_astf_topo.h"
 
-
 void ClientCfgDirBase::dump(FILE *fd) const {
     if (has_src_mac_addr()) {
         fprintf(fd, "        src_mac: %s\n", utl_macaddr_to_str(m_src_mac.GetConstBuffer()).c_str());
@@ -102,13 +101,13 @@ void ClientCfgDirExt::set_resolved_macs(CManyIPInfo *pretest_result, uint16_t co
 
     for (int i = 0; i < count; i++) {
         if (need_resolve()) {
-            if ( !pretest_result ) {
-                fprintf(stderr, "Failed resolving ip:%x, vlan:%d - exiting\n", m_next_hop+i, vlan);
+            if (!pretest_result) {
+                fprintf(stderr, "Failed resolving ip:%x, vlan:%d - exiting\n", m_next_hop + i, vlan);
                 exit(1);
             }
             if (has_next_hop()) {
                 if (!pretest_result->lookup(m_next_hop + i, vlan, m_resolved_macs[i])) {
-                    fprintf(stderr, "Failed resolving ip:%x, vlan:%d - exiting\n", m_next_hop+i, vlan);
+                    fprintf(stderr, "Failed resolving ip:%x, vlan:%d - exiting\n", m_next_hop + i, vlan);
                     exit(1);
                 }
             } else {
@@ -128,16 +127,14 @@ void ClientCfgBase::update(uint32_t index, const ClientCfgExt *cfg) {
     m_is_set = true;
 }
 
-
-void
-ClientCfgBase::apply(rte_mbuf_t *m, pkt_dir_t dir) const {
+void ClientCfgBase::apply(rte_mbuf_t *m, pkt_dir_t dir) const {
 
     assert(m_is_set);
 
     uint8_t *p = rte_pktmbuf_mtod(m, uint8_t *);
 
     /* take the right direction config */
-    const ClientCfgDirBase &cfg_dir = ( (dir == CLIENT_SIDE) ? m_initiator : m_responder);
+    const ClientCfgDirBase &cfg_dir = ((dir == CLIENT_SIDE) ? m_initiator : m_responder);
 
     /* dst mac */
     if (cfg_dir.has_dst_mac_addr()) {
@@ -155,9 +152,7 @@ ClientCfgBase::apply(rte_mbuf_t *m, pkt_dir_t dir) const {
     }
 }
 
-
-void
-ClientCfgEntry::dump(FILE *fd) const {
+void ClientCfgEntry::dump(FILE *fd) const {
 
     fprintf(fd, "-   ip_start : %s\n", ip_to_str(m_ip_start).c_str());
     fprintf(fd, "    ip_end   : %s\n", ip_to_str(m_ip_end).c_str());
@@ -199,17 +194,14 @@ void ClientCfgCompactEntry::fill_from_dir(ClientCfgDirExt cfg, uint8_t port_id) 
 
 ClientCfgDB::ClientCfgDB() {
     m_cache_group = NULL;
-    m_under_vlan  = false;
+    m_under_vlan = false;
     m_tg = NULL;
 }
 
-ClientCfgDB::~ClientCfgDB() {
-    clear();
-}
+ClientCfgDB::~ClientCfgDB() { clear(); }
 
-void
-ClientCfgDB::dump(FILE *fd) {
-    //fprintf(fd, "#**********Client config file start*********\n");
+void ClientCfgDB::dump(FILE *fd) {
+    // fprintf(fd, "#**********Client config file start*********\n");
     fprintf(fd, "vlan: %s\n", m_under_vlan ? "true" : "false");
     fprintf(fd, "groups:\n");
 
@@ -217,12 +209,10 @@ ClientCfgDB::dump(FILE *fd) {
         fprintf(fd, "# ****%s:****\n", ip_to_str(it->first).c_str());
         ((ClientCfgEntry)it->second).dump(fd);
     }
-    //fprintf(fd, "#**********Client config end*********\n");
+    // fprintf(fd, "#**********Client config end*********\n");
 }
 
-void ClientCfgDB::clear() {
-    m_groups.clear();
-}
+void ClientCfgDB::clear() { m_groups.clear(); }
 
 void ClientCfgDB::set_resolved_macs(CManyIPInfo *pretest_result) {
     for (auto &iter : m_groups) {
@@ -239,10 +229,10 @@ void ClientCfgDB::get_entry_list(std::vector<ClientCfgCompactEntry *> &ret) {
         if (cfg.m_cfg.m_initiator.need_resolve() || cfg.m_cfg.m_responder.need_resolve()) {
             assert(m_tg != NULL);
             result = m_tg->find_port(cfg.m_ip_start, cfg.m_ip_end, port);
-            if (! result) {
-                fprintf(stderr, "Error in client config range %s - %s.\n"
-                        , ip_to_str(cfg.m_ip_start).c_str(), ip_to_str(cfg.m_ip_end).c_str());
-                    exit(-1);
+            if (!result) {
+                fprintf(stderr, "Error in client config range %s - %s.\n", ip_to_str(cfg.m_ip_start).c_str(),
+                        ip_to_str(cfg.m_ip_end).c_str());
+                exit(-1);
             }
             if (port == UINT8_MAX) {
                 // if port not found, it means this adderss is not needed. Don't try to resolve.
@@ -274,8 +264,7 @@ void ClientCfgDB::get_entry_list(std::vector<ClientCfgCompactEntry *> &ret) {
  * the client groups configuration
  *
  */
-void
-ClientCfgDB::load_yaml_file(const std::string &filename) {
+void ClientCfgDB::load_yaml_file(const std::string &filename) {
     std::stringstream ss;
 
     m_groups.clear();
@@ -298,10 +287,9 @@ ClientCfgDB::load_yaml_file(const std::string &filename) {
 
     std::string err = "";
     verify(err);
-    if ( err.size() ) {
+    if (err.size()) {
         parser.parse_err(err);
     }
-
 }
 
 void ClientCfgDB::load_from_topo(const TopoMngr *topomngr) {
@@ -314,33 +302,33 @@ void ClientCfgDB::load_from_topo(const TopoMngr *topomngr) {
     bool rc;
     uint16_t vlan;
 
-    for (uint8_t trex_port = 0; trex_port < TREX_MAX_PORTS; trex_port+=2) {
+    for (uint8_t trex_port = 0; trex_port < TREX_MAX_PORTS; trex_port += 2) {
         for (auto &iter_pair : topo_per_port[trex_port]) {
             const TopoVIF &vif = iter_pair.second;
             for (auto gw : vif.m_gws) {
                 ClientCfgEntry group;
 
                 rc = utl_ipv4_to_uint32(gw.get_start().c_str(), group.m_ip_start);
-                if ( !rc ) {
+                if (!rc) {
                     build_err("GW has invalid start of IP range: " + gw.get_start());
                 }
 
                 rc = utl_ipv4_to_uint32(gw.get_end().c_str(), group.m_ip_end);
-                if ( !rc ) {
+                if (!rc) {
                     build_err("GW has invalid end of IP range: " + gw.get_end());
                 }
 
-                if ( group.m_ip_start > group.m_ip_end ) {
+                if (group.m_ip_start > group.m_ip_end) {
                     build_err("GW start of IP range: " + gw.get_start() + " is greater than end: " + gw.get_end());
                 }
 
                 group.m_count = 1;
 
                 ClientCfgDirExt &cdir = group.m_cfg.m_initiator;
-                if ( iter_pair.first ) { // sub_if
+                if (iter_pair.first) { // sub_if
                     uint64_t src_mac;
                     rc = mac2uint64(vif.get_src_mac(), src_mac);
-                    if ( !rc ) {
+                    if (!rc) {
                         build_err("VIF has invalid MAC: " + vif.get_src_mac());
                     }
 
@@ -350,25 +338,25 @@ void ClientCfgDB::load_from_topo(const TopoMngr *topomngr) {
                     vlan = CGlobalInfo::m_options.m_ip_cfg[trex_port].get_vlan();
                 }
 
-                if ( vlan ) {
+                if (vlan) {
                     cdir.set_vlan(vlan);
                 }
 
                 uint64_t dst_mac;
                 rc = mac2uint64(gw.get_dst_mac(), dst_mac);
-                if ( !rc ) {
+                if (!rc) {
                     build_err("GW has invalid MAC: " + gw.get_dst_mac());
                 }
                 cdir.set_dst_mac_addr(dst_mac);
 
-                //group.dump(stdout);
+                // group.dump(stdout);
                 m_groups[group.m_ip_start] = group;
             }
         }
     }
 
     verify(err);
-    if ( err.size() ) {
+    if (err.size()) {
         build_err(err);
     }
 
@@ -379,8 +367,7 @@ void ClientCfgDB::load_from_topo(const TopoMngr *topomngr) {
  * reads a single group of clients from YAML
  *
  */
-void
-ClientCfgDB::parse_single_group(YAMLParserWrapper &parser, const YAML::Node &node) {
+void ClientCfgDB::parse_single_group(YAMLParserWrapper &parser, const YAML::Node &node) {
     ClientCfgEntry group;
 
     /* ip_start */
@@ -400,16 +387,13 @@ ClientCfgDB::parse_single_group(YAMLParserWrapper &parser, const YAML::Node &nod
     parse_dir(parser, init, group.m_cfg.m_initiator);
     parse_dir(parser, resp, group.m_cfg.m_responder);
 
-
     group.m_count = parser.parse_uint(node, "count", 0, UINT64_MAX, 1);
 
     /* add to map with copying */
     m_groups[group.m_ip_start] = group;
-
 }
 
-void
-ClientCfgDB::parse_dir(YAMLParserWrapper &parser, const YAML::Node &node, ClientCfgDirExt &dir) {
+void ClientCfgDB::parse_dir(YAMLParserWrapper &parser, const YAML::Node &node, ClientCfgDirExt &dir) {
     if (node.FindValue("src_ip")) {
         dir.set_src_ip(parser.parse_ip(node, "src_ip"));
     }
@@ -453,7 +437,6 @@ ClientCfgDB::parse_dir(YAMLParserWrapper &parser, const YAML::Node &node, Client
     if (dir.has_next_hop() && dir.has_ipv6_next_hop()) {
         parser.parse_err("Should not configure both next_hop and ipv6_next_hop", node);
     }
-
 }
 
 /**
@@ -461,8 +444,7 @@ ClientCfgDB::parse_dir(YAMLParserWrapper &parser, const YAML::Node &node, Client
  *
  * @author imarom (28-Jun-16)
  */
-void
-ClientCfgDB::verify(std::string &err) const {
+void ClientCfgDB::verify(std::string &err) const {
     uint32_t monotonic = 0;
 
     /* check that no interval overlaps */
@@ -471,8 +453,9 @@ ClientCfgDB::verify(std::string &err) const {
     for (const auto &p : m_groups) {
         const ClientCfgEntry &group = p.second;
 
-        if ( (monotonic > 0 ) && (group.m_ip_start <= monotonic) ) {
-            err = "IP '" + ip_to_str(group.m_ip_start) + "' - '" + ip_to_str(group.m_ip_end) + "' overlaps with other groups";
+        if ((monotonic > 0) && (group.m_ip_start <= monotonic)) {
+            err = "IP '" + ip_to_str(group.m_ip_start) + "' - '" + ip_to_str(group.m_ip_end) +
+                  "' overlaps with other groups";
             return;
         }
 
@@ -485,18 +468,17 @@ ClientCfgDB::verify(std::string &err) const {
  * should be fast
  *
  */
-ClientCfgEntry *
-ClientCfgDB::lookup(uint32_t ip) {
+ClientCfgEntry *ClientCfgDB::lookup(uint32_t ip) {
 
     /* a cache to avoid constant search (usually its a range of IPs) */
-    if ( (m_cache_group) && (m_cache_group->contains(ip)) ) {
+    if ((m_cache_group) && (m_cache_group->contains(ip))) {
         return m_cache_group;
     }
 
     /* clear the cache pointer */
     m_cache_group = NULL;
 
-    std::map<uint32_t ,ClientCfgEntry>::iterator it;
+    std::map<uint32_t, ClientCfgEntry>::iterator it;
 
     /* upper bound fetchs the first greater element */
     it = m_groups.upper_bound(ip);
@@ -510,7 +492,7 @@ ClientCfgDB::lookup(uint32_t ip) {
     it--;
 
     ClientCfgEntry &group = (*it).second;
-    if (! group.m_cfg.m_initiator.can_be_used()) {
+    if (!group.m_cfg.m_initiator.can_be_used()) {
         fprintf(stderr, "There is some client configuration related error\n");
         fprintf(stderr, "Please check that ip_generator ip range and client_cfg ip_range match\n");
         fprintf(stderr, "Problem is with following group:\n");
@@ -531,7 +513,6 @@ ClientCfgDB::lookup(uint32_t ip) {
     } else {
         return NULL;
     }
-
 }
 
 /**
@@ -543,8 +524,7 @@ ClientCfgDB::lookup(uint32_t ip) {
  *
  * @return ClientCfgEntry*
  */
-ClientCfgEntry *
-ClientCfgDB::lookup(const std::string &ip) {
+ClientCfgEntry *ClientCfgDB::lookup(const std::string &ip) {
     uint32_t addr = (uint32_t)inet_addr(ip.c_str());
     addr = PKT_NTOHL(addr);
 

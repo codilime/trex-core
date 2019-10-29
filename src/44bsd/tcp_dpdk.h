@@ -24,16 +24,11 @@ limitations under the License.
 
 #include "mbuf.h"
 
-
 /* allocate 64B byte mbuf  */
-rte_mbuf_t   * tcp_pktmbuf_alloc_small(uint8_t socket);
+rte_mbuf_t *tcp_pktmbuf_alloc_small(uint8_t socket);
 
-rte_mbuf_t   * tcp_pktmbuf_alloc(uint8_t socket,uint16_t size);
+rte_mbuf_t *tcp_pktmbuf_alloc(uint8_t socket, uint16_t size);
 
-rte_mempool_t *  tcp_pktmbuf_get_pool(uint8_t socket,uint16_t size);
-
-
+rte_mempool_t *tcp_pktmbuf_get_pool(uint8_t socket, uint16_t size);
 
 #endif
-
-

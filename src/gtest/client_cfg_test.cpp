@@ -26,21 +26,19 @@ limitations under the License.
 #include "bp_gtest.h"
 
 class client_cfg : public trexStfTest {
-    protected:
-     virtual void SetUp() {
-     }
-     virtual void TearDown() {
-     }
-   public:
+  protected:
+    virtual void SetUp() {}
+    virtual void TearDown() {}
+
+  public:
 };
 
 class basic_client_cfg : public trexStfTest {
-    protected:
-     virtual void SetUp() {
-     }
-     virtual void TearDown() {
-     }
-   public:
+  protected:
+    virtual void SetUp() {}
+    virtual void TearDown() {}
+
+  public:
 };
 
 // testing IP resolution relevant classes
@@ -91,14 +89,12 @@ TEST_F(basic_client_cfg, test1) {
     cfg_db.set_vlan(true);
     cfg_db.add_group(ip_start, cfg_ent);
 
-    //second group
-    cfg_ent.set_params(ip_start + dual_if_mask, ip_end + dual_if_mask
-                       , test_count);
+    // second group
+    cfg_ent.set_params(ip_start + dual_if_mask, ip_end + dual_if_mask, test_count);
     cfg_db.add_group(ip_start + dual_if_mask, cfg_ent);
 
     // third group
-    cfg_ent.set_params(ip_start + 2 * dual_if_mask, ip_end + 2 * dual_if_mask
-                       , test_count);
+    cfg_ent.set_params(ip_start + 2 * dual_if_mask, ip_end + 2 * dual_if_mask, test_count);
     cfg_db.add_group(ip_start + dual_if_mask * 2, cfg_ent);
 
     cfg_db.dump(fd);
@@ -107,20 +103,18 @@ TEST_F(basic_client_cfg, test1) {
     test_db.set_tuple_gen_info(&tg_yam_info);
     test_db.get_entry_list(ent_list);
 
-
     // We expect ports for first two groups to be found.
     // This group addresses should not appear in the list, since
     // we simulate system with only 4 ports
     int i = 0;
-    for (std::vector<ClientCfgCompactEntry *>::iterator
-             it = ent_list.begin(); it != ent_list.end(); it++) {
+    for (std::vector<ClientCfgCompactEntry *>::iterator it = ent_list.begin(); it != ent_list.end(); it++) {
         uint8_t port = (*it)->get_port();
         uint16_t vlan = (*it)->get_vlan();
         uint32_t count = (*it)->get_count();
         uint32_t dst_ip = (*it)->get_dst_ip();
 
         assert(count == test_count);
-        switch(i) {
+        switch (i) {
         case 0:
         case 2:
             assert(port == i);
@@ -165,42 +159,33 @@ TEST_F(basic_client_cfg, test1) {
     ClientCfgEntry *ent0 = test_db.lookup(ip_start);
     ClientCfgEntry *ent1 = test_db.lookup(ip_start + dual_if_mask);
 
-    assert (ent0 != NULL);
+    assert(ent0 != NULL);
 
     ent0->assign(cfg0, ip_start);
-    assert (!memcmp(cfg0.m_initiator.get_dst_mac_addr()
-                    , mac0.GetConstBuffer(), ETHER_ADDR_LEN));
+    assert(!memcmp(cfg0.m_initiator.get_dst_mac_addr(), mac0.GetConstBuffer(), ETHER_ADDR_LEN));
 
     ent0->assign(cfg0, ip_start + 1);
-    assert (!memcmp(cfg0.m_initiator.get_dst_mac_addr()
-                    , mac1.GetConstBuffer(), ETHER_ADDR_LEN));
+    assert(!memcmp(cfg0.m_initiator.get_dst_mac_addr(), mac1.GetConstBuffer(), ETHER_ADDR_LEN));
 
     ent0->assign(cfg0, ip_start + 2);
-    assert (!memcmp(cfg0.m_responder.get_dst_mac_addr()
-                    , mac2.GetConstBuffer(), ETHER_ADDR_LEN));
+    assert(!memcmp(cfg0.m_responder.get_dst_mac_addr(), mac2.GetConstBuffer(), ETHER_ADDR_LEN));
 
     ent0->assign(cfg0, ip_start + 3);
-    assert (!memcmp(cfg0.m_responder.get_dst_mac_addr()
-                    , mac3.GetConstBuffer(), ETHER_ADDR_LEN));
+    assert(!memcmp(cfg0.m_responder.get_dst_mac_addr(), mac3.GetConstBuffer(), ETHER_ADDR_LEN));
 
     assert(ent1 != NULL);
 
     ent1->assign(cfg0, ip_start + dual_if_mask);
-    assert (!memcmp(cfg0.m_initiator.get_dst_mac_addr()
-                    , mac0.GetConstBuffer(), ETHER_ADDR_LEN));
+    assert(!memcmp(cfg0.m_initiator.get_dst_mac_addr(), mac0.GetConstBuffer(), ETHER_ADDR_LEN));
 
     ent1->assign(cfg0, ip_start + dual_if_mask + 1);
-    assert (!memcmp(cfg0.m_initiator.get_dst_mac_addr()
-                    , mac1.GetConstBuffer(), ETHER_ADDR_LEN));
+    assert(!memcmp(cfg0.m_initiator.get_dst_mac_addr(), mac1.GetConstBuffer(), ETHER_ADDR_LEN));
 
     ent1->assign(cfg0, ip_start + dual_if_mask + 2);
-    assert (!memcmp(cfg0.m_responder.get_dst_mac_addr()
-                    , mac2.GetConstBuffer(), ETHER_ADDR_LEN));
+    assert(!memcmp(cfg0.m_responder.get_dst_mac_addr(), mac2.GetConstBuffer(), ETHER_ADDR_LEN));
 
     ent1->assign(cfg0, ip_start + dual_if_mask + 3);
-    assert (!memcmp(cfg0.m_responder.get_dst_mac_addr()
-                    , mac3.GetConstBuffer(), ETHER_ADDR_LEN));
-
+    assert(!memcmp(cfg0.m_responder.get_dst_mac_addr(), mac3.GetConstBuffer(), ETHER_ADDR_LEN));
 }
 
 // simulation testing of MAC based client config
@@ -208,7 +193,7 @@ TEST_F(basic_client_cfg, test1) {
 // should not start with basic_
 TEST_F(client_cfg, test2) {
     CTestBasic t1;
-    CParserOption * po =&CGlobalInfo::m_options;
+    CParserOption *po = &CGlobalInfo::m_options;
 
     po->reset();
     po->preview.setVMode(3);
@@ -219,5 +204,5 @@ TEST_F(client_cfg, test2) {
 
     bool res = t1.init();
 
-    EXPECT_EQ_UINT32(1, res?1:0)<< "pass";
+    EXPECT_EQ_UINT32(1, res ? 1 : 0) << "pass";
 }

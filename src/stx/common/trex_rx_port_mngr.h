@@ -40,19 +40,17 @@ enum rx_pkt_action_t {
     RX_PKT_FREE,
 };
 
-
 class RxAstfLatency {
-public:
-
+  public:
     RxAstfLatency();
 
-    void create(CRxCore *rx_core,uint8_t port_id);
+    void create(CRxCore *rx_core, uint8_t port_id);
 
     void handle_pkt(const rte_mbuf_t *m);
 
-private:
-    CRxCore * m_rx_core;
-    uint8_t   m_port_id;
+  private:
+    CRxCore *m_rx_core;
+    uint8_t m_port_id;
 };
 
 /**************************************
@@ -61,14 +59,10 @@ private:
  *************************************/
 
 class RXQueue {
-public:
-    RXQueue() {
-        m_pkt_buffer = nullptr;
-    }
+  public:
+    RXQueue() { m_pkt_buffer = nullptr; }
 
-    ~RXQueue() {
-        stop();
-    }
+    ~RXQueue() { stop(); }
 
     /**
      * start RX queue
@@ -80,7 +74,7 @@ public:
      * fetch the current buffer
      * return NULL if no packets
      */
-    const TrexPktBuffer * fetch();
+    const TrexPktBuffer *fetch();
 
     /**
      * stop RX queue
@@ -92,21 +86,17 @@ public:
 
     Json::Value to_json() const;
 
-private:
-    TrexPktBuffer  *m_pkt_buffer;
+  private:
+    TrexPktBuffer *m_pkt_buffer;
 };
-
 
 /****************************************************************************
  * RX capture port (redirect packet matching a BPF filter to a ZeroMQ socket)
  ****************************************************************************/
 typedef int32_t capture_id_t;
 class RXCapturePort {
-public:
-
-    RXCapturePort() : m_api(NULL), m_bpf_filter(NULL),
-                      m_zeromq_ctx(NULL), m_zeromq_socket(NULL) {
-    }
+  public:
+    RXCapturePort() : m_api(NULL), m_bpf_filter(NULL), m_zeromq_ctx(NULL), m_zeromq_socket(NULL) {}
 
     virtual ~RXCapturePort();
 
@@ -127,14 +117,12 @@ public:
     /**
      * Set the BPF filter to use. No-op if already started.
      */
-    void set_bpf_filter(const std::string& filter);
+    void set_bpf_filter(const std::string &filter);
 
     /**
      * Set the endpoint to use. No-op if already started.
      */
-    void set_endpoint(const std::string& endpoint) {
-        m_endpoint = endpoint;
-    }
+    void set_endpoint(const std::string &endpoint) { m_endpoint = endpoint; }
 
     Json::Value to_json() const;
 
@@ -148,20 +136,19 @@ public:
      */
     uint32_t do_tx();
 
-private:
+  private:
     static uint16_t constexpr MAX_MTU_SIZE = 9238;
     RXFeatureAPI *m_api;
-    std::string   m_endpoint;
-    BPFFilter    *m_bpf_filter;
+    std::string m_endpoint;
+    BPFFilter *m_bpf_filter;
 
     /* ZeroMQ API objects */
-    void         *m_zeromq_ctx;
-    void         *m_zeromq_socket;
+    void *m_zeromq_ctx;
+    void *m_zeromq_socket;
 
     /* Buffer for receiving ZeroMQ packet */
     uint8_t m_buffer_zmq[MAX_MTU_SIZE];
 };
-
 
 /**************************************
  * CAPWAP proxy for stateful.
@@ -170,8 +157,7 @@ private:
  *      "wired" side (coming from WLC side, need to strip CAPWAP)
  *************************************/
 class RXCapwapProxy {
-public:
-
+  public:
     void create(RXFeatureAPI *api);
     bool set_values(uint8_t pair_port_id, bool is_wireless_side, Json::Value capwap_map, uint32_t wlc_ip);
     void reset();
@@ -181,44 +167,42 @@ public:
 
     Json::Value to_json() const;
 
-private:
-    RXFeatureAPI        *m_api;
-    uint8_t              m_pair_port_id;
-    bool                 m_is_wireless_side;
-    char                *m_pkt_data_ptr;
-    uint16_t             m_new_ip_length;
-    bpf_h                m_wired_bpf_filter;
-    int                  rc;
-    EthernetHeader      *m_ether;
-    IPHeader            *m_ipv4;
-    uint32_t             m_client_ip_num;
-    rte_mbuf_t          *m_mbuf_ptr;
-    uint32_t             m_wlc_ip;
+  private:
+    RXFeatureAPI *m_api;
+    uint8_t m_pair_port_id;
+    bool m_is_wireless_side;
+    char *m_pkt_data_ptr;
+    uint16_t m_new_ip_length;
+    bpf_h m_wired_bpf_filter;
+    int rc;
+    EthernetHeader *m_ether;
+    IPHeader *m_ipv4;
+    uint32_t m_client_ip_num;
+    rte_mbuf_t *m_mbuf_ptr;
+    uint32_t m_wlc_ip;
 
     // wrapping map stuff
     struct uint32_hasher {
-        uint16_t operator()(const uint32_t& ip) const {
+        uint16_t operator()(const uint32_t &ip) const {
             return (ip & 0xffff) ^ (ip >> 16); // xor upper and lower 16 bits
         }
     };
-    typedef std::unordered_map<uint32_t,std::string,uint32_hasher> capwap_map_t;
+    typedef std::unordered_map<uint32_t, std::string, uint32_hasher> capwap_map_t;
     typedef capwap_map_t::const_iterator capwap_map_it_t;
-    capwap_map_t         m_capwap_map;
-    capwap_map_it_t      m_capwap_map_it;
+    capwap_map_t m_capwap_map;
+    capwap_map_it_t m_capwap_map_it;
 
     // counters
-    uint64_t             m_bpf_rejected;
-    uint64_t             m_ip_convert_err;
-    uint64_t             m_map_not_found;
-    uint64_t             m_not_ip;
-    uint64_t             m_too_large_pkt;
-    uint64_t             m_too_small_pkt;
-    uint64_t             m_tx_err;
-    uint64_t             m_tx_ok;
-    uint64_t             m_pkt_from_wlc;
-
+    uint64_t m_bpf_rejected;
+    uint64_t m_ip_convert_err;
+    uint64_t m_map_not_found;
+    uint64_t m_not_ip;
+    uint64_t m_too_large_pkt;
+    uint64_t m_too_small_pkt;
+    uint64_t m_tx_err;
+    uint64_t m_tx_ok;
+    uint64_t m_pkt_from_wlc;
 };
-
 
 /************************ manager ***************************/
 
@@ -232,12 +216,12 @@ class RXPortManager {
     friend class CRxAstfCore;
     friend class CRxCore;
 
-public:
+  public:
     enum feature_t {
-        NO_FEATURES  = 0,
-        LATENCY      = 1,
-        QUEUE        = 1 << 1,
-        STACK        = 1 << 2,
+        NO_FEATURES = 0,
+        LATENCY = 1,
+        QUEUE = 1 << 1,
+        STACK = 1 << 2,
         CAPTURE_PORT = 1 << 3,
         CAPWAP_PROXY = 1 << 4,
         ASTF_LATENCY = 1 << 5
@@ -247,52 +231,35 @@ public:
     RXPortManager(const RXPortManager &other) = delete;
     ~RXPortManager(void);
 
-    void create_async(uint32_t port_id,
-                CRxCore *rx_core,
-                CPortLatencyHWBase *io,
-                CRFC2544Info *rfc2544,
-                CRxCoreErrCntrs *err_cntrs,
-                CCpuUtlDp *cpu_util);
+    void create_async(uint32_t port_id, CRxCore *rx_core, CPortLatencyHWBase *io, CRFC2544Info *rfc2544,
+                      CRxCoreErrCntrs *err_cntrs, CCpuUtlDp *cpu_util);
     void wait_for_create_done(void);
     void cleanup_async(void);
     void wait_for_cleanup_done(void);
 
-    void clear_stats() {
-        m_latency.reset_stats();
-    }
+    void clear_stats() { m_latency.reset_stats(); }
 
-    void get_latency_stats(rx_per_flow_t *rx_stats,
-                           int min,
-                           int max,
-                           bool reset,
+    void get_latency_stats(rx_per_flow_t *rx_stats, int min, int max, bool reset,
                            TrexPlatformApi::driver_stat_cap_e type) {
 
         return m_latency.get_stats(rx_stats, min, max, reset, type);
     }
 
-    RXLatency & get_latency() {
-        return m_latency;
-    }
+    RXLatency &get_latency() { return m_latency; }
 
-    CStackBase *get_stack() {
-        return m_stack;
-    }
+    CStackBase *get_stack() { return m_stack; }
 
-    void enable_astf_latency(bool enable){
+    void enable_astf_latency(bool enable) {
         if (enable) {
             set_feature(ASTF_LATENCY);
-        }else{
+        } else {
             unset_feature(ASTF_LATENCY);
         }
     }
     /* latency */
-    void enable_latency() {
-        set_feature(LATENCY);
-    }
+    void enable_latency() { set_feature(LATENCY); }
 
-    void disable_latency() {
-        unset_feature(LATENCY);
-    }
+    void disable_latency() { unset_feature(LATENCY); }
 
     /* queue */
     void start_queue(uint32_t size) {
@@ -322,9 +289,7 @@ public:
      *                     See the endpoint description of
      *                     http://api.zeromq.org/4-1:zmq-connect
      */
-    bool start_capture_port(const std::string& filter,
-                            const std::string& endpoint,
-                            std::string &err);
+    bool start_capture_port(const std::string &filter, const std::string &endpoint, std::string &err);
 
     /**
      * Stop the capture port and close the ZeroMQ Socket initially opened
@@ -339,12 +304,10 @@ public:
      *
      * @param[in] filter The new BPF filter to use. Empty string to disabled it.
      */
-    void set_capture_port_bpf_filter(const std::string& filter) {
-        m_capture_port.set_bpf_filter(filter);
-    }
+    void set_capture_port_bpf_filter(const std::string &filter) { m_capture_port.set_bpf_filter(filter); }
 
     bool start_capwap_proxy(uint8_t pair_port_id, bool is_wireless_side, Json::Value capwap_map, uint32_t wlc_ip) {
-        if ( !m_capwap_proxy.set_values(pair_port_id, is_wireless_side, capwap_map, wlc_ip) ) {
+        if (!m_capwap_proxy.set_values(pair_port_id, is_wireless_side, capwap_map, wlc_ip)) {
             return false;
         }
         set_feature(CAPWAP_PROXY);
@@ -362,15 +325,11 @@ public:
      */
     int process_all_pending_pkts(bool flush_rx = false);
 
-
     /**
      * flush all pending packets without processing them
      *
      */
-    void flush_all_pending_pkts() {
-        process_all_pending_pkts(true);
-    }
-
+    void flush_all_pending_pkts() { process_all_pending_pkts(true); }
 
     /**
      * TX packets immediately (no queue)
@@ -380,18 +339,11 @@ public:
     bool tx_pkt(const std::string &pkt);
     bool tx_pkt(rte_mbuf_t *m);
 
+    bool has_features_set() { return (m_features != NO_FEATURES); }
 
-    bool has_features_set() {
-        return (m_features != NO_FEATURES);
-    }
+    bool no_features_set() { return (!has_features_set()); }
 
-    bool no_features_set() {
-        return (!has_features_set());
-    }
-
-    bool is_feature_set(feature_t feature) const {
-        return ( (m_features & feature) == feature );
-    }
+    bool is_feature_set(feature_t feature) const { return ((m_features & feature) == feature); }
 
     /**
      * returns ignored set of stats
@@ -404,8 +356,7 @@ public:
      */
     void to_json(Json::Value &feat_res) const;
 
-private:
-
+  private:
     // currently read from Linux sockets and send through port
     // might be extended later to other features
     uint16_t handle_tx(void);
@@ -416,40 +367,30 @@ private:
      */
     void handle_pkt(rte_mbuf_t *m);
 
+    void clear_all_features() { m_features = NO_FEATURES; }
 
-    void clear_all_features() {
-        m_features = NO_FEATURES;
-    }
+    void set_feature(feature_t feature) { m_features |= feature; }
 
-    void set_feature(feature_t feature) {
-        m_features |= feature;
-    }
+    void unset_feature(feature_t feature) { m_features &= (~feature); }
 
-    void unset_feature(feature_t feature) {
-        m_features &= (~feature);
-    }
+    uint32_t m_features;
+    uint8_t m_port_id;
+    CRxCore *m_rx_core;
+    RXLatency m_latency;
 
-    uint32_t                     m_features;
-    uint8_t                      m_port_id;
-    CRxCore                     *m_rx_core;
-    RXLatency                    m_latency;
+    RXQueue m_queue;
+    RXCapwapProxy m_capwap_proxy;
+    RXCapturePort m_capture_port;
 
-    RXQueue                      m_queue;
-    RXCapwapProxy                m_capwap_proxy;
-    RXCapturePort                m_capture_port;
-
-    CStackBase                  *m_stack;
-    CCpuUtlDpPredict             m_cpu_pred;
-    CPortLatencyHWBase          *m_io;
-    RxAstfLatency                m_astf_latency;
+    CStackBase *m_stack;
+    CCpuUtlDpPredict m_cpu_pred;
+    CPortLatencyHWBase *m_io;
+    RxAstfLatency m_astf_latency;
     /* stats to ignore (ARP and etc.) */
-    CRXCoreIgnoreStat            m_ign_stats;
-    CRXCoreIgnoreStat            m_ign_stats_prev;
+    CRXCoreIgnoreStat m_ign_stats;
+    CRXCoreIgnoreStat m_ign_stats_prev;
 
-    RXFeatureAPI                 m_feature_api;
+    RXFeatureAPI m_feature_api;
 };
 
-
-
 #endif /* __TREX_RX_PORT_MNGR_H__ */
-

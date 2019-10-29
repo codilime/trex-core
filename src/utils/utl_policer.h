@@ -25,47 +25,36 @@ limitations under the License.
 #include "os_time.h"
 #include <common/c_common.h>
 
-
 class CPolicer {
 
-public:
+  public:
+    CPolicer() { ClearMeter(); }
 
-    CPolicer(){
-        ClearMeter();
+    void ClearMeter() {
+        m_cir = 0.0;
+        m_bucket_size = 1.0;
+        m_level = 0.0;
+        m_last_time = 0.0;
     }
 
-    void ClearMeter(){
-        m_cir=0.0;
-        m_bucket_size=1.0;
-        m_level=0.0;
-        m_last_time=0.0;
+    bool update(double dsize, dsec_t now_sec);
+
+    void set_cir(double cir) {
+        BP_ASSERT(cir >= 0.0);
+        m_cir = cir;
     }
+    void set_level(double level) { m_level = level; }
 
-    bool update(double dsize,dsec_t now_sec);
+    void set_bucket_size(double bucket) { m_bucket_size = bucket; }
 
-    void set_cir(double cir){
-        BP_ASSERT(cir>=0.0);
-        m_cir=cir;
-    }
-    void set_level(double level){
-        m_level =level;
-    }
+  private:
+    double m_cir;
 
-    void set_bucket_size(double bucket){
-        m_bucket_size =bucket;
-    }
+    double m_bucket_size;
 
-private:
+    double m_level;
 
-    double                      m_cir;
-
-    double                      m_bucket_size;
-
-    double                      m_level;
-
-    double                      m_last_time;
+    double m_last_time;
 };
-
-
 
 #endif

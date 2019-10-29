@@ -17,9 +17,7 @@ limitations under the License.
 #include "trex_port_attr.h"
 #include "bp_sim.h"
 
-
-std::string
-TRexPortAttr::get_rx_filter_mode() const {
+std::string TRexPortAttr::get_rx_filter_mode() const {
     switch (m_rx_filter_mode) {
     case RX_FILTER_MODE_ALL:
         return "all";
@@ -30,25 +28,21 @@ TRexPortAttr::get_rx_filter_mode() const {
     }
 }
 
-
-void
-TRexPortAttr::to_json(Json::Value &output) {
+void TRexPortAttr::to_json(Json::Value &output) {
 
     output["promiscuous"]["enabled"] = get_promiscuous();
-    output["multicast"]["enabled"]   = get_multicast();
-    output["link"]["up"]             = is_link_up();
-    output["speed"]                  = get_link_speed() / 1000.0;
-    output["rx_filter_mode"]         = get_rx_filter_mode();
+    output["multicast"]["enabled"] = get_multicast();
+    output["link"]["up"] = is_link_up();
+    output["speed"] = get_link_speed() / 1000.0;
+    output["rx_filter_mode"] = get_rx_filter_mode();
 
     Json::Value vxlan_fs_ports = Json::arrayValue;
     for (auto vxlan_fs_port : m_vxlan_fs_ports) {
         vxlan_fs_ports.append(vxlan_fs_port);
     }
-    output["vxlan_fs"]               = vxlan_fs_ports;
+    output["vxlan_fs"] = vxlan_fs_ports;
 
     int mode;
     get_flow_ctrl(mode);
     output["fc"]["mode"] = mode;
 }
-
-

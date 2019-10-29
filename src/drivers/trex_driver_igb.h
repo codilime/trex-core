@@ -26,31 +26,27 @@
 
 class CTRexExtendedDriverBase1G : public CTRexExtendedDriverBase {
 
-public:
+  public:
     CTRexExtendedDriverBase1G();
 
-    static CTRexExtendedDriverBase * create(){
-        return ( new CTRexExtendedDriverBase1G() );
-    }
+    static CTRexExtendedDriverBase *create() { return (new CTRexExtendedDriverBase1G()); }
 
-    virtual TRexPortAttr* create_port_attr(tvpid_t tvpid,repid_t repid);
-    virtual void update_global_config_fdir(port_cfg_t * cfg);
+    virtual TRexPortAttr *create_port_attr(tvpid_t tvpid, repid_t repid);
+    virtual void update_global_config_fdir(port_cfg_t *cfg);
     virtual int get_min_sample_rate(void);
-    virtual void update_configuration(port_cfg_t * cfg);
-    virtual int stop_queue(CPhyEthIF * _if, uint16_t q_num);
-    virtual int configure_rx_filter_rules(CPhyEthIF * _if);
-    virtual int configure_rx_filter_rules_statefull(CPhyEthIF * _if);
-    virtual int configure_rx_filter_rules_stateless(CPhyEthIF * _if);
-    virtual void clear_rx_filter_rules(CPhyEthIF * _if);
-    virtual bool get_extended_stats(CPhyEthIF * _if,CPhyEthIFStats *stats);
-    virtual void clear_extended_stats(CPhyEthIF * _if);
-    virtual int dump_fdir_global_stats(CPhyEthIF * _if, FILE *fd) {return 0;}
+    virtual void update_configuration(port_cfg_t *cfg);
+    virtual int stop_queue(CPhyEthIF *_if, uint16_t q_num);
+    virtual int configure_rx_filter_rules(CPhyEthIF *_if);
+    virtual int configure_rx_filter_rules_statefull(CPhyEthIF *_if);
+    virtual int configure_rx_filter_rules_stateless(CPhyEthIF *_if);
+    virtual void clear_rx_filter_rules(CPhyEthIF *_if);
+    virtual bool get_extended_stats(CPhyEthIF *_if, CPhyEthIFStats *stats);
+    virtual void clear_extended_stats(CPhyEthIF *_if);
+    virtual int dump_fdir_global_stats(CPhyEthIF *_if, FILE *fd) { return 0; }
     virtual void get_rx_stat_capabilities(uint16_t &flags, uint16_t &num_counters, uint16_t &base_ip_id);
     virtual int wait_for_stable_link();
     virtual void wait_after_link_up();
-    virtual int set_rcv_all(CPhyEthIF * _if, bool set_on);
+    virtual int set_rcv_all(CPhyEthIF *_if, bool set_on);
 };
-
-
 
 #endif /* TREX_DRIVERS_IGB_H */

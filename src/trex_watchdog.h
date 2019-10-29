@@ -32,7 +32,6 @@ limitations under the License.
 #include "os_time.h"
 #include <rte_atomic.h>
 
-
 /**
  * every thread creates its own monitor from its own memory
  *
@@ -41,18 +40,17 @@ limitations under the License.
 class TrexMonitor {
     friend class TrexWatchDog;
 
-public:
-
+  public:
     /**
-    * create a monitor
-    *
-    * @author imarom (31-May-16)
-    *
-    * @param name
-    * @param timeout
-    *
-    * @return int
-    */
+     * create a monitor
+     *
+     * @author imarom (31-May-16)
+     *
+     * @param name
+     * @param timeout
+     *
+     * @return int
+     */
     void create(const std::string &name, double timeout_sec);
 
     /**
@@ -61,17 +59,13 @@ public:
      * (forever)
      *
      */
-    void disable(dsec_t time_sec = 1e9) {
-        set_timeout(time_sec);
-    }
+    void disable(dsec_t time_sec = 1e9) { set_timeout(time_sec); }
 
     /**
      * re-enable a monitor after it was disabled
      *
      */
-    void enable() {
-        set_timeout(m_base_timeout_sec);
-    }
+    void enable() { set_timeout(m_base_timeout_sec); }
 
     /**
      * not thread safe
@@ -86,7 +80,7 @@ public:
         set_timeout(IO_TIMEOUT_SEC);
     }
 
-     /**
+    /**
      * not thread safe
      * call from current thread only
      */
@@ -111,44 +105,28 @@ public:
         }
     }
 
-    const std::string &get_name() const {
-        return m_name;
-    }
+    const std::string &get_name() const { return m_name; }
 
     /* return how much time has passed since last tickle */
-    dsec_t get_interval(dsec_t now) const {
-        return (now - m_ts);
-    }
+    dsec_t get_interval(dsec_t now) const { return (now - m_ts); }
 
+    dsec_t get_timeout_sec() const { return m_timeout_sec; }
 
-    dsec_t get_timeout_sec() const {
-        return m_timeout_sec;
-    }
-
-
-private:
-
+  private:
     /**
      * called by the watchdog to reset the monitor for a new round
      *
      */
     void reset(dsec_t now) {
         m_tickled = false;
-        m_ts      = now;
+        m_ts = now;
     }
 
+    pthread_t get_tid() const { return m_tid; }
 
-    pthread_t get_tid() const {
-        return m_tid;
-    }
+    volatile bool is_tickled() const { return m_tickled; }
 
-    volatile bool is_tickled() const {
-        return m_tickled;
-    }
-
-    bool is_expired(dsec_t now) const {
-        return ( get_interval(now) > m_timeout_sec );
-    }
+    bool is_expired(dsec_t now) const { return (get_interval(now) > m_timeout_sec); }
 
     void set_timeout(double timeout_sec) {
         /* before changing timeout we MUST tickle and memory fence o.w the main thread might crash */
@@ -157,22 +135,20 @@ private:
         m_timeout_sec = timeout_sec;
     }
 
-
     /* write fields are first */
-    volatile bool    m_tickled;
-    int              m_handle;
-    dsec_t           m_ts;
-    double           m_timeout_sec;
-    double           m_base_timeout_sec;
-    pthread_t        m_tid;
-    std::string      m_name;
+    volatile bool m_tickled;
+    int m_handle;
+    dsec_t m_ts;
+    double m_timeout_sec;
+    double m_base_timeout_sec;
+    pthread_t m_tid;
+    std::string m_name;
 
-    uint32_t         m_io_ref_cnt;
+    uint32_t m_io_ref_cnt;
 
     static const int IO_TIMEOUT_SEC = 30;
 
 } __rte_cache_aligned;
-
 
 /**
  * a watchdog is a list of registered monitors
@@ -180,8 +156,7 @@ private:
  * @author imarom (19-Jun-16)
  */
 class TrexWatchDog {
-public:
-
+  public:
     /**
      * singleton entry
      *
@@ -189,7 +164,7 @@ public:
      *
      * @return TrexWatchDog&
      */
-    static TrexWatchDog& getInstance() {
+    static TrexWatchDog &getInstance() {
         static TrexWatchDog instance;
 
         return instance;
@@ -204,7 +179,7 @@ public:
      * (NULL if not registered)
      *
      */
-    TrexMonitor * get_current_monitor();
+    TrexMonitor *get_current_monitor();
 
     /**
      * add a monitor to the watchdog
@@ -217,13 +192,11 @@ public:
      */
     void register_monitor(TrexMonitor *monitor);
 
-
     /**
      * start the watchdog
      *
      */
     void start();
-
 
     /**
      * stop the watchdog
@@ -231,55 +204,48 @@ public:
      */
     void stop();
 
-
-private:
-
+  private:
     TrexWatchDog() {
-        m_thread        = NULL;
-        m_enable        = false;
-        m_active        = false;
-        m_mon_count     = 0;
+        m_thread = NULL;
+        m_enable = false;
+        m_active = false;
+        m_mon_count = 0;
     }
 
     void register_signal();
     void _main() noexcept;
 
-    static const int           MAX_MONITORS = 100;
-    TrexMonitor               *m_monitors[MAX_MONITORS];
-    volatile int               m_mon_count;
-    std::mutex                 m_lock;
+    static const int MAX_MONITORS = 100;
+    TrexMonitor *m_monitors[MAX_MONITORS];
+    volatile int m_mon_count;
+    std::mutex m_lock;
 
-    bool                       m_enable;
-    volatile bool              m_active;
-    std::thread               *m_thread;
+    bool m_enable;
+    volatile bool m_active;
+    std::thread *m_thread;
 
-    static bool                g_signal_init;
+    static bool g_signal_init;
 };
 
 class TrexWatchDog::IOFunction {
-public:
+  public:
     static void io_begin() {
-        TrexMonitor * cur_monitor = TrexWatchDog::getInstance().get_current_monitor();
+        TrexMonitor *cur_monitor = TrexWatchDog::getInstance().get_current_monitor();
         if (cur_monitor != NULL) {
             cur_monitor->io_begin();
         }
     }
 
     static void io_end() {
-        TrexMonitor * cur_monitor = TrexWatchDog::getInstance().get_current_monitor();
+        TrexMonitor *cur_monitor = TrexWatchDog::getInstance().get_current_monitor();
         if (cur_monitor != NULL) {
             cur_monitor->io_end();
         }
     }
 
-    IOFunction() {
-        IOFunction::io_begin();
-    }
+    IOFunction() { IOFunction::io_begin(); }
 
-    ~IOFunction() {
-        IOFunction::io_end();
-    }
-
+    ~IOFunction() { IOFunction::io_end(); }
 };
 
 #endif /* __TREX_WATCHDOG_H__ */

@@ -43,116 +43,79 @@ general trex core always works in virtual ports id
 
 #define DPDK_MAP_IVALID_REPID (255)
 
-int  norm_pci_str(std::string pci_i,
-                  std::string & out,
-                  std::string & err);
+int norm_pci_str(std::string pci_i, std::string &out, std::string &err);
 
 class CPciPortCfgDesc {
 
-public:
-    void set_name(std::string name){
-        m_name=name;
-    }
+  public:
+    void set_name(std::string name) { m_name = name; }
 
-    std::string get_name(){
-        return(m_name);
-    }
+    std::string get_name() { return (m_name); }
 
-    int parse(std::string & err);
+    int parse(std::string &err);
 
-    void set_pci(std::string name){
-        m_pci=name;
-    }
+    void set_pci(std::string name) { m_pci = name; }
 
     void update_name();
 
-    std::string  get_pci(){
-        return (m_pci);
-    }
-    uint8_t      get_id(){
-        return(m_id);
-    }
-    void set_id(uint8_t id){
-        m_id=id;
-    }
-
+    std::string get_pci() { return (m_pci); }
+    uint8_t get_id() { return (m_id); }
+    void set_id(uint8_t id) { m_id = id; }
 
     void dump(FILE *fd);
 
-    bool compare(CPciPortCfgDesc * rhs){
-        return (( get_id() == rhs->get_id() ) && (get_pci() == rhs->get_pci() ) );
-    }
+    bool compare(CPciPortCfgDesc *rhs) { return ((get_id() == rhs->get_id()) && (get_pci() == rhs->get_pci())); }
 
-private:
-  std::string   m_name; /* format 0000:03:00.0/1 or 0000:03:00.0 or 0000:03:00.0 */
-  std::string   m_pci;  /* 03:00.0 */
-  uint8_t       m_id;   /* id */
+  private:
+    std::string m_name; /* format 0000:03:00.0/1 or 0000:03:00.0 or 0000:03:00.0 */
+    std::string m_pci;  /* 03:00.0 */
+    uint8_t m_id;       /* id */
 };
 
-
-typedef  std::vector<std::string>        dpdk_input_args_t;      /* input to DPDK */
-typedef  std::vector<CPciPortCfgDesc *>  dpdk_cfg_args_t; /* config args */
-typedef  std::vector<uint8_t>            dpdk_map_args_t; /* config args */
-typedef std::map<std::string, int>       dpdk_map_name_to_int_t;
+typedef std::vector<std::string> dpdk_input_args_t;     /* input to DPDK */
+typedef std::vector<CPciPortCfgDesc *> dpdk_cfg_args_t; /* config args */
+typedef std::vector<uint8_t> dpdk_map_args_t;           /* config args */
+typedef std::map<std::string, int> dpdk_map_name_to_int_t;
 typedef std::map<std::string, int>::iterator dpdk_map_name_to_int_iter_t;
 
-
-class CPciPorts  {
-public:
+class CPciPorts {
+  public:
     CPciPorts();
     ~CPciPorts();
 
     /* fill dpdk input '03:00.0/1' or '03:00.0' */
-    int set_cfg_input(dpdk_input_args_t & vec,
-                      std::string & err);
+    int set_cfg_input(dpdk_input_args_t &vec, std::string &err);
 
     /* fill dpdk in format  '03:00.0' */
-    dpdk_input_args_t * get_dpdk_input_args(){
-        return (&m_eal_init_vec);
-    }
+    dpdk_input_args_t *get_dpdk_input_args() { return (&m_eal_init_vec); }
 
     /* input scan and get port map */
-    int get_map_args(dpdk_input_args_t & dpdk_scan,
-                      dpdk_map_args_t & port_map,
-                      std::string & err);
+    int get_map_args(dpdk_input_args_t &dpdk_scan, dpdk_map_args_t &port_map, std::string &err);
 
-    dpdk_cfg_args_t * get_input(){
-        return (&m_vec);
-    }
+    dpdk_cfg_args_t *get_input() { return (&m_vec); }
 
-    uint8_t get_max_num_ports(){
-        return (m_input.size());
-
-    }
+    uint8_t get_max_num_ports() { return (m_input.size()); }
 
     void dump(FILE *fd);
 
-private:
-
+  private:
     void add_dpdk(std::string name);
 
-    int find(CPciPortCfgDesc * lp,
-             uint8_t & index);
+    int find(CPciPortCfgDesc *lp, uint8_t &index);
 
-    int dump_vec(FILE *fd,
-                 std::string vec_name,
-                 dpdk_input_args_t & vec);
+    int dump_vec(FILE *fd, std::string vec_name, dpdk_input_args_t &vec);
 
-    int dump_vec_int(FILE *fd,
-                     std::string vec_name,
-                     dpdk_map_args_t & vec);
+    int dump_vec_int(FILE *fd, std::string vec_name, dpdk_map_args_t &vec);
 
-    void free_cfg_args(dpdk_cfg_args_t & v);
-private:
+    void free_cfg_args(dpdk_cfg_args_t &v);
 
-   dpdk_input_args_t    m_input;         /* input string */
-   dpdk_cfg_args_t      m_vec;           /* parse input */
-   dpdk_cfg_args_t      m_scan_vec;      /* parse scan include the scan better format*/
-   dpdk_input_args_t    m_eal_init_vec;  /* dpdk string */
-   dpdk_input_args_t    m_dpdk_pci_scan; /* output from dpdk */
-   dpdk_map_args_t      m_last_result;   /* save result */
+  private:
+    dpdk_input_args_t m_input;         /* input string */
+    dpdk_cfg_args_t m_vec;             /* parse input */
+    dpdk_cfg_args_t m_scan_vec;        /* parse scan include the scan better format*/
+    dpdk_input_args_t m_eal_init_vec;  /* dpdk string */
+    dpdk_input_args_t m_dpdk_pci_scan; /* output from dpdk */
+    dpdk_map_args_t m_last_result;     /* save result */
 };
-
-
 
 #endif

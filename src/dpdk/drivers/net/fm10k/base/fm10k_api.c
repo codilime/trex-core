@@ -41,43 +41,38 @@ POSSIBILITY OF SUCH DAMAGE.
  *  This function sets the mac type of the adapter based on the
  *  vendor ID and device ID stored in the hw structure.
  **/
-s32 fm10k_set_mac_type(struct fm10k_hw *hw)
-{
-	s32 ret_val = FM10K_SUCCESS;
+s32 fm10k_set_mac_type(struct fm10k_hw *hw) {
+    s32 ret_val = FM10K_SUCCESS;
 
-	DEBUGFUNC("fm10k_set_mac_type");
+    DEBUGFUNC("fm10k_set_mac_type");
 
-	if (hw->vendor_id != FM10K_INTEL_VENDOR_ID) {
-		ERROR_REPORT2(FM10K_ERROR_UNSUPPORTED,
-			     "Unsupported vendor id: %x\n", hw->vendor_id);
-		return FM10K_ERR_DEVICE_NOT_SUPPORTED;
-	}
+    if (hw->vendor_id != FM10K_INTEL_VENDOR_ID) {
+        ERROR_REPORT2(FM10K_ERROR_UNSUPPORTED, "Unsupported vendor id: %x\n", hw->vendor_id);
+        return FM10K_ERR_DEVICE_NOT_SUPPORTED;
+    }
 
-	switch (hw->device_id) {
-	case FM10K_DEV_ID_PF:
+    switch (hw->device_id) {
+    case FM10K_DEV_ID_PF:
 #ifdef BOULDER_RAPIDS_HW
-	case FM10K_DEV_ID_SDI_FM10420_QDA2:
+    case FM10K_DEV_ID_SDI_FM10420_QDA2:
 #endif /* BOULDER_RAPIDS_HW */
 #ifdef ATWOOD_CHANNEL_HW
-	case FM10K_DEV_ID_SDI_FM10420_DA2:
+    case FM10K_DEV_ID_SDI_FM10420_DA2:
 #endif /* ATWOOD_CHANNEL_HW */
-		hw->mac.type = fm10k_mac_pf;
-		break;
-	case FM10K_DEV_ID_VF:
-		hw->mac.type = fm10k_mac_vf;
-		break;
-	default:
-		ret_val = FM10K_ERR_DEVICE_NOT_SUPPORTED;
-		ERROR_REPORT2(FM10K_ERROR_UNSUPPORTED,
-			     "Unsupported device id: %x\n",
-			     hw->device_id);
-		break;
-	}
+        hw->mac.type = fm10k_mac_pf;
+        break;
+    case FM10K_DEV_ID_VF:
+        hw->mac.type = fm10k_mac_vf;
+        break;
+    default:
+        ret_val = FM10K_ERR_DEVICE_NOT_SUPPORTED;
+        ERROR_REPORT2(FM10K_ERROR_UNSUPPORTED, "Unsupported device id: %x\n", hw->device_id);
+        break;
+    }
 
-	DEBUGOUT2("fm10k_set_mac_type found mac: %d, returns: %d\n",
-		  hw->mac.type, ret_val);
+    DEBUGOUT2("fm10k_set_mac_type found mac: %d, returns: %d\n", hw->mac.type, ret_val);
 
-	return ret_val;
+    return ret_val;
 }
 
 /**
@@ -92,32 +87,30 @@ s32 fm10k_set_mac_type(struct fm10k_hw *hw)
  *  hw_addr, back, device_id, vendor_id, subsystem_device_id,
  *  subsystem_vendor_id, and revision_id
  **/
-s32 fm10k_init_shared_code(struct fm10k_hw *hw)
-{
-	s32 status;
+s32 fm10k_init_shared_code(struct fm10k_hw *hw) {
+    s32 status;
 
-	DEBUGFUNC("fm10k_init_shared_code");
+    DEBUGFUNC("fm10k_init_shared_code");
 
-	/* Set the mac type */
-	fm10k_set_mac_type(hw);
+    /* Set the mac type */
+    fm10k_set_mac_type(hw);
 
-	switch (hw->mac.type) {
-	case fm10k_mac_pf:
-		status = fm10k_init_ops_pf(hw);
-		break;
-	case fm10k_mac_vf:
-		status = fm10k_init_ops_vf(hw);
-		break;
-	default:
-		status = FM10K_ERR_DEVICE_NOT_SUPPORTED;
-		break;
-	}
+    switch (hw->mac.type) {
+    case fm10k_mac_pf:
+        status = fm10k_init_ops_pf(hw);
+        break;
+    case fm10k_mac_vf:
+        status = fm10k_init_ops_vf(hw);
+        break;
+    default:
+        status = FM10K_ERR_DEVICE_NOT_SUPPORTED;
+        break;
+    }
 
-	return status;
+    return status;
 }
 
-#define fm10k_call_func(hw, func, params, error) \
-		 ((func) ? (func params) : (error))
+#define fm10k_call_func(hw, func, params, error) ((func) ? (func params) : (error))
 
 /**
  *  fm10k_reset_hw - Reset the hardware to known good state
@@ -126,10 +119,8 @@ s32 fm10k_init_shared_code(struct fm10k_hw *hw)
  *  This function should return the hardware to a state similar to the
  *  one it is in after being powered on.
  **/
-s32 fm10k_reset_hw(struct fm10k_hw *hw)
-{
-	return fm10k_call_func(hw, hw->mac.ops.reset_hw, (hw),
-			       FM10K_NOT_IMPLEMENTED);
+s32 fm10k_reset_hw(struct fm10k_hw *hw) {
+    return fm10k_call_func(hw, hw->mac.ops.reset_hw, (hw), FM10K_NOT_IMPLEMENTED);
 }
 
 /**
@@ -138,11 +129,7 @@ s32 fm10k_reset_hw(struct fm10k_hw *hw)
  *
  *  Initialize the hardware by resetting and then starting the hardware
  **/
-s32 fm10k_init_hw(struct fm10k_hw *hw)
-{
-	return fm10k_call_func(hw, hw->mac.ops.init_hw, (hw),
-			       FM10K_NOT_IMPLEMENTED);
-}
+s32 fm10k_init_hw(struct fm10k_hw *hw) { return fm10k_call_func(hw, hw->mac.ops.init_hw, (hw), FM10K_NOT_IMPLEMENTED); }
 
 /**
  *  fm10k_stop_hw - Prepares hardware to shutdown Rx/Tx
@@ -150,11 +137,7 @@ s32 fm10k_init_hw(struct fm10k_hw *hw)
  *
  *  Disables Rx/Tx queues and disables the DMA engine.
  **/
-s32 fm10k_stop_hw(struct fm10k_hw *hw)
-{
-	return fm10k_call_func(hw, hw->mac.ops.stop_hw, (hw),
-			       FM10K_NOT_IMPLEMENTED);
-}
+s32 fm10k_stop_hw(struct fm10k_hw *hw) { return fm10k_call_func(hw, hw->mac.ops.stop_hw, (hw), FM10K_NOT_IMPLEMENTED); }
 
 /**
  *  fm10k_start_hw - Prepares hardware for Rx/Tx
@@ -163,10 +146,8 @@ s32 fm10k_stop_hw(struct fm10k_hw *hw)
  *  This function sets the flags indicating that the hardware is ready to
  *  begin operation.
  **/
-s32 fm10k_start_hw(struct fm10k_hw *hw)
-{
-	return fm10k_call_func(hw, hw->mac.ops.start_hw, (hw),
-			       FM10K_NOT_IMPLEMENTED);
+s32 fm10k_start_hw(struct fm10k_hw *hw) {
+    return fm10k_call_func(hw, hw->mac.ops.start_hw, (hw), FM10K_NOT_IMPLEMENTED);
 }
 
 /**
@@ -175,10 +156,8 @@ s32 fm10k_start_hw(struct fm10k_hw *hw)
  *
  *  Sets the PCI bus info (speed, width, type) within the fm10k_hw structure
  **/
-s32 fm10k_get_bus_info(struct fm10k_hw *hw)
-{
-	return fm10k_call_func(hw, hw->mac.ops.get_bus_info, (hw),
-			       FM10K_NOT_IMPLEMENTED);
+s32 fm10k_get_bus_info(struct fm10k_hw *hw) {
+    return fm10k_call_func(hw, hw->mac.ops.get_bus_info, (hw), FM10K_NOT_IMPLEMENTED);
 }
 
 #ifndef NO_IS_SLOT_APPROPRIATE_CHECK
@@ -189,11 +168,10 @@ s32 fm10k_get_bus_info(struct fm10k_hw *hw)
  *  Looks at the PCIe bus info to confirm whether or not this slot can support
  *  the necessary bandwidth for this device.
  **/
-bool fm10k_is_slot_appropriate(struct fm10k_hw *hw)
-{
-	if (hw->mac.ops.is_slot_appropriate)
-		return hw->mac.ops.is_slot_appropriate(hw);
-	return true;
+bool fm10k_is_slot_appropriate(struct fm10k_hw *hw) {
+    if (hw->mac.ops.is_slot_appropriate)
+        return hw->mac.ops.is_slot_appropriate(hw);
+    return true;
 }
 
 #endif
@@ -207,10 +185,8 @@ bool fm10k_is_slot_appropriate(struct fm10k_hw *hw)
  *  This function adds or removes the corresponding VLAN ID from the VLAN
  *  filter table for the corresponding function.
  **/
-s32 fm10k_update_vlan(struct fm10k_hw *hw, u32 vid, u8 idx, bool set)
-{
-	return fm10k_call_func(hw, hw->mac.ops.update_vlan, (hw, vid, idx, set),
-			       FM10K_NOT_IMPLEMENTED);
+s32 fm10k_update_vlan(struct fm10k_hw *hw, u32 vid, u8 idx, bool set) {
+    return fm10k_call_func(hw, hw->mac.ops.update_vlan, (hw, vid, idx, set), FM10K_NOT_IMPLEMENTED);
 }
 
 /**
@@ -220,10 +196,8 @@ s32 fm10k_update_vlan(struct fm10k_hw *hw, u32 vid, u8 idx, bool set)
  *  Reads the MAC address out of the interface and stores it in the HW
  *  structures.
  **/
-s32 fm10k_read_mac_addr(struct fm10k_hw *hw)
-{
-	return fm10k_call_func(hw, hw->mac.ops.read_mac_addr, (hw),
-			       FM10K_NOT_IMPLEMENTED);
+s32 fm10k_read_mac_addr(struct fm10k_hw *hw) {
+    return fm10k_call_func(hw, hw->mac.ops.read_mac_addr, (hw), FM10K_NOT_IMPLEMENTED);
 }
 
 /**
@@ -232,10 +206,9 @@ s32 fm10k_read_mac_addr(struct fm10k_hw *hw)
  *
  *  This function updates statistics that are related to hardware.
  * */
-void fm10k_update_hw_stats(struct fm10k_hw *hw, struct fm10k_hw_stats *stats)
-{
-	if (hw->mac.ops.update_hw_stats)
-		hw->mac.ops.update_hw_stats(hw, stats);
+void fm10k_update_hw_stats(struct fm10k_hw *hw, struct fm10k_hw_stats *stats) {
+    if (hw->mac.ops.update_hw_stats)
+        hw->mac.ops.update_hw_stats(hw, stats);
 }
 
 /**
@@ -244,10 +217,9 @@ void fm10k_update_hw_stats(struct fm10k_hw *hw, struct fm10k_hw_stats *stats)
  *
  *  This function resets the base for statistics that are related to hardware.
  * */
-void fm10k_rebind_hw_stats(struct fm10k_hw *hw, struct fm10k_hw_stats *stats)
-{
-	if (hw->mac.ops.rebind_hw_stats)
-		hw->mac.ops.rebind_hw_stats(hw, stats);
+void fm10k_rebind_hw_stats(struct fm10k_hw *hw, struct fm10k_hw_stats *stats) {
+    if (hw->mac.ops.rebind_hw_stats)
+        hw->mac.ops.rebind_hw_stats(hw, stats);
 }
 
 /**
@@ -259,11 +231,8 @@ void fm10k_rebind_hw_stats(struct fm10k_hw *hw, struct fm10k_hw_stats *stats)
  *  that information to then populate a DGLORTMAP/DEC entry and the queues
  *  to which it has been assigned.
  **/
-s32 fm10k_configure_dglort_map(struct fm10k_hw *hw,
-			       struct fm10k_dglort_cfg *dglort)
-{
-	return fm10k_call_func(hw, hw->mac.ops.configure_dglort_map,
-			       (hw, dglort), FM10K_NOT_IMPLEMENTED);
+s32 fm10k_configure_dglort_map(struct fm10k_hw *hw, struct fm10k_dglort_cfg *dglort) {
+    return fm10k_call_func(hw, hw->mac.ops.configure_dglort_map, (hw, dglort), FM10K_NOT_IMPLEMENTED);
 }
 
 /**
@@ -274,10 +243,9 @@ s32 fm10k_configure_dglort_map(struct fm10k_hw *hw,
  *  This function configures the endpoint to limit the access to memory
  *  beyond what is physically in the system.
  **/
-void fm10k_set_dma_mask(struct fm10k_hw *hw, u64 dma_mask)
-{
-	if (hw->mac.ops.set_dma_mask)
-		hw->mac.ops.set_dma_mask(hw, dma_mask);
+void fm10k_set_dma_mask(struct fm10k_hw *hw, u64 dma_mask) {
+    if (hw->mac.ops.set_dma_mask)
+        hw->mac.ops.set_dma_mask(hw, dma_mask);
 }
 
 /**
@@ -291,10 +259,8 @@ void fm10k_set_dma_mask(struct fm10k_hw *hw, u64 dma_mask)
  *
  *  Returns ERR_PARAM if invalid register is specified or no error is present.
  **/
-s32 fm10k_get_fault(struct fm10k_hw *hw, int type, struct fm10k_fault *fault)
-{
-	return fm10k_call_func(hw, hw->mac.ops.get_fault, (hw, type, fault),
-			       FM10K_NOT_IMPLEMENTED);
+s32 fm10k_get_fault(struct fm10k_hw *hw, int type, struct fm10k_fault *fault) {
+    return fm10k_call_func(hw, hw->mac.ops.get_fault, (hw, type, fault), FM10K_NOT_IMPLEMENTED);
 }
 
 /**
@@ -308,12 +274,8 @@ s32 fm10k_get_fault(struct fm10k_hw *hw, int type, struct fm10k_fault *fault)
  *
  *  This function is used to add or remove unicast MAC addresses
  **/
-s32 fm10k_update_uc_addr(struct fm10k_hw *hw, u16 lport,
-			  const u8 *mac, u16 vid, bool add, u8 flags)
-{
-	return fm10k_call_func(hw, hw->mac.ops.update_uc_addr,
-			       (hw, lport, mac, vid, add, flags),
-			       FM10K_NOT_IMPLEMENTED);
+s32 fm10k_update_uc_addr(struct fm10k_hw *hw, u16 lport, const u8 *mac, u16 vid, bool add, u8 flags) {
+    return fm10k_call_func(hw, hw->mac.ops.update_uc_addr, (hw, lport, mac, vid, add, flags), FM10K_NOT_IMPLEMENTED);
 }
 
 /**
@@ -326,12 +288,8 @@ s32 fm10k_update_uc_addr(struct fm10k_hw *hw, u16 lport,
  *
  *  This function is used to add or remove multicast MAC addresses
  **/
-s32 fm10k_update_mc_addr(struct fm10k_hw *hw, u16 lport,
-			 const u8 *mac, u16 vid, bool add)
-{
-	return fm10k_call_func(hw, hw->mac.ops.update_mc_addr,
-			       (hw, lport, mac, vid, add),
-			       FM10K_NOT_IMPLEMENTED);
+s32 fm10k_update_mc_addr(struct fm10k_hw *hw, u16 lport, const u8 *mac, u16 vid, bool add) {
+    return fm10k_call_func(hw, hw->mac.ops.update_mc_addr, (hw, lport, mac, vid, add), FM10K_NOT_IMPLEMENTED);
 }
 
 /**
@@ -342,10 +300,8 @@ s32 fm10k_update_mc_addr(struct fm10k_hw *hw, u16 lport,
  *  This function is meant to update the frequency of the clock represented
  *  by the SYSTIME register.
  **/
-s32 fm10k_adjust_systime(struct fm10k_hw *hw, s32 ppb)
-{
-	return fm10k_call_func(hw, hw->mac.ops.adjust_systime,
-			       (hw, ppb), FM10K_NOT_IMPLEMENTED);
+s32 fm10k_adjust_systime(struct fm10k_hw *hw, s32 ppb) {
+    return fm10k_call_func(hw, hw->mac.ops.adjust_systime, (hw, ppb), FM10K_NOT_IMPLEMENTED);
 }
 
 /**
@@ -356,8 +312,6 @@ s32 fm10k_adjust_systime(struct fm10k_hw *hw, s32 ppb)
  *  This function is meant to notify switch of change in the PTP offset for
  *  the hardware SYSTIME registers.
  **/
-s32 fm10k_notify_offset(struct fm10k_hw *hw, u64 offset)
-{
-	return fm10k_call_func(hw, hw->mac.ops.notify_offset,
-			       (hw, offset), FM10K_NOT_IMPLEMENTED);
+s32 fm10k_notify_offset(struct fm10k_hw *hw, u64 offset) {
+    return fm10k_call_func(hw, hw->mac.ops.notify_offset, (hw, offset), FM10K_NOT_IMPLEMENTED);
 }

@@ -21,31 +21,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 #include <rte_config.h>
 #include <stdint.h>
 #include <rte_mbuf.h>
 #include <rte_random.h>
 #include <rte_ip.h>
 
-typedef struct rte_mbuf  rte_mbuf_t;
+typedef struct rte_mbuf rte_mbuf_t;
 inline void utl_rte_pktmbuf_check(struct rte_mbuf *m) {}
 typedef struct rte_mempool rte_mempool_t;
 
 #include "common_mbuf.h"
 
-inline void utl_rte_mempool_delete(rte_mempool_t * & pool){
-}
+inline void utl_rte_mempool_delete(rte_mempool_t *&pool) {}
 
+static inline unsigned rte_mempool_count(rte_mempool_t *mp) { return rte_mempool_avail_count(mp); }
 
-static inline unsigned rte_mempool_count(rte_mempool_t  *mp){
-        return rte_mempool_avail_count(mp);
-}
-
-
-static inline void hw_checksum_sim(struct rte_mbuf *m){
-    /* not required */
-}
-
+static inline void hw_checksum_sim(struct rte_mbuf *m) { /* not required */ }
 
 #endif

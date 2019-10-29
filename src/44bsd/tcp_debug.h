@@ -40,11 +40,10 @@
 #include "tcp_var.h"
 #include "tcpip.h"
 
-#define TA_INPUT    0
-#define TA_OUTPUT   1
-#define TA_USER     2
-#define TA_RESPOND  3
-#define TA_DROP     4
-
+#define TA_INPUT 0
+#define TA_OUTPUT 1
+#define TA_USER 2
+#define TA_RESPOND 3
+#define TA_DROP 4
 
 #endif

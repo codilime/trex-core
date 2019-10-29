@@ -27,31 +27,26 @@
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
 
-int __attribute__((cold))
-virtio_rxq_vec_setup(struct virtnet_rx *rxq)
-{
-	uintptr_t p;
-	struct rte_mbuf mb_def = { .buf_addr = 0 }; /* zeroed mbuf */
+int __attribute__((cold)) virtio_rxq_vec_setup(struct virtnet_rx *rxq) {
+    uintptr_t p;
+    struct rte_mbuf mb_def = {.buf_addr = 0}; /* zeroed mbuf */
 
-	mb_def.nb_segs = 1;
-	mb_def.data_off = RTE_PKTMBUF_HEADROOM;
-	mb_def.port = rxq->port_id;
-	rte_mbuf_refcnt_set(&mb_def, 1);
+    mb_def.nb_segs = 1;
+    mb_def.data_off = RTE_PKTMBUF_HEADROOM;
+    mb_def.port = rxq->port_id;
+    rte_mbuf_refcnt_set(&mb_def, 1);
 
-	/* prevent compiler reordering: rearm_data covers previous fields */
-	rte_compiler_barrier();
-	p = (uintptr_t)&mb_def.rearm_data;
-	rxq->mbuf_initializer = *(uint64_t *)p;
+    /* prevent compiler reordering: rearm_data covers previous fields */
+    rte_compiler_barrier();
+    p = (uintptr_t)&mb_def.rearm_data;
+    rxq->mbuf_initializer = *(uint64_t *)p;
 
-	return 0;
+    return 0;
 }
 
 /* Stub for linkage when arch specific implementation is not available */
-__rte_weak uint16_t
-virtio_recv_pkts_vec(void *rx_queue __rte_unused,
-		     struct rte_mbuf **rx_pkts __rte_unused,
-		     uint16_t nb_pkts __rte_unused)
-{
-	rte_panic("Wrong weak function linked by linker\n");
-	return 0;
+__rte_weak uint16_t virtio_recv_pkts_vec(void *rx_queue __rte_unused, struct rte_mbuf **rx_pkts __rte_unused,
+                                         uint16_t nb_pkts __rte_unused) {
+    rte_panic("Wrong weak function linked by linker\n");
+    return 0;
 }

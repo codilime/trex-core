@@ -40,17 +40,16 @@ POSSIBILITY OF SUCH DAMAGE.
  *
  *  This function return success if provided with a valid message pointer
  **/
-s32 fm10k_tlv_msg_init(u32 *msg, u16 msg_id)
-{
-	DEBUGFUNC("fm10k_tlv_msg_init");
+s32 fm10k_tlv_msg_init(u32 *msg, u16 msg_id) {
+    DEBUGFUNC("fm10k_tlv_msg_init");
 
-	/* verify pointer is not NULL */
-	if (!msg)
-		return FM10K_ERR_PARAM;
+    /* verify pointer is not NULL */
+    if (!msg)
+        return FM10K_ERR_PARAM;
 
-	*msg = (FM10K_TLV_FLAGS_MSG << FM10K_TLV_FLAGS_SHIFT) | msg_id;
+    *msg = (FM10K_TLV_FLAGS_MSG << FM10K_TLV_FLAGS_SHIFT) | msg_id;
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -63,47 +62,45 @@ s32 fm10k_tlv_msg_init(u32 *msg, u16 msg_id)
  *  the attribute buffer.  It will return success if provided with a valid
  *  pointers.
  **/
-static s32 fm10k_tlv_attr_put_null_string(u32 *msg, u16 attr_id,
-					  const unsigned char *string)
-{
-	u32 attr_data = 0, len = 0;
-	u32 *attr;
+static s32 fm10k_tlv_attr_put_null_string(u32 *msg, u16 attr_id, const unsigned char *string) {
+    u32 attr_data = 0, len = 0;
+    u32 *attr;
 
-	DEBUGFUNC("fm10k_tlv_attr_put_null_string");
+    DEBUGFUNC("fm10k_tlv_attr_put_null_string");
 
-	/* verify pointers are not NULL */
-	if (!string || !msg)
-		return FM10K_ERR_PARAM;
+    /* verify pointers are not NULL */
+    if (!string || !msg)
+        return FM10K_ERR_PARAM;
 
-	attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
+    attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
 
-	/* copy string into local variable and then write to msg */
-	do {
-		/* write data to message */
-		if (len && !(len % 4)) {
-			attr[len / 4] = attr_data;
-			attr_data = 0;
-		}
+    /* copy string into local variable and then write to msg */
+    do {
+        /* write data to message */
+        if (len && !(len % 4)) {
+            attr[len / 4] = attr_data;
+            attr_data = 0;
+        }
 
-		/* record character to offset location */
-		attr_data |= (u32)(*string) << (8 * (len % 4));
-		len++;
+        /* record character to offset location */
+        attr_data |= (u32)(*string) << (8 * (len % 4));
+        len++;
 
-		/* test for NULL and then increment */
-	} while (*(string++));
+        /* test for NULL and then increment */
+    } while (*(string++));
 
-	/* write last piece of data to message */
-	attr[(len + 3) / 4] = attr_data;
+    /* write last piece of data to message */
+    attr[(len + 3) / 4] = attr_data;
 
-	/* record attribute header, update message length */
-	len <<= FM10K_TLV_LEN_SHIFT;
-	attr[0] = len | attr_id;
+    /* record attribute header, update message length */
+    len <<= FM10K_TLV_LEN_SHIFT;
+    attr[0] = len | attr_id;
 
-	/* add header length to length */
-	len += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
-	*msg += FM10K_TLV_LEN_ALIGN(len);
+    /* add header length to length */
+    len += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
+    *msg += FM10K_TLV_LEN_ALIGN(len);
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -115,23 +112,22 @@ static s32 fm10k_tlv_attr_put_null_string(u32 *msg, u16 attr_id,
  *  it in the array pointed by by string.  It will return success if provided
  *  with a valid pointers.
  **/
-static s32 fm10k_tlv_attr_get_null_string(u32 *attr, unsigned char *string)
-{
-	u32 len;
+static s32 fm10k_tlv_attr_get_null_string(u32 *attr, unsigned char *string) {
+    u32 len;
 
-	DEBUGFUNC("fm10k_tlv_attr_get_null_string");
+    DEBUGFUNC("fm10k_tlv_attr_get_null_string");
 
-	/* verify pointers are not NULL */
-	if (!string || !attr)
-		return FM10K_ERR_PARAM;
+    /* verify pointers are not NULL */
+    if (!string || !attr)
+        return FM10K_ERR_PARAM;
 
-	len = *attr >> FM10K_TLV_LEN_SHIFT;
-	attr++;
+    len = *attr >> FM10K_TLV_LEN_SHIFT;
+    attr++;
 
-	while (len--)
-		string[len] = (u8)(attr[len / 4] >> (8 * (len % 4)));
+    while (len--)
+        string[len] = (u8)(attr[len / 4] >> (8 * (len % 4)));
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -144,33 +140,31 @@ static s32 fm10k_tlv_attr_get_null_string(u32 *attr, unsigned char *string)
  *  in the attribute buffer.  It will return success if provided with a
  *  valid pointers.
  **/
-s32 fm10k_tlv_attr_put_mac_vlan(u32 *msg, u16 attr_id,
-				const u8 *mac_addr, u16 vlan)
-{
-	u32 len = ETH_ALEN << FM10K_TLV_LEN_SHIFT;
-	u32 *attr;
+s32 fm10k_tlv_attr_put_mac_vlan(u32 *msg, u16 attr_id, const u8 *mac_addr, u16 vlan) {
+    u32 len = ETH_ALEN << FM10K_TLV_LEN_SHIFT;
+    u32 *attr;
 
-	DEBUGFUNC("fm10k_tlv_attr_put_mac_vlan");
+    DEBUGFUNC("fm10k_tlv_attr_put_mac_vlan");
 
-	/* verify pointers are not NULL */
-	if (!msg || !mac_addr)
-		return FM10K_ERR_PARAM;
+    /* verify pointers are not NULL */
+    if (!msg || !mac_addr)
+        return FM10K_ERR_PARAM;
 
-	attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
+    attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
 
-	/* record attribute header, update message length */
-	attr[0] = len | attr_id;
+    /* record attribute header, update message length */
+    attr[0] = len | attr_id;
 
-	/* copy value into local variable and then write to msg */
-	attr[1] = FM10K_LE32_TO_CPU(*(const __le32 *)&mac_addr[0]);
-	attr[2] = FM10K_LE16_TO_CPU(*(const __le16 *)&mac_addr[4]);
-	attr[2] |= (u32)vlan << 16;
+    /* copy value into local variable and then write to msg */
+    attr[1] = FM10K_LE32_TO_CPU(*(const __le32 *)&mac_addr[0]);
+    attr[2] = FM10K_LE16_TO_CPU(*(const __le16 *)&mac_addr[4]);
+    attr[2] |= (u32)vlan << 16;
 
-	/* add header length to length */
-	len += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
-	*msg += FM10K_TLV_LEN_ALIGN(len);
+    /* add header length to length */
+    len += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
+    *msg += FM10K_TLV_LEN_ALIGN(len);
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -183,19 +177,18 @@ s32 fm10k_tlv_attr_put_mac_vlan(u32 *msg, u16 attr_id,
  *  place it in the array pointed by by mac_addr.  It will return success
  *  if provided with a valid pointers.
  **/
-s32 fm10k_tlv_attr_get_mac_vlan(u32 *attr, u8 *mac_addr, u16 *vlan)
-{
-	DEBUGFUNC("fm10k_tlv_attr_get_mac_vlan");
+s32 fm10k_tlv_attr_get_mac_vlan(u32 *attr, u8 *mac_addr, u16 *vlan) {
+    DEBUGFUNC("fm10k_tlv_attr_get_mac_vlan");
 
-	/* verify pointers are not NULL */
-	if (!mac_addr || !attr)
-		return FM10K_ERR_PARAM;
+    /* verify pointers are not NULL */
+    if (!mac_addr || !attr)
+        return FM10K_ERR_PARAM;
 
-	*(__le32 *)&mac_addr[0] = FM10K_CPU_TO_LE32(attr[1]);
-	*(__le16 *)&mac_addr[4] = FM10K_CPU_TO_LE16((u16)(attr[2]));
-	*vlan = (u16)(attr[2] >> 16);
+    *(__le32 *)&mac_addr[0] = FM10K_CPU_TO_LE32(attr[1]);
+    *(__le16 *)&mac_addr[4] = FM10K_CPU_TO_LE16((u16)(attr[2]));
+    *vlan = (u16)(attr[2] >> 16);
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -208,21 +201,20 @@ s32 fm10k_tlv_attr_get_mac_vlan(u32 *attr, u8 *mac_addr, u16 *vlan)
  *  it is false.  The function will return success if provided with a
  *  valid pointers.
  **/
-s32 fm10k_tlv_attr_put_bool(u32 *msg, u16 attr_id)
-{
-	DEBUGFUNC("fm10k_tlv_attr_put_bool");
+s32 fm10k_tlv_attr_put_bool(u32 *msg, u16 attr_id) {
+    DEBUGFUNC("fm10k_tlv_attr_put_bool");
 
-	/* verify pointers are not NULL */
-	if (!msg)
-		return FM10K_ERR_PARAM;
+    /* verify pointers are not NULL */
+    if (!msg)
+        return FM10K_ERR_PARAM;
 
-	/* record attribute header */
-	msg[FM10K_TLV_DWORD_LEN(*msg)] = attr_id;
+    /* record attribute header */
+    msg[FM10K_TLV_DWORD_LEN(*msg)] = attr_id;
 
-	/* add header length to length */
-	*msg += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
+    /* add header length to length */
+    *msg += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -236,35 +228,34 @@ s32 fm10k_tlv_attr_put_bool(u32 *msg, u16 attr_id)
  *  in a message attribute.  The function will return success provided
  *  that msg is a valid pointer, and len is 1, 2, 4, or 8.
  **/
-s32 fm10k_tlv_attr_put_value(u32 *msg, u16 attr_id, s64 value, u32 len)
-{
-	u32 *attr;
+s32 fm10k_tlv_attr_put_value(u32 *msg, u16 attr_id, s64 value, u32 len) {
+    u32 *attr;
 
-	DEBUGFUNC("fm10k_tlv_attr_put_value");
+    DEBUGFUNC("fm10k_tlv_attr_put_value");
 
-	/* verify non-null msg and len is 1, 2, 4, or 8 */
-	if (!msg || !len || len > 8 || (len & (len - 1)))
-		return FM10K_ERR_PARAM;
+    /* verify non-null msg and len is 1, 2, 4, or 8 */
+    if (!msg || !len || len > 8 || (len & (len - 1)))
+        return FM10K_ERR_PARAM;
 
-	attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
+    attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
 
-	if (len < 4) {
-		attr[1] = (u32)value & (BIT(8 * len) - 1);
-	} else {
-		attr[1] = (u32)value;
-		if (len > 4)
-			attr[2] = (u32)(value >> 32);
-	}
+    if (len < 4) {
+        attr[1] = (u32)value & (BIT(8 * len) - 1);
+    } else {
+        attr[1] = (u32)value;
+        if (len > 4)
+            attr[2] = (u32)(value >> 32);
+    }
 
-	/* record attribute header, update message length */
-	len <<= FM10K_TLV_LEN_SHIFT;
-	attr[0] = len | attr_id;
+    /* record attribute header, update message length */
+    len <<= FM10K_TLV_LEN_SHIFT;
+    attr[0] = len | attr_id;
 
-	/* add header length to length */
-	len += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
-	*msg += FM10K_TLV_LEN_ALIGN(len);
+    /* add header length to length */
+    len += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
+    *msg += FM10K_TLV_LEN_ALIGN(len);
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -278,27 +269,26 @@ s32 fm10k_tlv_attr_put_value(u32 *msg, u16 attr_id, s64 value, u32 len)
  *  provided that pointers are valid and the len value matches the
  *  attribute length.
  **/
-s32 fm10k_tlv_attr_get_value(u32 *attr, void *value, u32 len)
-{
-	DEBUGFUNC("fm10k_tlv_attr_get_value");
+s32 fm10k_tlv_attr_get_value(u32 *attr, void *value, u32 len) {
+    DEBUGFUNC("fm10k_tlv_attr_get_value");
 
-	/* verify pointers are not NULL */
-	if (!attr || !value)
-		return FM10K_ERR_PARAM;
+    /* verify pointers are not NULL */
+    if (!attr || !value)
+        return FM10K_ERR_PARAM;
 
-	if ((*attr >> FM10K_TLV_LEN_SHIFT) != len)
-		return FM10K_ERR_PARAM;
+    if ((*attr >> FM10K_TLV_LEN_SHIFT) != len)
+        return FM10K_ERR_PARAM;
 
-	if (len == 8)
-		*(u64 *)value = ((u64)attr[2] << 32) | attr[1];
-	else if (len == 4)
-		*(u32 *)value = attr[1];
-	else if (len == 2)
-		*(u16 *)value = (u16)attr[1];
-	else
-		*(u8 *)value = (u8)attr[1];
+    if (len == 8)
+        *(u64 *)value = ((u64)attr[2] << 32) | attr[1];
+    else if (len == 4)
+        *(u32 *)value = attr[1];
+    else if (len == 2)
+        *(u16 *)value = (u16)attr[1];
+    else
+        *(u8 *)value = (u8)attr[1];
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -312,34 +302,32 @@ s32 fm10k_tlv_attr_get_value(u32 *attr, void *value, u32 len)
  *  attribute.  The function will return success provided that all pointers
  *  are valid and length is a non-zero multiple of 4.
  **/
-s32 fm10k_tlv_attr_put_le_struct(u32 *msg, u16 attr_id,
-				 const void *le_struct, u32 len)
-{
-	const __le32 *le32_ptr = (const __le32 *)le_struct;
-	u32 *attr;
-	u32 i;
+s32 fm10k_tlv_attr_put_le_struct(u32 *msg, u16 attr_id, const void *le_struct, u32 len) {
+    const __le32 *le32_ptr = (const __le32 *)le_struct;
+    u32 *attr;
+    u32 i;
 
-	DEBUGFUNC("fm10k_tlv_attr_put_le_struct");
+    DEBUGFUNC("fm10k_tlv_attr_put_le_struct");
 
-	/* verify non-null msg and len is in 32 bit words */
-	if (!msg || !len || (len % 4))
-		return FM10K_ERR_PARAM;
+    /* verify non-null msg and len is in 32 bit words */
+    if (!msg || !len || (len % 4))
+        return FM10K_ERR_PARAM;
 
-	attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
+    attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
 
-	/* copy le32 structure into host byte order at 32b boundaries */
-	for (i = 0; i < (len / 4); i++)
-		attr[i + 1] = FM10K_LE32_TO_CPU(le32_ptr[i]);
+    /* copy le32 structure into host byte order at 32b boundaries */
+    for (i = 0; i < (len / 4); i++)
+        attr[i + 1] = FM10K_LE32_TO_CPU(le32_ptr[i]);
 
-	/* record attribute header, update message length */
-	len <<= FM10K_TLV_LEN_SHIFT;
-	attr[0] = len | attr_id;
+    /* record attribute header, update message length */
+    len <<= FM10K_TLV_LEN_SHIFT;
+    attr[0] = len | attr_id;
 
-	/* add header length to length */
-	len += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
-	*msg += FM10K_TLV_LEN_ALIGN(len);
+    /* add header length to length */
+    len += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
+    *msg += FM10K_TLV_LEN_ALIGN(len);
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -353,26 +341,25 @@ s32 fm10k_tlv_attr_put_le_struct(u32 *msg, u16 attr_id,
  *  provided that pointers are valid and the len value matches the
  *  attribute length.
  **/
-s32 fm10k_tlv_attr_get_le_struct(u32 *attr, void *le_struct, u32 len)
-{
-	__le32 *le32_ptr = (__le32 *)le_struct;
-	u32 i;
+s32 fm10k_tlv_attr_get_le_struct(u32 *attr, void *le_struct, u32 len) {
+    __le32 *le32_ptr = (__le32 *)le_struct;
+    u32 i;
 
-	DEBUGFUNC("fm10k_tlv_attr_get_le_struct");
+    DEBUGFUNC("fm10k_tlv_attr_get_le_struct");
 
-	/* verify pointers are not NULL */
-	if (!le_struct || !attr)
-		return FM10K_ERR_PARAM;
+    /* verify pointers are not NULL */
+    if (!le_struct || !attr)
+        return FM10K_ERR_PARAM;
 
-	if ((*attr >> FM10K_TLV_LEN_SHIFT) != len)
-		return FM10K_ERR_PARAM;
+    if ((*attr >> FM10K_TLV_LEN_SHIFT) != len)
+        return FM10K_ERR_PARAM;
 
-	attr++;
+    attr++;
 
-	for (i = 0; len; i++, len -= 4)
-		le32_ptr[i] = FM10K_CPU_TO_LE32(attr[i]);
+    for (i = 0; len; i++, len -= 4)
+        le32_ptr[i] = FM10K_CPU_TO_LE32(attr[i]);
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -386,22 +373,21 @@ s32 fm10k_tlv_attr_get_le_struct(u32 *attr, void *le_struct, u32 len)
  *  function will return NULL on failure, and a pointer to the start
  *  of the nested attributes on success.
  **/
-static u32 *fm10k_tlv_attr_nest_start(u32 *msg, u16 attr_id)
-{
-	u32 *attr;
+static u32 *fm10k_tlv_attr_nest_start(u32 *msg, u16 attr_id) {
+    u32 *attr;
 
-	DEBUGFUNC("fm10k_tlv_attr_nest_start");
+    DEBUGFUNC("fm10k_tlv_attr_nest_start");
 
-	/* verify pointer is not NULL */
-	if (!msg)
-		return NULL;
+    /* verify pointer is not NULL */
+    if (!msg)
+        return NULL;
 
-	attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
+    attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
 
-	attr[0] = attr_id;
+    attr[0] = attr_id;
 
-	/* return pointer to nest header */
-	return attr;
+    /* return pointer to nest header */
+    return attr;
 }
 
 /**
@@ -413,28 +399,27 @@ static u32 *fm10k_tlv_attr_nest_start(u32 *msg, u16 attr_id)
  *  the case of a nest within the nest this would be the outer nest pointer.
  *  This function will return success provided all pointers are valid.
  **/
-static s32 fm10k_tlv_attr_nest_stop(u32 *msg)
-{
-	u32 *attr;
-	u32 len;
+static s32 fm10k_tlv_attr_nest_stop(u32 *msg) {
+    u32 *attr;
+    u32 len;
 
-	DEBUGFUNC("fm10k_tlv_attr_nest_stop");
+    DEBUGFUNC("fm10k_tlv_attr_nest_stop");
 
-	/* verify pointer is not NULL */
-	if (!msg)
-		return FM10K_ERR_PARAM;
+    /* verify pointer is not NULL */
+    if (!msg)
+        return FM10K_ERR_PARAM;
 
-	/* locate the nested header and retrieve its length */
-	attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
-	len = (attr[0] >> FM10K_TLV_LEN_SHIFT) << FM10K_TLV_LEN_SHIFT;
+    /* locate the nested header and retrieve its length */
+    attr = &msg[FM10K_TLV_DWORD_LEN(*msg)];
+    len = (attr[0] >> FM10K_TLV_LEN_SHIFT) << FM10K_TLV_LEN_SHIFT;
 
-	/* only include nest if data was added to it */
-	if (len) {
-		len += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
-		*msg += len;
-	}
+    /* only include nest if data was added to it */
+    if (len) {
+        len += FM10K_TLV_HDR_LEN << FM10K_TLV_LEN_SHIFT;
+        *msg += len;
+    }
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -448,66 +433,63 @@ static s32 fm10k_tlv_attr_nest_stop(u32 *msg)
  *  return FM10K_ERR_PARAM if any attribute is malformed, otherwise
  *  it returns 0.
  **/
-STATIC s32 fm10k_tlv_attr_validate(u32 *attr,
-				   const struct fm10k_tlv_attr *tlv_attr)
-{
-	u32 attr_id = *attr & FM10K_TLV_ID_MASK;
-	u16 len = *attr >> FM10K_TLV_LEN_SHIFT;
+STATIC s32 fm10k_tlv_attr_validate(u32 *attr, const struct fm10k_tlv_attr *tlv_attr) {
+    u32 attr_id = *attr & FM10K_TLV_ID_MASK;
+    u16 len = *attr >> FM10K_TLV_LEN_SHIFT;
 
-	DEBUGFUNC("fm10k_tlv_attr_validate");
+    DEBUGFUNC("fm10k_tlv_attr_validate");
 
-	/* verify this is an attribute and not a message */
-	if (*attr & (FM10K_TLV_FLAGS_MSG << FM10K_TLV_FLAGS_SHIFT))
-		return FM10K_ERR_PARAM;
+    /* verify this is an attribute and not a message */
+    if (*attr & (FM10K_TLV_FLAGS_MSG << FM10K_TLV_FLAGS_SHIFT))
+        return FM10K_ERR_PARAM;
 
-	/* search through the list of attributes to find a matching ID */
-	while (tlv_attr->id < attr_id)
-		tlv_attr++;
+    /* search through the list of attributes to find a matching ID */
+    while (tlv_attr->id < attr_id)
+        tlv_attr++;
 
-	/* if didn't find a match then we should exit */
-	if (tlv_attr->id != attr_id)
-		return FM10K_NOT_IMPLEMENTED;
+    /* if didn't find a match then we should exit */
+    if (tlv_attr->id != attr_id)
+        return FM10K_NOT_IMPLEMENTED;
 
-	/* move to start of attribute data */
-	attr++;
+    /* move to start of attribute data */
+    attr++;
 
-	switch (tlv_attr->type) {
-	case FM10K_TLV_NULL_STRING:
-		if (!len ||
-		    (attr[(len - 1) / 4] & (0xFF << (8 * ((len - 1) % 4)))))
-			return FM10K_ERR_PARAM;
-		if (len > tlv_attr->len)
-			return FM10K_ERR_PARAM;
-		break;
-	case FM10K_TLV_MAC_ADDR:
-		if (len != ETH_ALEN)
-			return FM10K_ERR_PARAM;
-		break;
-	case FM10K_TLV_BOOL:
-		if (len)
-			return FM10K_ERR_PARAM;
-		break;
-	case FM10K_TLV_UNSIGNED:
-	case FM10K_TLV_SIGNED:
-		if (len != tlv_attr->len)
-			return FM10K_ERR_PARAM;
-		break;
-	case FM10K_TLV_LE_STRUCT:
-		/* struct must be 4 byte aligned */
-		if ((len % 4) || len != tlv_attr->len)
-			return FM10K_ERR_PARAM;
-		break;
-	case FM10K_TLV_NESTED:
-		/* nested attributes must be 4 byte aligned */
-		if (len % 4)
-			return FM10K_ERR_PARAM;
-		break;
-	default:
-		/* attribute id is mapped to bad value */
-		return FM10K_ERR_PARAM;
-	}
+    switch (tlv_attr->type) {
+    case FM10K_TLV_NULL_STRING:
+        if (!len || (attr[(len - 1) / 4] & (0xFF << (8 * ((len - 1) % 4)))))
+            return FM10K_ERR_PARAM;
+        if (len > tlv_attr->len)
+            return FM10K_ERR_PARAM;
+        break;
+    case FM10K_TLV_MAC_ADDR:
+        if (len != ETH_ALEN)
+            return FM10K_ERR_PARAM;
+        break;
+    case FM10K_TLV_BOOL:
+        if (len)
+            return FM10K_ERR_PARAM;
+        break;
+    case FM10K_TLV_UNSIGNED:
+    case FM10K_TLV_SIGNED:
+        if (len != tlv_attr->len)
+            return FM10K_ERR_PARAM;
+        break;
+    case FM10K_TLV_LE_STRUCT:
+        /* struct must be 4 byte aligned */
+        if ((len % 4) || len != tlv_attr->len)
+            return FM10K_ERR_PARAM;
+        break;
+    case FM10K_TLV_NESTED:
+        /* nested attributes must be 4 byte aligned */
+        if (len % 4)
+            return FM10K_ERR_PARAM;
+        break;
+    default:
+        /* attribute id is mapped to bad value */
+        return FM10K_ERR_PARAM;
+    }
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -523,66 +505,64 @@ STATIC s32 fm10k_tlv_attr_validate(u32 *attr,
  *  and 0 on success. Any attributes not found in tlv_attr will be silently
  *  ignored.
  **/
-static s32 fm10k_tlv_attr_parse(u32 *attr, u32 **results,
-				const struct fm10k_tlv_attr *tlv_attr)
-{
-	u32 i, attr_id, offset = 0;
-	s32 err = 0;
-	u16 len;
+static s32 fm10k_tlv_attr_parse(u32 *attr, u32 **results, const struct fm10k_tlv_attr *tlv_attr) {
+    u32 i, attr_id, offset = 0;
+    s32 err = 0;
+    u16 len;
 
-	DEBUGFUNC("fm10k_tlv_attr_parse");
+    DEBUGFUNC("fm10k_tlv_attr_parse");
 
-	/* verify pointers are not NULL */
-	if (!attr || !results)
-		return FM10K_ERR_PARAM;
+    /* verify pointers are not NULL */
+    if (!attr || !results)
+        return FM10K_ERR_PARAM;
 
-	/* initialize results to NULL */
-	for (i = 0; i < FM10K_TLV_RESULTS_MAX; i++)
-		results[i] = NULL;
+    /* initialize results to NULL */
+    for (i = 0; i < FM10K_TLV_RESULTS_MAX; i++)
+        results[i] = NULL;
 
-	/* pull length from the message header */
-	len = *attr >> FM10K_TLV_LEN_SHIFT;
+    /* pull length from the message header */
+    len = *attr >> FM10K_TLV_LEN_SHIFT;
 
-	/* no attributes to parse if there is no length */
-	if (!len)
-		return FM10K_SUCCESS;
+    /* no attributes to parse if there is no length */
+    if (!len)
+        return FM10K_SUCCESS;
 
-	/* no attributes to parse, just raw data, message becomes attribute */
-	if (!tlv_attr) {
-		results[0] = attr;
-		return FM10K_SUCCESS;
-	}
+    /* no attributes to parse, just raw data, message becomes attribute */
+    if (!tlv_attr) {
+        results[0] = attr;
+        return FM10K_SUCCESS;
+    }
 
-	/* move to start of attribute data */
-	attr++;
+    /* move to start of attribute data */
+    attr++;
 
-	/* run through list parsing all attributes */
-	while (offset < len) {
-		attr_id = *attr & FM10K_TLV_ID_MASK;
+    /* run through list parsing all attributes */
+    while (offset < len) {
+        attr_id = *attr & FM10K_TLV_ID_MASK;
 
-		if (attr_id >= FM10K_TLV_RESULTS_MAX)
-			return FM10K_NOT_IMPLEMENTED;
+        if (attr_id >= FM10K_TLV_RESULTS_MAX)
+            return FM10K_NOT_IMPLEMENTED;
 
-		err = fm10k_tlv_attr_validate(attr, tlv_attr);
-		if (err == FM10K_NOT_IMPLEMENTED)
-			; /* silently ignore non-implemented attributes */
-		else if (err)
-			return err;
-		else
-			results[attr_id] = attr;
+        err = fm10k_tlv_attr_validate(attr, tlv_attr);
+        if (err == FM10K_NOT_IMPLEMENTED)
+            ; /* silently ignore non-implemented attributes */
+        else if (err)
+            return err;
+        else
+            results[attr_id] = attr;
 
-		/* update offset */
-		offset += FM10K_TLV_DWORD_LEN(*attr) * 4;
+        /* update offset */
+        offset += FM10K_TLV_DWORD_LEN(*attr) * 4;
 
-		/* move to next attribute */
-		attr = &attr[FM10K_TLV_DWORD_LEN(*attr)];
-	}
+        /* move to next attribute */
+        attr = &attr[FM10K_TLV_DWORD_LEN(*attr)];
+    }
 
-	/* we should find ourselves at the end of the list */
-	if (offset != len)
-		return FM10K_ERR_PARAM;
+    /* we should find ourselves at the end of the list */
+    if (offset != len)
+        return FM10K_ERR_PARAM;
 
-	return FM10K_SUCCESS;
+    return FM10K_SUCCESS;
 }
 
 /**
@@ -598,42 +578,39 @@ static s32 fm10k_tlv_attr_parse(u32 *attr, u32 **results,
  *  call on a recognized message type, otherwise it will return
  *  FM10K_NOT_IMPLEMENTED on an unrecognized type.
  **/
-s32 fm10k_tlv_msg_parse(struct fm10k_hw *hw, u32 *msg,
-			struct fm10k_mbx_info *mbx,
-			const struct fm10k_msg_data *data)
-{
-	u32 *results[FM10K_TLV_RESULTS_MAX];
-	u32 msg_id;
-	s32 err;
+s32 fm10k_tlv_msg_parse(struct fm10k_hw *hw, u32 *msg, struct fm10k_mbx_info *mbx, const struct fm10k_msg_data *data) {
+    u32 *results[FM10K_TLV_RESULTS_MAX];
+    u32 msg_id;
+    s32 err;
 
-	DEBUGFUNC("fm10k_tlv_msg_parse");
+    DEBUGFUNC("fm10k_tlv_msg_parse");
 
-	/* verify pointer is not NULL */
-	if (!msg || !data)
-		return FM10K_ERR_PARAM;
+    /* verify pointer is not NULL */
+    if (!msg || !data)
+        return FM10K_ERR_PARAM;
 
-	/* verify this is a message and not an attribute */
-	if (!(*msg & (FM10K_TLV_FLAGS_MSG << FM10K_TLV_FLAGS_SHIFT)))
-		return FM10K_ERR_PARAM;
+    /* verify this is a message and not an attribute */
+    if (!(*msg & (FM10K_TLV_FLAGS_MSG << FM10K_TLV_FLAGS_SHIFT)))
+        return FM10K_ERR_PARAM;
 
-	/* grab message ID */
-	msg_id = *msg & FM10K_TLV_ID_MASK;
+    /* grab message ID */
+    msg_id = *msg & FM10K_TLV_ID_MASK;
 
-	while (data->id < msg_id)
-		data++;
+    while (data->id < msg_id)
+        data++;
 
-	/* if we didn't find it then pass it up as an error */
-	if (data->id != msg_id) {
-		while (data->id != FM10K_TLV_ERROR)
-			data++;
-	}
+    /* if we didn't find it then pass it up as an error */
+    if (data->id != msg_id) {
+        while (data->id != FM10K_TLV_ERROR)
+            data++;
+    }
 
-	/* parse the attributes into the results list */
-	err = fm10k_tlv_attr_parse(msg, results, data->attr);
-	if (err < 0)
-		return err;
+    /* parse the attributes into the results list */
+    err = fm10k_tlv_attr_parse(msg, results, data->attr);
+    if (err < 0)
+        return err;
 
-	return data->func(hw, results, mbx);
+    return data->func(hw, results, mbx);
 }
 
 /**
@@ -646,49 +623,43 @@ s32 fm10k_tlv_msg_parse(struct fm10k_hw *hw, u32 *msg,
  *  a minimum it just indicates that the message requested was
  *  unimplemented.
  **/
-s32 fm10k_tlv_msg_error(struct fm10k_hw *hw, u32 **results,
-			struct fm10k_mbx_info *mbx)
-{
-	UNREFERENCED_3PARAMETER(hw, results, mbx);
-	DEBUGOUT1("Unknown message ID %u\n", **results & FM10K_TLV_ID_MASK);
-	return FM10K_NOT_IMPLEMENTED;
+s32 fm10k_tlv_msg_error(struct fm10k_hw *hw, u32 **results, struct fm10k_mbx_info *mbx) {
+    UNREFERENCED_3PARAMETER(hw, results, mbx);
+    DEBUGOUT1("Unknown message ID %u\n", **results & FM10K_TLV_ID_MASK);
+    return FM10K_NOT_IMPLEMENTED;
 }
 
-STATIC const unsigned char test_str[] =	"fm10k";
-STATIC const unsigned char test_mac[ETH_ALEN] = { 0x12, 0x34, 0x56,
-						  0x78, 0x9a, 0xbc };
+STATIC const unsigned char test_str[] = "fm10k";
+STATIC const unsigned char test_mac[ETH_ALEN] = {0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc};
 STATIC const u16 test_vlan = 0x0FED;
 STATIC const u64 test_u64 = 0xfedcba9876543210ull;
 STATIC const u32 test_u32 = 0x87654321;
 STATIC const u16 test_u16 = 0x8765;
-STATIC const u8  test_u8  = 0x87;
+STATIC const u8 test_u8 = 0x87;
 STATIC const s64 test_s64 = -0x123456789abcdef0ll;
 STATIC const s32 test_s32 = -0x1235678;
 STATIC const s16 test_s16 = -0x1234;
-STATIC const s8  test_s8  = -0x12;
-STATIC const __le32 test_le[2] = { FM10K_CPU_TO_LE32(0x12345678),
-				   FM10K_CPU_TO_LE32(0x9abcdef0)};
+STATIC const s8 test_s8 = -0x12;
+STATIC const __le32 test_le[2] = {FM10K_CPU_TO_LE32(0x12345678), FM10K_CPU_TO_LE32(0x9abcdef0)};
 
 /* The message below is meant to be used as a test message to demonstrate
  * how to use the TLV interface and to test the types.  Normally this code
  * be compiled out by stripping the code wrapped in FM10K_TLV_TEST_MSG
  */
-const struct fm10k_tlv_attr fm10k_tlv_msg_test_attr[] = {
-	FM10K_TLV_ATTR_NULL_STRING(FM10K_TEST_MSG_STRING, 80),
-	FM10K_TLV_ATTR_MAC_ADDR(FM10K_TEST_MSG_MAC_ADDR),
-	FM10K_TLV_ATTR_U8(FM10K_TEST_MSG_U8),
-	FM10K_TLV_ATTR_U16(FM10K_TEST_MSG_U16),
-	FM10K_TLV_ATTR_U32(FM10K_TEST_MSG_U32),
-	FM10K_TLV_ATTR_U64(FM10K_TEST_MSG_U64),
-	FM10K_TLV_ATTR_S8(FM10K_TEST_MSG_S8),
-	FM10K_TLV_ATTR_S16(FM10K_TEST_MSG_S16),
-	FM10K_TLV_ATTR_S32(FM10K_TEST_MSG_S32),
-	FM10K_TLV_ATTR_S64(FM10K_TEST_MSG_S64),
-	FM10K_TLV_ATTR_LE_STRUCT(FM10K_TEST_MSG_LE_STRUCT, 8),
-	FM10K_TLV_ATTR_NESTED(FM10K_TEST_MSG_NESTED),
-	FM10K_TLV_ATTR_S32(FM10K_TEST_MSG_RESULT),
-	FM10K_TLV_ATTR_LAST
-};
+const struct fm10k_tlv_attr fm10k_tlv_msg_test_attr[] = {FM10K_TLV_ATTR_NULL_STRING(FM10K_TEST_MSG_STRING, 80),
+                                                         FM10K_TLV_ATTR_MAC_ADDR(FM10K_TEST_MSG_MAC_ADDR),
+                                                         FM10K_TLV_ATTR_U8(FM10K_TEST_MSG_U8),
+                                                         FM10K_TLV_ATTR_U16(FM10K_TEST_MSG_U16),
+                                                         FM10K_TLV_ATTR_U32(FM10K_TEST_MSG_U32),
+                                                         FM10K_TLV_ATTR_U64(FM10K_TEST_MSG_U64),
+                                                         FM10K_TLV_ATTR_S8(FM10K_TEST_MSG_S8),
+                                                         FM10K_TLV_ATTR_S16(FM10K_TEST_MSG_S16),
+                                                         FM10K_TLV_ATTR_S32(FM10K_TEST_MSG_S32),
+                                                         FM10K_TLV_ATTR_S64(FM10K_TEST_MSG_S64),
+                                                         FM10K_TLV_ATTR_LE_STRUCT(FM10K_TEST_MSG_LE_STRUCT, 8),
+                                                         FM10K_TLV_ATTR_NESTED(FM10K_TEST_MSG_NESTED),
+                                                         FM10K_TLV_ATTR_S32(FM10K_TEST_MSG_RESULT),
+                                                         FM10K_TLV_ATTR_LAST};
 
 /**
  *  fm10k_tlv_msg_test_generate_data - Stuff message with data
@@ -697,35 +668,31 @@ const struct fm10k_tlv_attr fm10k_tlv_msg_test_attr[] = {
  *
  *  This function is meant to load a message buffer with attribute data
  **/
-STATIC void fm10k_tlv_msg_test_generate_data(u32 *msg, u32 attr_flags)
-{
-	DEBUGFUNC("fm10k_tlv_msg_test_generate_data");
+STATIC void fm10k_tlv_msg_test_generate_data(u32 *msg, u32 attr_flags) {
+    DEBUGFUNC("fm10k_tlv_msg_test_generate_data");
 
-	if (attr_flags & BIT(FM10K_TEST_MSG_STRING))
-		fm10k_tlv_attr_put_null_string(msg, FM10K_TEST_MSG_STRING,
-					       test_str);
-	if (attr_flags & BIT(FM10K_TEST_MSG_MAC_ADDR))
-		fm10k_tlv_attr_put_mac_vlan(msg, FM10K_TEST_MSG_MAC_ADDR,
-					    test_mac, test_vlan);
-	if (attr_flags & BIT(FM10K_TEST_MSG_U8))
-		fm10k_tlv_attr_put_u8(msg, FM10K_TEST_MSG_U8,  test_u8);
-	if (attr_flags & BIT(FM10K_TEST_MSG_U16))
-		fm10k_tlv_attr_put_u16(msg, FM10K_TEST_MSG_U16, test_u16);
-	if (attr_flags & BIT(FM10K_TEST_MSG_U32))
-		fm10k_tlv_attr_put_u32(msg, FM10K_TEST_MSG_U32, test_u32);
-	if (attr_flags & BIT(FM10K_TEST_MSG_U64))
-		fm10k_tlv_attr_put_u64(msg, FM10K_TEST_MSG_U64, test_u64);
-	if (attr_flags & BIT(FM10K_TEST_MSG_S8))
-		fm10k_tlv_attr_put_s8(msg, FM10K_TEST_MSG_S8,  test_s8);
-	if (attr_flags & BIT(FM10K_TEST_MSG_S16))
-		fm10k_tlv_attr_put_s16(msg, FM10K_TEST_MSG_S16, test_s16);
-	if (attr_flags & BIT(FM10K_TEST_MSG_S32))
-		fm10k_tlv_attr_put_s32(msg, FM10K_TEST_MSG_S32, test_s32);
-	if (attr_flags & BIT(FM10K_TEST_MSG_S64))
-		fm10k_tlv_attr_put_s64(msg, FM10K_TEST_MSG_S64, test_s64);
-	if (attr_flags & BIT(FM10K_TEST_MSG_LE_STRUCT))
-		fm10k_tlv_attr_put_le_struct(msg, FM10K_TEST_MSG_LE_STRUCT,
-					     test_le, 8);
+    if (attr_flags & BIT(FM10K_TEST_MSG_STRING))
+        fm10k_tlv_attr_put_null_string(msg, FM10K_TEST_MSG_STRING, test_str);
+    if (attr_flags & BIT(FM10K_TEST_MSG_MAC_ADDR))
+        fm10k_tlv_attr_put_mac_vlan(msg, FM10K_TEST_MSG_MAC_ADDR, test_mac, test_vlan);
+    if (attr_flags & BIT(FM10K_TEST_MSG_U8))
+        fm10k_tlv_attr_put_u8(msg, FM10K_TEST_MSG_U8, test_u8);
+    if (attr_flags & BIT(FM10K_TEST_MSG_U16))
+        fm10k_tlv_attr_put_u16(msg, FM10K_TEST_MSG_U16, test_u16);
+    if (attr_flags & BIT(FM10K_TEST_MSG_U32))
+        fm10k_tlv_attr_put_u32(msg, FM10K_TEST_MSG_U32, test_u32);
+    if (attr_flags & BIT(FM10K_TEST_MSG_U64))
+        fm10k_tlv_attr_put_u64(msg, FM10K_TEST_MSG_U64, test_u64);
+    if (attr_flags & BIT(FM10K_TEST_MSG_S8))
+        fm10k_tlv_attr_put_s8(msg, FM10K_TEST_MSG_S8, test_s8);
+    if (attr_flags & BIT(FM10K_TEST_MSG_S16))
+        fm10k_tlv_attr_put_s16(msg, FM10K_TEST_MSG_S16, test_s16);
+    if (attr_flags & BIT(FM10K_TEST_MSG_S32))
+        fm10k_tlv_attr_put_s32(msg, FM10K_TEST_MSG_S32, test_s32);
+    if (attr_flags & BIT(FM10K_TEST_MSG_S64))
+        fm10k_tlv_attr_put_s64(msg, FM10K_TEST_MSG_S64, test_s64);
+    if (attr_flags & BIT(FM10K_TEST_MSG_LE_STRUCT))
+        fm10k_tlv_attr_put_le_struct(msg, FM10K_TEST_MSG_LE_STRUCT, test_le, 8);
 }
 
 /**
@@ -736,26 +703,25 @@ STATIC void fm10k_tlv_msg_test_generate_data(u32 *msg, u32 attr_flags)
  *  This function is meant to load a message buffer with all attribute types
  *  including a nested attribute.
  **/
-void fm10k_tlv_msg_test_create(u32 *msg, u32 attr_flags)
-{
-	u32 *nest = NULL;
+void fm10k_tlv_msg_test_create(u32 *msg, u32 attr_flags) {
+    u32 *nest = NULL;
 
-	DEBUGFUNC("fm10k_tlv_msg_test_create");
+    DEBUGFUNC("fm10k_tlv_msg_test_create");
 
-	fm10k_tlv_msg_init(msg, FM10K_TLV_MSG_ID_TEST);
+    fm10k_tlv_msg_init(msg, FM10K_TLV_MSG_ID_TEST);
 
-	fm10k_tlv_msg_test_generate_data(msg, attr_flags);
+    fm10k_tlv_msg_test_generate_data(msg, attr_flags);
 
-	/* check for nested attributes */
-	attr_flags >>= FM10K_TEST_MSG_NESTED;
+    /* check for nested attributes */
+    attr_flags >>= FM10K_TEST_MSG_NESTED;
 
-	if (attr_flags) {
-		nest = fm10k_tlv_attr_nest_start(msg, FM10K_TEST_MSG_NESTED);
+    if (attr_flags) {
+        nest = fm10k_tlv_attr_nest_start(msg, FM10K_TEST_MSG_NESTED);
 
-		fm10k_tlv_msg_test_generate_data(nest, attr_flags);
+        fm10k_tlv_msg_test_generate_data(nest, attr_flags);
 
-		fm10k_tlv_attr_nest_stop(msg);
-	}
+        fm10k_tlv_attr_nest_stop(msg);
+    }
 }
 
 /**
@@ -768,149 +734,129 @@ void fm10k_tlv_msg_test_create(u32 *msg, u32 attr_flags)
  *  message placed in the message buffer.  It is the default handler
  *  for TLV test messages.
  **/
-s32 fm10k_tlv_msg_test(struct fm10k_hw *hw, u32 **results,
-		       struct fm10k_mbx_info *mbx)
-{
-	u32 *nest_results[FM10K_TLV_RESULTS_MAX];
-	unsigned char result_str[80];
-	unsigned char result_mac[ETH_ALEN];
-	s32 err = FM10K_SUCCESS;
-	__le32 result_le[2];
-	u16 result_vlan;
-	u64 result_u64;
-	u32 result_u32;
-	u16 result_u16;
-	u8  result_u8;
-	s64 result_s64;
-	s32 result_s32;
-	s16 result_s16;
-	s8  result_s8;
-	u32 reply[3];
+s32 fm10k_tlv_msg_test(struct fm10k_hw *hw, u32 **results, struct fm10k_mbx_info *mbx) {
+    u32 *nest_results[FM10K_TLV_RESULTS_MAX];
+    unsigned char result_str[80];
+    unsigned char result_mac[ETH_ALEN];
+    s32 err = FM10K_SUCCESS;
+    __le32 result_le[2];
+    u16 result_vlan;
+    u64 result_u64;
+    u32 result_u32;
+    u16 result_u16;
+    u8 result_u8;
+    s64 result_s64;
+    s32 result_s32;
+    s16 result_s16;
+    s8 result_s8;
+    u32 reply[3];
 
-	DEBUGFUNC("fm10k_tlv_msg_test");
+    DEBUGFUNC("fm10k_tlv_msg_test");
 
-	/* retrieve results of a previous test */
-	if (!!results[FM10K_TEST_MSG_RESULT])
-		return fm10k_tlv_attr_get_s32(results[FM10K_TEST_MSG_RESULT],
-					      &mbx->test_result);
+    /* retrieve results of a previous test */
+    if (!!results[FM10K_TEST_MSG_RESULT])
+        return fm10k_tlv_attr_get_s32(results[FM10K_TEST_MSG_RESULT], &mbx->test_result);
 
 parse_nested:
-	if (!!results[FM10K_TEST_MSG_STRING]) {
-		err = fm10k_tlv_attr_get_null_string(
-					results[FM10K_TEST_MSG_STRING],
-					result_str);
-		if (!err && memcmp(test_str, result_str, sizeof(test_str)))
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
-	if (!!results[FM10K_TEST_MSG_MAC_ADDR]) {
-		err = fm10k_tlv_attr_get_mac_vlan(
-					results[FM10K_TEST_MSG_MAC_ADDR],
-					result_mac, &result_vlan);
-		if (!err && memcmp(test_mac, result_mac, ETH_ALEN))
-			err = FM10K_ERR_INVALID_VALUE;
-		if (!err && test_vlan != result_vlan)
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
-	if (!!results[FM10K_TEST_MSG_U8]) {
-		err = fm10k_tlv_attr_get_u8(results[FM10K_TEST_MSG_U8],
-					    &result_u8);
-		if (!err && test_u8 != result_u8)
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
-	if (!!results[FM10K_TEST_MSG_U16]) {
-		err = fm10k_tlv_attr_get_u16(results[FM10K_TEST_MSG_U16],
-					     &result_u16);
-		if (!err && test_u16 != result_u16)
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
-	if (!!results[FM10K_TEST_MSG_U32]) {
-		err = fm10k_tlv_attr_get_u32(results[FM10K_TEST_MSG_U32],
-					     &result_u32);
-		if (!err && test_u32 != result_u32)
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
-	if (!!results[FM10K_TEST_MSG_U64]) {
-		err = fm10k_tlv_attr_get_u64(results[FM10K_TEST_MSG_U64],
-					     &result_u64);
-		if (!err && test_u64 != result_u64)
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
-	if (!!results[FM10K_TEST_MSG_S8]) {
-		err = fm10k_tlv_attr_get_s8(results[FM10K_TEST_MSG_S8],
-					    &result_s8);
-		if (!err && test_s8 != result_s8)
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
-	if (!!results[FM10K_TEST_MSG_S16]) {
-		err = fm10k_tlv_attr_get_s16(results[FM10K_TEST_MSG_S16],
-					     &result_s16);
-		if (!err && test_s16 != result_s16)
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
-	if (!!results[FM10K_TEST_MSG_S32]) {
-		err = fm10k_tlv_attr_get_s32(results[FM10K_TEST_MSG_S32],
-					     &result_s32);
-		if (!err && test_s32 != result_s32)
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
-	if (!!results[FM10K_TEST_MSG_S64]) {
-		err = fm10k_tlv_attr_get_s64(results[FM10K_TEST_MSG_S64],
-					     &result_s64);
-		if (!err && test_s64 != result_s64)
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
-	if (!!results[FM10K_TEST_MSG_LE_STRUCT]) {
-		err = fm10k_tlv_attr_get_le_struct(
-					results[FM10K_TEST_MSG_LE_STRUCT],
-					result_le,
-					sizeof(result_le));
-		if (!err && memcmp(test_le, result_le, sizeof(test_le)))
-			err = FM10K_ERR_INVALID_VALUE;
-		if (err)
-			goto report_result;
-	}
+    if (!!results[FM10K_TEST_MSG_STRING]) {
+        err = fm10k_tlv_attr_get_null_string(results[FM10K_TEST_MSG_STRING], result_str);
+        if (!err && memcmp(test_str, result_str, sizeof(test_str)))
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
+    if (!!results[FM10K_TEST_MSG_MAC_ADDR]) {
+        err = fm10k_tlv_attr_get_mac_vlan(results[FM10K_TEST_MSG_MAC_ADDR], result_mac, &result_vlan);
+        if (!err && memcmp(test_mac, result_mac, ETH_ALEN))
+            err = FM10K_ERR_INVALID_VALUE;
+        if (!err && test_vlan != result_vlan)
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
+    if (!!results[FM10K_TEST_MSG_U8]) {
+        err = fm10k_tlv_attr_get_u8(results[FM10K_TEST_MSG_U8], &result_u8);
+        if (!err && test_u8 != result_u8)
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
+    if (!!results[FM10K_TEST_MSG_U16]) {
+        err = fm10k_tlv_attr_get_u16(results[FM10K_TEST_MSG_U16], &result_u16);
+        if (!err && test_u16 != result_u16)
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
+    if (!!results[FM10K_TEST_MSG_U32]) {
+        err = fm10k_tlv_attr_get_u32(results[FM10K_TEST_MSG_U32], &result_u32);
+        if (!err && test_u32 != result_u32)
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
+    if (!!results[FM10K_TEST_MSG_U64]) {
+        err = fm10k_tlv_attr_get_u64(results[FM10K_TEST_MSG_U64], &result_u64);
+        if (!err && test_u64 != result_u64)
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
+    if (!!results[FM10K_TEST_MSG_S8]) {
+        err = fm10k_tlv_attr_get_s8(results[FM10K_TEST_MSG_S8], &result_s8);
+        if (!err && test_s8 != result_s8)
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
+    if (!!results[FM10K_TEST_MSG_S16]) {
+        err = fm10k_tlv_attr_get_s16(results[FM10K_TEST_MSG_S16], &result_s16);
+        if (!err && test_s16 != result_s16)
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
+    if (!!results[FM10K_TEST_MSG_S32]) {
+        err = fm10k_tlv_attr_get_s32(results[FM10K_TEST_MSG_S32], &result_s32);
+        if (!err && test_s32 != result_s32)
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
+    if (!!results[FM10K_TEST_MSG_S64]) {
+        err = fm10k_tlv_attr_get_s64(results[FM10K_TEST_MSG_S64], &result_s64);
+        if (!err && test_s64 != result_s64)
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
+    if (!!results[FM10K_TEST_MSG_LE_STRUCT]) {
+        err = fm10k_tlv_attr_get_le_struct(results[FM10K_TEST_MSG_LE_STRUCT], result_le, sizeof(result_le));
+        if (!err && memcmp(test_le, result_le, sizeof(test_le)))
+            err = FM10K_ERR_INVALID_VALUE;
+        if (err)
+            goto report_result;
+    }
 
-	if (!!results[FM10K_TEST_MSG_NESTED]) {
-		/* clear any pointers */
-		memset(nest_results, 0, sizeof(nest_results));
+    if (!!results[FM10K_TEST_MSG_NESTED]) {
+        /* clear any pointers */
+        memset(nest_results, 0, sizeof(nest_results));
 
-		/* parse the nested attributes into the nest results list */
-		err = fm10k_tlv_attr_parse(results[FM10K_TEST_MSG_NESTED],
-					   nest_results,
-					   fm10k_tlv_msg_test_attr);
-		if (err)
-			goto report_result;
+        /* parse the nested attributes into the nest results list */
+        err = fm10k_tlv_attr_parse(results[FM10K_TEST_MSG_NESTED], nest_results, fm10k_tlv_msg_test_attr);
+        if (err)
+            goto report_result;
 
-		/* loop back through to the start */
-		results = nest_results;
-		goto parse_nested;
-	}
+        /* loop back through to the start */
+        results = nest_results;
+        goto parse_nested;
+    }
 
 report_result:
-	/* generate reply with test result */
-	fm10k_tlv_msg_init(reply, FM10K_TLV_MSG_ID_TEST);
-	fm10k_tlv_attr_put_s32(reply, FM10K_TEST_MSG_RESULT, err);
+    /* generate reply with test result */
+    fm10k_tlv_msg_init(reply, FM10K_TLV_MSG_ID_TEST);
+    fm10k_tlv_attr_put_s32(reply, FM10K_TEST_MSG_RESULT, err);
 
-	/* load onto outgoing mailbox */
-	return mbx->ops.enqueue_tx(hw, mbx, reply);
+    /* load onto outgoing mailbox */
+    return mbx->ops.enqueue_tx(hw, mbx, reply);
 }

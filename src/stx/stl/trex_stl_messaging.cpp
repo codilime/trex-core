@@ -34,7 +34,8 @@ limitations under the License.
 /*************************
   start traffic message
  ************************/
-TrexStatelessDpStart::TrexStatelessDpStart(uint8_t port_id, uint32_t profile_id, int event_id, TrexStreamsCompiledObj *obj, double duration, double start_at_ts) {
+TrexStatelessDpStart::TrexStatelessDpStart(uint8_t port_id, uint32_t profile_id, int event_id,
+                                           TrexStreamsCompiledObj *obj, double duration, double start_at_ts) {
     m_port_id = port_id;
     m_profile_id = profile_id;
     m_event_id = event_id;
@@ -43,17 +44,16 @@ TrexStatelessDpStart::TrexStatelessDpStart(uint8_t port_id, uint32_t profile_id,
     m_start_at_ts = start_at_ts;
 }
 
-
 /**
  * clone for DP start message
  *
  */
-TrexCpToDpMsgBase *
-TrexStatelessDpStart::clone() {
+TrexCpToDpMsgBase *TrexStatelessDpStart::clone() {
 
     TrexStreamsCompiledObj *new_obj = m_obj->clone();
 
-    TrexCpToDpMsgBase *new_msg = new TrexStatelessDpStart(m_port_id, m_profile_id, m_event_id, new_obj, m_duration, m_start_at_ts);
+    TrexCpToDpMsgBase *new_msg =
+        new TrexStatelessDpStart(m_port_id, m_profile_id, m_event_id, new_obj, m_duration, m_start_at_ts);
 
     return new_msg;
 }
@@ -64,8 +64,7 @@ TrexStatelessDpStart::~TrexStatelessDpStart() {
     }
 }
 
-bool
-TrexStatelessDpStart::handle(TrexDpCore *dp_core) {
+bool TrexStatelessDpStart::handle(TrexDpCore *dp_core) {
 
     TrexStatelessDpCore *stl_core = dynamic_cast<TrexStatelessDpCore *>(dp_core);
 
@@ -78,8 +77,7 @@ TrexStatelessDpStart::handle(TrexDpCore *dp_core) {
 /*************************
   stop traffic message
  ************************/
-bool
-TrexStatelessDpStop::handle(TrexDpCore *dp_core) {
+bool TrexStatelessDpStop::handle(TrexDpCore *dp_core) {
 
     TrexStatelessDpCore *stl_core = dynamic_cast<TrexStatelessDpCore *>(dp_core);
 
@@ -87,23 +85,20 @@ TrexStatelessDpStop::handle(TrexDpCore *dp_core) {
     return true;
 }
 
-
-void TrexStatelessDpStop::on_node_remove(){
-    if ( m_core ) {
-        assert(m_core->m_non_active_nodes>0);
+void TrexStatelessDpStop::on_node_remove() {
+    if (m_core) {
+        assert(m_core->m_non_active_nodes > 0);
         m_core->m_non_active_nodes--;
     }
 }
 
-
-TrexCpToDpMsgBase * TrexStatelessDpPause::clone(){
+TrexCpToDpMsgBase *TrexStatelessDpPause::clone() {
 
     TrexStatelessDpPause *new_msg = new TrexStatelessDpPause(m_port_id, m_profile_id);
     return new_msg;
 }
 
-
-bool TrexStatelessDpPause::handle(TrexDpCore *dp_core){
+bool TrexStatelessDpPause::handle(TrexDpCore *dp_core) {
 
     TrexStatelessDpCore *stl_core = dynamic_cast<TrexStatelessDpCore *>(dp_core);
 
@@ -111,14 +106,13 @@ bool TrexStatelessDpPause::handle(TrexDpCore *dp_core){
     return (true);
 }
 
-
-TrexCpToDpMsgBase * TrexStatelessDpPauseStreams::clone(){
+TrexCpToDpMsgBase *TrexStatelessDpPauseStreams::clone() {
 
     TrexStatelessDpPauseStreams *new_msg = new TrexStatelessDpPauseStreams(m_port_id, m_profile_id, m_stream_ids);
     return new_msg;
 }
 
-bool TrexStatelessDpPauseStreams::handle(TrexDpCore *dp_core){
+bool TrexStatelessDpPauseStreams::handle(TrexDpCore *dp_core) {
 
     TrexStatelessDpCore *stl_core = dynamic_cast<TrexStatelessDpCore *>(dp_core);
 
@@ -126,13 +120,12 @@ bool TrexStatelessDpPauseStreams::handle(TrexDpCore *dp_core){
     return (true);
 }
 
-
-TrexCpToDpMsgBase * TrexStatelessDpResume::clone(){
+TrexCpToDpMsgBase *TrexStatelessDpResume::clone() {
     TrexStatelessDpResume *new_msg = new TrexStatelessDpResume(m_port_id, m_profile_id);
     return new_msg;
 }
 
-bool TrexStatelessDpResume::handle(TrexDpCore *dp_core){
+bool TrexStatelessDpResume::handle(TrexDpCore *dp_core) {
 
     TrexStatelessDpCore *stl_core = dynamic_cast<TrexStatelessDpCore *>(dp_core);
 
@@ -140,13 +133,12 @@ bool TrexStatelessDpResume::handle(TrexDpCore *dp_core){
     return (true);
 }
 
-
-TrexCpToDpMsgBase * TrexStatelessDpResumeStreams::clone(){
+TrexCpToDpMsgBase *TrexStatelessDpResumeStreams::clone() {
     TrexStatelessDpResumeStreams *new_msg = new TrexStatelessDpResumeStreams(m_port_id, m_profile_id, m_stream_ids);
     return new_msg;
 }
 
-bool TrexStatelessDpResumeStreams::handle(TrexDpCore *dp_core){
+bool TrexStatelessDpResumeStreams::handle(TrexDpCore *dp_core) {
 
     TrexStatelessDpCore *stl_core = dynamic_cast<TrexStatelessDpCore *>(dp_core);
 
@@ -154,13 +146,11 @@ bool TrexStatelessDpResumeStreams::handle(TrexDpCore *dp_core){
     return (true);
 }
 
-
 /**
  * clone for DP stop message
  *
  */
-TrexCpToDpMsgBase *
-TrexStatelessDpStop::clone() {
+TrexCpToDpMsgBase *TrexStatelessDpStop::clone() {
     TrexStatelessDpStop *new_msg = new TrexStatelessDpStop(m_port_id, m_profile_id);
 
     new_msg->set_event_id(m_event_id);
@@ -171,12 +161,10 @@ TrexStatelessDpStop::clone() {
     return new_msg;
 }
 
-
 /*************************
   update traffic message
  ************************/
-bool
-TrexStatelessDpUpdate::handle(TrexDpCore *dp_core) {
+bool TrexStatelessDpUpdate::handle(TrexDpCore *dp_core) {
 
     TrexStatelessDpCore *stl_core = dynamic_cast<TrexStatelessDpCore *>(dp_core);
 
@@ -185,16 +173,13 @@ TrexStatelessDpUpdate::handle(TrexDpCore *dp_core) {
     return true;
 }
 
-TrexCpToDpMsgBase *
-TrexStatelessDpUpdate::clone() {
+TrexCpToDpMsgBase *TrexStatelessDpUpdate::clone() {
     TrexCpToDpMsgBase *new_msg = new TrexStatelessDpUpdate(m_port_id, m_profile_id, m_factor);
 
     return new_msg;
 }
 
-
-bool
-TrexStatelessDpUpdateStreams::handle(TrexDpCore *dp_core) {
+bool TrexStatelessDpUpdateStreams::handle(TrexDpCore *dp_core) {
 
     TrexStatelessDpCore *stl_core = dynamic_cast<TrexStatelessDpCore *>(dp_core);
 
@@ -203,8 +188,7 @@ TrexStatelessDpUpdateStreams::handle(TrexDpCore *dp_core) {
     return true;
 }
 
-TrexCpToDpMsgBase *
-TrexStatelessDpUpdateStreams::clone() {
+TrexCpToDpMsgBase *TrexStatelessDpUpdateStreams::clone() {
     TrexCpToDpMsgBase *new_msg = new TrexStatelessDpUpdateStreams(m_port_id, m_profile_id, m_ipg_per_stream);
 
     return new_msg;
@@ -213,46 +197,27 @@ TrexStatelessDpUpdateStreams::clone() {
 /*************************
   push PCAP message
  ************************/
-bool
-TrexStatelessDpPushPCAP::handle(TrexDpCore *dp_core) {
+bool TrexStatelessDpPushPCAP::handle(TrexDpCore *dp_core) {
 
     TrexStatelessDpCore *stl_core = dynamic_cast<TrexStatelessDpCore *>(dp_core);
 
-    stl_core->push_pcap(m_port_id,
-                        m_event_id,
-                        m_pcap_filename,
-                        m_ipg_usec,
-                        m_min_ipg_sec,
-                        m_speedup,
-                        m_count,
-                        m_duration,
-                        m_is_dual);
+    stl_core->push_pcap(m_port_id, m_event_id, m_pcap_filename, m_ipg_usec, m_min_ipg_sec, m_speedup, m_count,
+                        m_duration, m_is_dual);
     return true;
 }
 
-TrexCpToDpMsgBase *
-TrexStatelessDpPushPCAP::clone() {
-    TrexCpToDpMsgBase *new_msg = new TrexStatelessDpPushPCAP(m_port_id,
-                                                                      m_event_id,
-                                                                      m_pcap_filename,
-                                                                      m_ipg_usec,
-                                                                      m_min_ipg_sec,
-                                                                      m_speedup,
-                                                                      m_count,
-                                                                      m_duration,
-                                                                      m_is_dual);
+TrexCpToDpMsgBase *TrexStatelessDpPushPCAP::clone() {
+    TrexCpToDpMsgBase *new_msg = new TrexStatelessDpPushPCAP(m_port_id, m_event_id, m_pcap_filename, m_ipg_usec,
+                                                             m_min_ipg_sec, m_speedup, m_count, m_duration, m_is_dual);
 
     return new_msg;
 }
-
-
 
 /*************************
   service mode message
  ************************/
 
-bool
-TrexStatelessDpServiceMode::handle(TrexDpCore *dp_core) {
+bool TrexStatelessDpServiceMode::handle(TrexDpCore *dp_core) {
 
     TrexStatelessDpCore *stl_core = dynamic_cast<TrexStatelessDpCore *>(dp_core);
 
@@ -260,18 +225,14 @@ TrexStatelessDpServiceMode::handle(TrexDpCore *dp_core) {
     return true;
 }
 
-TrexCpToDpMsgBase *
-TrexStatelessDpServiceMode::clone() {
+TrexCpToDpMsgBase *TrexStatelessDpServiceMode::clone() {
 
     TrexCpToDpMsgBase *new_msg = new TrexStatelessDpServiceMode(m_port_id, m_enabled);
 
     return new_msg;
 }
 
-
-
-bool
-TrexStatelessRxQuery::handle(CRxCore *rx_core) {
+bool TrexStatelessRxQuery::handle(CRxCore *rx_core) {
 
     query_rc_e rc = RC_OK;
 
@@ -312,7 +273,6 @@ TrexStatelessRxQuery::handle(CRxCore *rx_core) {
     default:
         assert(0);
         break;
-
     }
 
     m_reply.set_reply(rc);
@@ -320,15 +280,14 @@ TrexStatelessRxQuery::handle(CRxCore *rx_core) {
     return true;
 }
 
-
-bool TrexStatelessRxEnableLatency::handle (CRxCore *rx_core) {
+bool TrexStatelessRxEnableLatency::handle(CRxCore *rx_core) {
     rx_core->enable_latency();
     m_reply.set_reply(true);
 
     return true;
 }
 
-bool TrexStatelessRxDisableLatency::handle (CRxCore *rx_core) {
+bool TrexStatelessRxDisableLatency::handle(CRxCore *rx_core) {
     rx_core->disable_latency();
     return true;
 }
@@ -340,8 +299,7 @@ bool TrexStatelessDpSetLatencyFeature::handle(TrexDpCore *dp_core) {
     return true;
 }
 
-TrexCpToDpMsgBase*
-TrexStatelessDpSetLatencyFeature::clone() {
+TrexCpToDpMsgBase *TrexStatelessDpSetLatencyFeature::clone() {
     TrexStatelessDpSetLatencyFeature *new_msg = new TrexStatelessDpSetLatencyFeature(m_reply);
     return new_msg;
 }
@@ -353,8 +311,7 @@ bool TrexStatelessDpUnsetLatencyFeature::handle(TrexDpCore *dp_core) {
     return true;
 }
 
-TrexCpToDpMsgBase*
-TrexStatelessDpUnsetLatencyFeature::clone() {
+TrexCpToDpMsgBase *TrexStatelessDpUnsetLatencyFeature::clone() {
     TrexStatelessDpUnsetLatencyFeature *new_msg = new TrexStatelessDpUnsetLatencyFeature(m_reply);
     return new_msg;
 }
@@ -366,8 +323,7 @@ bool TrexStatelessDpSetCaptureFeature::handle(TrexDpCore *dp_core) {
     return true;
 }
 
-TrexCpToDpMsgBase*
-TrexStatelessDpSetCaptureFeature::clone() {
+TrexCpToDpMsgBase *TrexStatelessDpSetCaptureFeature::clone() {
     TrexStatelessDpSetCaptureFeature *new_msg = new TrexStatelessDpSetCaptureFeature(m_reply);
     return new_msg;
 }
@@ -379,8 +335,7 @@ bool TrexStatelessDpUnsetCaptureFeature::handle(TrexDpCore *dp_core) {
     return true;
 }
 
-TrexCpToDpMsgBase*
-TrexStatelessDpUnsetCaptureFeature::clone() {
+TrexCpToDpMsgBase *TrexStatelessDpUnsetCaptureFeature::clone() {
     TrexStatelessDpUnsetCaptureFeature *new_msg = new TrexStatelessDpUnsetCaptureFeature(m_reply);
     return new_msg;
 }

@@ -30,16 +30,13 @@ limitations under the License.
 #include <stdexcept>
 #include "trex_exception.h"
 
-
 class BarrierTimeout : public TrexException {
-public:
-    BarrierTimeout(const std::string &what) :
-            TrexException(what) {}
+  public:
+    BarrierTimeout(const std::string &what) : TrexException(what) {}
 };
 
 class CSyncBarrier {
-public:
-
+  public:
     /**
      * Object initialized by one thread (CP)
      *
@@ -53,26 +50,24 @@ public:
     int sync_barrier(uint16_t thread_id);
     int listen(bool throw_error);
 
-private:
+  private:
     void throw_err();
 
-private:
+  private:
     rte_atomic32_t m_atomic;
-    uint16_t       m_max_ids;
-    double         m_timeout_sec;
-    uint8_t *      m_arr;
-
+    uint16_t m_max_ids;
+    double m_timeout_sec;
+    uint8_t *m_arr;
 };
-
 
 class CSpinLock {
     rte_spinlock_t *m_lock;
-    bool            m_locked;
-public:
+    bool m_locked;
+
+  public:
     CSpinLock(rte_spinlock_t *lock);
     ~CSpinLock();
     void unlock();
-} __attribute__ ((unused));
+} __attribute__((unused));
 
 #endif
-

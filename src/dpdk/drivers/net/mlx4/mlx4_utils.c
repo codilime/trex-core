@@ -29,16 +29,14 @@
  * @return
  *   0 on success, negative errno value otherwise and rte_errno is set.
  */
-int
-mlx4_fd_set_non_blocking(int fd)
-{
-	int ret = fcntl(fd, F_GETFL);
+int mlx4_fd_set_non_blocking(int fd) {
+    int ret = fcntl(fd, F_GETFL);
 
-	if (ret != -1 && !fcntl(fd, F_SETFL, ret | O_NONBLOCK))
-		return 0;
-	assert(errno);
-	rte_errno = errno;
-	return -rte_errno;
+    if (ret != -1 && !fcntl(fd, F_SETFL, ret | O_NONBLOCK))
+        return 0;
+    assert(errno);
+    rte_errno = errno;
+    return -rte_errno;
 }
 
 /**
@@ -50,51 +48,49 @@ mlx4_fd_set_non_blocking(int fd)
  * C11 code would include stdalign.h and use alignof(max_align_t) however
  * we'll stick with C99 for the time being.
  */
-static inline size_t
-mlx4_mallocv_inline(const char *type, const struct mlx4_malloc_vec *vec,
-		    unsigned int cnt, int zero, int socket)
-{
-	unsigned int i;
-	size_t size;
-	size_t least;
-	uint8_t *data = NULL;
-	int fill = !vec[0].addr;
+static inline size_t mlx4_mallocv_inline(const char *type, const struct mlx4_malloc_vec *vec, unsigned int cnt,
+                                         int zero, int socket) {
+    unsigned int i;
+    size_t size;
+    size_t least;
+    uint8_t *data = NULL;
+    int fill = !vec[0].addr;
 
 fill:
-	size = 0;
-	least = 0;
-	for (i = 0; i < cnt; ++i) {
-		size_t align = (uintptr_t)vec[i].align;
+    size = 0;
+    least = 0;
+    for (i = 0; i < cnt; ++i) {
+        size_t align = (uintptr_t)vec[i].align;
 
-		if (!align) {
-			align = sizeof(double);
-		} else if (!rte_is_power_of_2(align)) {
-			rte_errno = EINVAL;
-			goto error;
-		}
-		if (least < align)
-			least = align;
-		align = RTE_ALIGN_CEIL(size, align);
-		size = align + vec[i].size;
-		if (fill && vec[i].addr)
-			*vec[i].addr = data + align;
-	}
-	if (fill)
-		return size;
-	if (!zero)
-		data = rte_malloc_socket(type, size, least, socket);
-	else
-		data = rte_zmalloc_socket(type, size, least, socket);
-	if (data) {
-		fill = 1;
-		goto fill;
-	}
-	rte_errno = ENOMEM;
+        if (!align) {
+            align = sizeof(double);
+        } else if (!rte_is_power_of_2(align)) {
+            rte_errno = EINVAL;
+            goto error;
+        }
+        if (least < align)
+            least = align;
+        align = RTE_ALIGN_CEIL(size, align);
+        size = align + vec[i].size;
+        if (fill && vec[i].addr)
+            *vec[i].addr = data + align;
+    }
+    if (fill)
+        return size;
+    if (!zero)
+        data = rte_malloc_socket(type, size, least, socket);
+    else
+        data = rte_zmalloc_socket(type, size, least, socket);
+    if (data) {
+        fill = 1;
+        goto fill;
+    }
+    rte_errno = ENOMEM;
 error:
-	for (i = 0; i != cnt; ++i)
-		if (vec[i].addr)
-			*vec[i].addr = NULL;
-	return 0;
+    for (i = 0; i != cnt; ++i)
+        if (vec[i].addr)
+            *vec[i].addr = NULL;
+    return 0;
 }
 
 /**
@@ -135,11 +131,8 @@ error:
  * @see struct mlx4_malloc_vec
  * @see rte_malloc()
  */
-size_t
-mlx4_mallocv(const char *type, const struct mlx4_malloc_vec *vec,
-	     unsigned int cnt)
-{
-	return mlx4_mallocv_inline(type, vec, cnt, 0, SOCKET_ID_ANY);
+size_t mlx4_mallocv(const char *type, const struct mlx4_malloc_vec *vec, unsigned int cnt) {
+    return mlx4_mallocv_inline(type, vec, cnt, 0, SOCKET_ID_ANY);
 }
 
 /**
@@ -148,11 +141,8 @@ mlx4_mallocv(const char *type, const struct mlx4_malloc_vec *vec,
  * @see mlx4_mallocv()
  * @see rte_zmalloc()
  */
-size_t
-mlx4_zmallocv(const char *type, const struct mlx4_malloc_vec *vec,
-	      unsigned int cnt)
-{
-	return mlx4_mallocv_inline(type, vec, cnt, 1, SOCKET_ID_ANY);
+size_t mlx4_zmallocv(const char *type, const struct mlx4_malloc_vec *vec, unsigned int cnt) {
+    return mlx4_mallocv_inline(type, vec, cnt, 1, SOCKET_ID_ANY);
 }
 
 /**
@@ -167,11 +157,8 @@ mlx4_zmallocv(const char *type, const struct mlx4_malloc_vec *vec,
  * @see mlx4_mallocv()
  * @see rte_malloc_socket()
  */
-size_t
-mlx4_mallocv_socket(const char *type, const struct mlx4_malloc_vec *vec,
-		    unsigned int cnt, int socket)
-{
-	return mlx4_mallocv_inline(type, vec, cnt, 0, socket);
+size_t mlx4_mallocv_socket(const char *type, const struct mlx4_malloc_vec *vec, unsigned int cnt, int socket) {
+    return mlx4_mallocv_inline(type, vec, cnt, 0, socket);
 }
 
 /**
@@ -181,9 +168,6 @@ mlx4_mallocv_socket(const char *type, const struct mlx4_malloc_vec *vec,
  * @see mlx4_mallocv_socket()
  * @see rte_zmalloc_socket()
  */
-size_t
-mlx4_zmallocv_socket(const char *type, const struct mlx4_malloc_vec *vec,
-		     unsigned int cnt, int socket)
-{
-	return mlx4_mallocv_inline(type, vec, cnt, 1, socket);
+size_t mlx4_zmallocv_socket(const char *type, const struct mlx4_malloc_vec *vec, unsigned int cnt, int socket) {
+    return mlx4_mallocv_inline(type, vec, cnt, 1, socket);
 }

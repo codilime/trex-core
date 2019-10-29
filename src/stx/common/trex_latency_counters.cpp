@@ -22,7 +22,7 @@ void CRFC2544Info::stop() {
 void CRFC2544Info::reset() {
     // This is the seq num value we expect next packet to have.
     // Init value should match m_seq_num in CVirtualIFPerSideStats
-    m_seq = UINT32_MAX - 1;  // catch wrap around issues early
+    m_seq = UINT32_MAX - 1; // catch wrap around issues early
     m_seq_err = 0;
     m_seq_err_events_too_big = 0;
     m_seq_err_events_too_low = 0;
@@ -43,7 +43,7 @@ void CRFC2544Info::export_data(rfc2544_info_t_ &obj) {
     obj.set_latency_json(json);
 }
 
-CRFC2544Info CRFC2544Info::operator+= (const CRFC2544Info& in) {
+CRFC2544Info CRFC2544Info::operator+=(const CRFC2544Info &in) {
     this->m_seq += in.m_seq;
     this->m_latency += in.m_latency;
     this->m_jitter = std::max(this->m_jitter, in.m_jitter);
@@ -57,7 +57,7 @@ CRFC2544Info CRFC2544Info::operator+= (const CRFC2544Info& in) {
     return *this;
 }
 
-std::ostream& operator<<(std::ostream& os, const CRFC2544Info& in) {
+std::ostream &operator<<(std::ostream &os, const CRFC2544Info &in) {
     os << "m_seq = " << in.m_seq << std::endl;
     os << "m_jitter = " << in.m_jitter << std::endl;
     os << "m_latency" << in.m_latency << std::endl;
@@ -73,30 +73,24 @@ std::ostream& operator<<(std::ostream& os, const CRFC2544Info& in) {
 /*******************************************************************
 CRxCoreErrCntrs
 *******************************************************************/
-CRxCoreErrCntrs::CRxCoreErrCntrs() {
-    reset();
-}
+CRxCoreErrCntrs::CRxCoreErrCntrs() { reset(); }
 
-uint64_t CRxCoreErrCntrs::get_bad_header() {
-    return m_bad_header;
-}
+uint64_t CRxCoreErrCntrs::get_bad_header() { return m_bad_header; }
 
-uint64_t CRxCoreErrCntrs::get_old_flow() {
-    return m_old_flow;
-}
+uint64_t CRxCoreErrCntrs::get_old_flow() { return m_old_flow; }
 
 void CRxCoreErrCntrs::reset() {
-        m_bad_header = 0;
-        m_old_flow = 0;
+    m_bad_header = 0;
+    m_old_flow = 0;
 }
 
-CRxCoreErrCntrs CRxCoreErrCntrs::operator+= (const CRxCoreErrCntrs& in) {
+CRxCoreErrCntrs CRxCoreErrCntrs::operator+=(const CRxCoreErrCntrs &in) {
     this->m_bad_header += in.m_bad_header;
     this->m_old_flow += in.m_old_flow;
     return *this;
 }
 
-std::ostream& operator<<(std::ostream& os, const CRxCoreErrCntrs& in) {
+std::ostream &operator<<(std::ostream &os, const CRxCoreErrCntrs &in) {
     os << "m_bad_header = " << in.m_bad_header << std::endl;
     os << "m_old_flow = " << in.m_old_flow << std::endl;
     return os;
@@ -106,9 +100,9 @@ std::ostream& operator<<(std::ostream& os, const CRxCoreErrCntrs& in) {
  * RXLatency
  *************************************/
 RXLatency::RXLatency() {
-    m_rcv_all    = false;
-    m_rfc2544    = NULL;
-    m_err_cntrs  = NULL;
+    m_rcv_all = false;
+    m_rfc2544 = NULL;
+    m_err_cntrs = NULL;
 
     for (int i = 0; i < MAX_FLOW_STATS; i++) {
         m_rx_pg_stat[i].clear();
@@ -118,14 +112,13 @@ RXLatency::RXLatency() {
     }
 }
 
-void
-RXLatency::create(CRFC2544Info *rfc2544, CRxCoreErrCntrs *err_cntrs) {
-    m_rfc2544   = rfc2544;
+void RXLatency::create(CRFC2544Info *rfc2544, CRxCoreErrCntrs *err_cntrs) {
+    m_rfc2544 = rfc2544;
     m_err_cntrs = err_cntrs;
-    if ( !get_dpdk_mode()->is_hardware_filter_needed() ) {
-        m_rcv_all    = true;
+    if (!get_dpdk_mode()->is_hardware_filter_needed()) {
+        m_rcv_all = true;
     } else {
-        m_rcv_all    = false;
+        m_rcv_all = false;
     }
 
     uint16_t num_counters, cap, ip_id_base;
@@ -137,44 +130,37 @@ RXLatency::create(CRFC2544Info *rfc2544, CRxCoreErrCntrs *err_cntrs) {
 }
 
 void RXLatency::handle_pkt(const rte_mbuf_t *m, int port) {
-  uint8_t tmp_buf[sizeof(struct flow_stat_payload_header)];
-  CFlowStatParser parser(CFlowStatParser::FLOW_STAT_PARSER_MODE_SW);
-  parser.set_vxlan_skip(CGlobalInfo::m_options.m_ip_cfg[port].get_vxlan_fs());
-  int ret = parser.parse(rte_pktmbuf_mtod(m, uint8_t *), m->pkt_len);
+    uint8_t tmp_buf[sizeof(struct flow_stat_payload_header)];
+    CFlowStatParser parser(CFlowStatParser::FLOW_STAT_PARSER_MODE_SW);
+    parser.set_vxlan_skip(CGlobalInfo::m_options.m_ip_cfg[port].get_vxlan_fs());
+    int ret = parser.parse(rte_pktmbuf_mtod(m, uint8_t *), m->pkt_len);
 
-  if (m_rcv_all || (ret == 0)) {
-    uint32_t ip_id = 0;
-    int ret2 = parser.get_ip_id(ip_id);
-    if (m_rcv_all || (ret2 == 0)) {
-      if (m_rcv_all || is_flow_stat_id(ip_id)) {
-        if (is_flow_stat_payload_id(ip_id) ||
-            ((!is_flow_stat_id(ip_id)) && m_rcv_all)) {
-          struct flow_stat_payload_header *fsp_head =
-              (flow_stat_payload_header *)utl_rte_pktmbuf_get_last_bytes(
-                  m, sizeof(struct flow_stat_payload_header), tmp_buf);
-          hr_time_t hr_time_now = CGlobalInfo::m_options.m_get_latency_timestamp();
-          update_stats_for_pkt(fsp_head, m->pkt_len, hr_time_now);
-        } else {
-          uint16_t hw_id = get_hw_id((uint16_t)ip_id);
-          if (hw_id < MAX_FLOW_STATS) {
-            m_rx_pg_stat[hw_id].add_pkts(1);
-            m_rx_pg_stat[hw_id].add_bytes(m->pkt_len +
-                                          4); // +4 for ethernet CRC
-          }
+    if (m_rcv_all || (ret == 0)) {
+        uint32_t ip_id = 0;
+        int ret2 = parser.get_ip_id(ip_id);
+        if (m_rcv_all || (ret2 == 0)) {
+            if (m_rcv_all || is_flow_stat_id(ip_id)) {
+                if (is_flow_stat_payload_id(ip_id) || ((!is_flow_stat_id(ip_id)) && m_rcv_all)) {
+                    struct flow_stat_payload_header *fsp_head =
+                        (flow_stat_payload_header *)utl_rte_pktmbuf_get_last_bytes(
+                            m, sizeof(struct flow_stat_payload_header), tmp_buf);
+                    hr_time_t hr_time_now = CGlobalInfo::m_options.m_get_latency_timestamp();
+                    update_stats_for_pkt(fsp_head, m->pkt_len, hr_time_now);
+                } else {
+                    uint16_t hw_id = get_hw_id((uint16_t)ip_id);
+                    if (hw_id < MAX_FLOW_STATS) {
+                        m_rx_pg_stat[hw_id].add_pkts(1);
+                        m_rx_pg_stat[hw_id].add_bytes(m->pkt_len + 4); // +4 for ethernet CRC
+                    }
+                }
+            }
         }
-      }
     }
-  }
 }
 
-void
-RXLatency::update_stats_for_pkt(
-        flow_stat_payload_header *fsp_head,
-        uint32_t pkt_len,
-        hr_time_t hr_time_now) {
+void RXLatency::update_stats_for_pkt(flow_stat_payload_header *fsp_head, uint32_t pkt_len, hr_time_t hr_time_now) {
     uint16_t hw_id = fsp_head->hw_id;
-    if (unlikely(fsp_head->magic != FLOW_STAT_PAYLOAD_MAGIC)
-            || hw_id >= MAX_FLOW_STATS_PAYLOAD) {
+    if (unlikely(fsp_head->magic != FLOW_STAT_PAYLOAD_MAGIC) || hw_id >= MAX_FLOW_STATS_PAYLOAD) {
         if (!m_rcv_all) {
             m_err_cntrs->m_bad_header++;
         }
@@ -192,10 +178,7 @@ RXLatency::update_stats_for_pkt(
     }
 }
 
-bool
-RXLatency::handle_unexpected_flow(
-        flow_stat_payload_header *fsp_head,
-        CRFC2544Info *curr_rfc2544) {
+bool RXLatency::handle_unexpected_flow(flow_stat_payload_header *fsp_head, CRFC2544Info *curr_rfc2544) {
     bool good_packet = true;
     // bad flow seq num
     // Might be the first packet of a new flow, packet from an old flow, or garbage.
@@ -217,45 +200,33 @@ RXLatency::handle_unexpected_flow(
     return good_packet;
 }
 
-void
-RXLatency::handle_correct_flow(
-        flow_stat_payload_header *fsp_head,
-        CRFC2544Info *curr_rfc2544,
-        uint32_t pkt_len,
-        hr_time_t hr_time_now) {
+void RXLatency::handle_correct_flow(flow_stat_payload_header *fsp_head, CRFC2544Info *curr_rfc2544, uint32_t pkt_len,
+                                    hr_time_t hr_time_now) {
     check_seq_number_and_update_stats(fsp_head, curr_rfc2544);
     uint16_t hw_id = fsp_head->hw_id;
     m_rx_pg_stat_payload[hw_id].add_pkts(1);
     m_rx_pg_stat_payload[hw_id].add_bytes(pkt_len + 4); // +4 for ethernet CRC
-    uint64_t d = (hr_time_now - fsp_head->time_stamp );
+    uint64_t d = (hr_time_now - fsp_head->time_stamp);
     dsec_t ctime = CGlobalInfo::m_options.m_timestamp_diff_to_dsec(d);
     curr_rfc2544->add_sample(ctime);
 }
 
-void
-RXLatency::check_seq_number_and_update_stats(
-        flow_stat_payload_header *fsp_head,
-        CRFC2544Info *curr_rfc2544) {
+void RXLatency::check_seq_number_and_update_stats(flow_stat_payload_header *fsp_head, CRFC2544Info *curr_rfc2544) {
     uint32_t pkt_seq = fsp_head->seq;
     uint32_t exp_seq = curr_rfc2544->get_seq();
     if (unlikely(pkt_seq != exp_seq)) {
         if (pkt_seq < exp_seq) {
-            handle_seq_number_smaller_than_expected(
-                curr_rfc2544, pkt_seq, exp_seq);
+            handle_seq_number_smaller_than_expected(curr_rfc2544, pkt_seq, exp_seq);
         } else {
-            handle_seq_number_bigger_than_expected(
-                curr_rfc2544, pkt_seq, exp_seq);
+            handle_seq_number_bigger_than_expected(curr_rfc2544, pkt_seq, exp_seq);
         }
     } else {
         curr_rfc2544->set_seq(pkt_seq + 1);
     }
 }
 
-void
-RXLatency::handle_seq_number_smaller_than_expected(
-        CRFC2544Info *curr_rfc2544,
-        uint32_t &pkt_seq,
-        uint32_t &exp_seq) {
+void RXLatency::handle_seq_number_smaller_than_expected(CRFC2544Info *curr_rfc2544, uint32_t &pkt_seq,
+                                                        uint32_t &exp_seq) {
     if (exp_seq - pkt_seq > 100000) {
         // packet loss while we had wrap around
         curr_rfc2544->inc_seq_err(pkt_seq - exp_seq);
@@ -273,12 +244,9 @@ RXLatency::handle_seq_number_smaller_than_expected(
     }
 }
 
-void
-RXLatency::handle_seq_number_bigger_than_expected(
-        CRFC2544Info *curr_rfc2544,
-        uint32_t &pkt_seq,
-        uint32_t &exp_seq) {
-    if (unlikely (pkt_seq - exp_seq > 100000)) {
+void RXLatency::handle_seq_number_bigger_than_expected(CRFC2544Info *curr_rfc2544, uint32_t &pkt_seq,
+                                                       uint32_t &exp_seq) {
+    if (unlikely(pkt_seq - exp_seq > 100000)) {
         // packet reorder while we had wrap around
         if (pkt_seq == (exp_seq - 1)) {
             curr_rfc2544->inc_dup();
@@ -296,15 +264,13 @@ RXLatency::handle_seq_number_bigger_than_expected(
     }
 }
 
-void
-RXLatency::reset_stats() {
+void RXLatency::reset_stats() {
     for (int hw_id = 0; hw_id < MAX_FLOW_STATS; hw_id++) {
         m_rx_pg_stat[hw_id].clear();
     }
 }
 
-void
-RXLatency::reset_stats_partial(int min, int max, TrexPlatformApi::driver_stat_cap_e type) {
+void RXLatency::reset_stats_partial(int min, int max, TrexPlatformApi::driver_stat_cap_e type) {
     if (type == TrexPlatformApi::IF_STAT_PAYLOAD) {
         for (int hw_id = min; hw_id <= max; hw_id++) {
             m_rx_pg_stat_payload[hw_id].clear();
@@ -316,12 +282,8 @@ RXLatency::reset_stats_partial(int min, int max, TrexPlatformApi::driver_stat_ca
     }
 }
 
-void
-RXLatency::get_stats(rx_per_flow_t *rx_stats,
-                     int min,
-                     int max,
-                     bool reset,
-                     TrexPlatformApi::driver_stat_cap_e type) {
+void RXLatency::get_stats(rx_per_flow_t *rx_stats, int min, int max, bool reset,
+                          TrexPlatformApi::driver_stat_cap_e type) {
 
     for (int hw_id = min; hw_id <= max; hw_id++) {
         if (type == TrexPlatformApi::IF_STAT_PAYLOAD) {
@@ -339,14 +301,9 @@ RXLatency::get_stats(rx_per_flow_t *rx_stats,
     }
 }
 
+Json::Value RXLatency::to_json() const { return Json::objectValue; }
 
-Json::Value
-RXLatency::to_json() const {
-    return Json::objectValue;
-}
-
-RXLatency
-RXLatency::operator+= (const RXLatency& in) {
+RXLatency RXLatency::operator+=(const RXLatency &in) {
     for (int i = 0; i < MAX_FLOW_STATS; i++) {
         this->m_rx_pg_stat[i] += in.m_rx_pg_stat[i];
     }
@@ -356,14 +313,14 @@ RXLatency::operator+= (const RXLatency& in) {
     return *this;
 }
 
-std::ostream& operator<<(std::ostream& os, const RXLatency& in) {
+std::ostream &operator<<(std::ostream &os, const RXLatency &in) {
     os << "m_rx_stats = <";
     for (int i = 0; i < MAX_FLOW_STATS; i++) {
         os << in.m_rx_pg_stat[i] << ", ";
     }
     os << ">" << std::endl;
     os << "m_rx_pg_stat_payload = < ";
-    for (int i = 0; i< MAX_FLOW_STATS_PAYLOAD; i++) {
+    for (int i = 0; i < MAX_FLOW_STATS_PAYLOAD; i++) {
         os << in.m_rx_pg_stat_payload[i] << ", ";
     }
     os << ">" << std::endl;

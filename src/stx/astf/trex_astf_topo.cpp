@@ -35,71 +35,56 @@ limitations under the License.
 
 using namespace std;
 
+TopoError::TopoError(const string &what) : runtime_error(what) {}
 
-TopoError::TopoError(const string &what) : runtime_error(what) {
-}
+void parse_err(const string &what) { throw TopoError("Topology parsing error: " + what); }
 
-void parse_err(const string &what) {
-    throw TopoError("Topology parsing error: " + what);
-}
-
-void build_err(const string &what) {
-    throw TopoError("Topology building error: " + what);
-}
+void build_err(const string &what) { throw TopoError("Topology building error: " + what); }
 
 Json::Value json_map_get(Json::Value &json_obj, const string &key, const string &err_prefix) {
     Json::Value json_value = json_obj[key];
-    if ( json_value == Json::nullValue ) {
+    if (json_value == Json::nullValue) {
         parse_err(err_prefix + " is missing '" + key + "' key");
     }
     return json_value;
 }
 
-
 TopoGW::TopoGW(string src_start, string src_end, string dst_mac, string dst) {
     m_src_start = src_start;
-    m_src_end   = src_end;
-    m_dst_mac   = dst_mac;
-    m_dst       = dst;
+    m_src_end = src_end;
+    m_dst_mac = dst_mac;
+    m_dst = dst;
 }
-
 
 void TopoGW::to_json(Json::Value &obj) {
     obj["src_start"] = m_src_start;
-    obj["src_end"]   = m_src_end;
-    obj["dst_mac"]   = m_dst_mac;
-    obj["dst"]       = m_dst;
+    obj["src_end"] = m_src_end;
+    obj["dst_mac"] = m_dst_mac;
+    obj["dst"] = m_dst;
 }
 
-
 TopoVIF::TopoVIF(string src_mac, uint16_t vlan, string src_ipv4, string src_ipv6) {
-    m_src_mac  = src_mac;
-    m_vlan     = vlan;
+    m_src_mac = src_mac;
+    m_vlan = vlan;
     m_src_ipv4 = src_ipv4;
     m_src_ipv6 = src_ipv6;
 }
 
-
 void TopoVIF::to_json(Json::Value &obj) {
-    obj["src_mac"]  = m_src_mac;
-    obj["vlan"]     = m_vlan;
+    obj["src_mac"] = m_src_mac;
+    obj["vlan"] = m_vlan;
     obj["src_ipv4"] = m_src_ipv4;
     obj["src_ipv6"] = m_src_ipv6;
 }
 
-
-TopoMngr::TopoMngr() {
-    m_topo_per_port.resize(TREX_MAX_PORTS);
-}
-
+TopoMngr::TopoMngr() { m_topo_per_port.resize(TREX_MAX_PORTS); }
 
 void TopoMngr::clear() {
     std::unique_lock<std::recursive_mutex> lock(m_lock);
-    for (auto &port_topo: m_topo_per_port) {
+    for (auto &port_topo : m_topo_per_port) {
         port_topo.clear();
     }
 }
-
 
 void TopoMngr::from_json_str(const string &topo_buffer) {
     vector<port_topo_t> tmp_topo_per_port(TREX_MAX_PORTS);
@@ -117,12 +102,12 @@ void TopoMngr::from_json_str(const string &topo_buffer) {
     for (auto &vif : vifs) {
 
         uint8_t trex_port = json_map_get(vif, "trex_port", "VIF").asUInt();
-        if ( trex_port >= TREX_MAX_PORTS ) {
+        if (trex_port >= TREX_MAX_PORTS) {
             parse_err("VIF TRex port is too large: " + to_string(trex_port));
         }
 
         uint32_t sub_if = json_map_get(vif, "sub_if", "VIF").asUInt();
-        if ( !sub_if ) {
+        if (!sub_if) {
             parse_err("VIF 'sub_if' must be positive");
         }
 
@@ -132,14 +117,13 @@ void TopoMngr::from_json_str(const string &topo_buffer) {
 
         uint16_t vlan = json_map_get(vif, "vlan", "VIF").asUInt();
         if (vlan > 4096) {
-          parse_err("VIF 'vlan' is too large: " + to_string(vlan));
+            parse_err("VIF 'vlan' is too large: " + to_string(vlan));
         }
 
         TopoVIF vif_obj(src_mac, vlan, src_ipv4, src_ipv6);
-        if ( !tmp_topo_per_port[trex_port].insert(std::make_pair(sub_if, vif_obj)).second ) {
+        if (!tmp_topo_per_port[trex_port].insert(std::make_pair(sub_if, vif_obj)).second) {
             parse_err("Double sub_if: " + to_string(sub_if));
         }
-
     }
 
     // GWs
@@ -148,18 +132,18 @@ void TopoMngr::from_json_str(const string &topo_buffer) {
     for (auto &gw : gws) {
 
         uint8_t trex_port = json_map_get(gw, "trex_port", "GW").asUInt();
-        if ( trex_port >= TREX_MAX_PORTS ) {
+        if (trex_port >= TREX_MAX_PORTS) {
             parse_err("GW TRex port is too large: " + to_string(trex_port));
         }
-        if ( trex_port % 2 ) {
+        if (trex_port % 2) {
             parse_err("GW must be specified only for 'client' TRex ports, got: " + to_string(trex_port));
         }
 
         uint32_t sub_if = json_map_get(gw, "sub_if", "GW").asUInt();
 
         auto subif_it = tmp_topo_per_port[trex_port].find(sub_if);
-        if ( subif_it == tmp_topo_per_port[trex_port].end() ) {
-            if ( !sub_if ) {
+        if (subif_it == tmp_topo_per_port[trex_port].end()) {
+            if (!sub_if) {
                 TopoVIF vif_obj("", 0, "", ""); // mock
                 subif_it = tmp_topo_per_port[trex_port].insert(std::make_pair(0, vif_obj)).first;
             } else {
@@ -174,18 +158,15 @@ void TopoMngr::from_json_str(const string &topo_buffer) {
 
         TopoGW gw_obj(src_start, src_end, dst_mac, dst);
         subif_it->second.m_gws.emplace_back(gw_obj);
-
     }
 
     std::unique_lock<std::recursive_mutex> lock(m_lock);
     swap(tmp_topo_per_port, m_topo_per_port);
-
 }
-
 
 void TopoMngr::dump() {
     std::unique_lock<std::recursive_mutex> lock(m_lock);
-    for (auto &port_topo: m_topo_per_port) {
+    for (auto &port_topo : m_topo_per_port) {
         for (auto &iter_pair : port_topo) {
             printf("VIF %u, src: %s\n", iter_pair.first, iter_pair.second.get_src_mac().c_str());
             for (auto &gw : iter_pair.second.m_gws) {
@@ -195,24 +176,23 @@ void TopoMngr::dump() {
     }
 }
 
-
 void TopoMngr::to_json(Json::Value &result) {
     std::unique_lock<std::recursive_mutex> lock(m_lock);
     Json::Value vifs;
     Json::Value gws;
     for (uint8_t port_id = 0; port_id < TREX_MAX_PORTS; port_id++) {
         for (auto &iter_pair : m_topo_per_port[port_id]) {
-            if ( iter_pair.first ) {
+            if (iter_pair.first) {
                 Json::Value vif;
                 vif["trex_port"] = port_id;
-                vif["sub_if"]    = iter_pair.first;
+                vif["sub_if"] = iter_pair.first;
                 iter_pair.second.to_json(vif);
                 vifs.append(vif);
             }
             for (auto gw_obj : iter_pair.second.m_gws) {
                 Json::Value gw;
                 gw["trex_port"] = port_id;
-                gw["sub_if"]    = iter_pair.first;
+                gw["sub_if"] = iter_pair.first;
                 gw_obj.to_json(gw);
                 gws.append(gw);
             }
@@ -222,8 +202,3 @@ void TopoMngr::to_json(Json::Value &result) {
     result["vifs"] = vifs;
     result["gws"] = gws;
 }
-
-
-
-
-

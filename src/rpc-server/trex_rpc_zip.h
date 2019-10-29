@@ -21,8 +21,7 @@ limitations under the License.
 #include <string>
 
 class TrexRpcZip {
-public:
-
+  public:
     /**
      * return true if message is compressed
      *
@@ -41,20 +40,17 @@ public:
      */
     static bool compress(const std::string &input, std::string &output);
 
-private:
-
+  private:
     /**
      * packed header for reading binary compressed messages
      *
      * @author imarom (15-Feb-16)
      */
     struct header_st {
-        uint32_t    magic;
-        uint32_t    uncmp_size;
-        char        data[0];
+        uint32_t magic;
+        uint32_t uncmp_size;
+        char data[0];
     } __attribute__((packed));
-
 
     static const uint32_t G_HEADER_MAGIC = 0xABE85CEA;
 };
-

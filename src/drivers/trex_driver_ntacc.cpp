@@ -26,53 +26,48 @@
 
 std::string CTRexExtendedDriverBaseNtAcc::ntacc_so_str = "";
 
-std::string& get_ntacc_so_string(void) {
-    return CTRexExtendedDriverBaseNtAcc::ntacc_so_str;
-}
+std::string &get_ntacc_so_string(void) { return CTRexExtendedDriverBaseNtAcc::ntacc_so_str; }
 
-TRexPortAttr* CTRexExtendedDriverBaseNtAcc::create_port_attr(tvpid_t tvpid,repid_t repid) {
+TRexPortAttr *CTRexExtendedDriverBaseNtAcc::create_port_attr(tvpid_t tvpid, repid_t repid) {
     return new DpdkTRexPortAttr(tvpid, repid, false, false, true, false, true);
 }
 
-CTRexExtendedDriverBaseNtAcc::CTRexExtendedDriverBaseNtAcc(){
+CTRexExtendedDriverBaseNtAcc::CTRexExtendedDriverBaseNtAcc() {
 #if 0
     // Enable all incl. RSS. Some NT NICs has toeplitz support and those that doesn't will just fail and
     // stateful traffic must therefore be run with -c 1 for those
     m_cap = tdCAP_ALL | TREX_DRV_CAP_DROP_PKTS_IF_LNK_DOWN;
 #else
-    m_cap = tdCAP_ALL_NO_RSS | TREX_DRV_CAP_DROP_PKTS_IF_LNK_DOWN ;
+    m_cap = tdCAP_ALL_NO_RSS | TREX_DRV_CAP_DROP_PKTS_IF_LNK_DOWN;
 #endif
     TAILQ_INIT(&lh_fid);
     // The current rte_flow.h is not C++ includable so rte_flow wrappers
     // have been made in libntacc
     void *libntacc = dlopen(ntacc_so_str.c_str(), RTLD_NOW);
     if (libntacc == NULL) {
-      /* Library does not exist. */
-      fprintf(stderr, "Failed to find needed library : %s\n", ntacc_so_str.c_str());
-      exit(-1);
+        /* Library does not exist. */
+        fprintf(stderr, "Failed to find needed library : %s\n", ntacc_so_str.c_str());
+        exit(-1);
     }
-    ntacc_add_rules = (void* (*)(uint8_t, uint16_t,
-        uint8_t, int, char *))dlsym(libntacc, "ntacc_add_rules");
+    ntacc_add_rules = (void *(*)(uint8_t, uint16_t, uint8_t, int, char *))dlsym(libntacc, "ntacc_add_rules");
     if (ntacc_add_rules == NULL) {
-      fprintf(stderr, "Failed to find \"ntacc_add_rules\" in %s\n", ntacc_so_str.c_str());
-      exit(-1);
+        fprintf(stderr, "Failed to find \"ntacc_add_rules\" in %s\n", ntacc_so_str.c_str());
+        exit(-1);
     }
-    ntacc_del_rules = (void * (*)(uint8_t, void*))dlsym(libntacc, "ntacc_del_rules");
+    ntacc_del_rules = (void *(*)(uint8_t, void *))dlsym(libntacc, "ntacc_del_rules");
     if (ntacc_del_rules == NULL) {
-      fprintf(stderr, "Failed to find \"ntacc_del_rules\" in %s\n", ntacc_so_str.c_str());
-      exit(-1);
+        fprintf(stderr, "Failed to find \"ntacc_del_rules\" in %s\n", ntacc_so_str.c_str());
+        exit(-1);
     }
 }
 
-int CTRexExtendedDriverBaseNtAcc::get_min_sample_rate(void){
-    return (RX_CHECK_MIX_SAMPLE_RATE);
-}
+int CTRexExtendedDriverBaseNtAcc::get_min_sample_rate(void) { return (RX_CHECK_MIX_SAMPLE_RATE); }
 
-void CTRexExtendedDriverBaseNtAcc::update_configuration(port_cfg_t * cfg){
+void CTRexExtendedDriverBaseNtAcc::update_configuration(port_cfg_t *cfg) {
     cfg->m_tx_conf.tx_thresh.pthresh = TX_PTHRESH;
     cfg->m_tx_conf.tx_thresh.hthresh = TX_HTHRESH;
     cfg->m_tx_conf.tx_thresh.wthresh = TX_WTHRESH;
-    cfg->m_port_conf.rxmode.max_rx_pkt_len =9000;
+    cfg->m_port_conf.rxmode.max_rx_pkt_len = 9000;
     // Napatech does not claim as supporting multi-segment send.
     cfg->tx_offloads.common_required &= ~DEV_TX_OFFLOAD_MULTI_SEGS;
 }
@@ -87,10 +82,11 @@ CTRexExtendedDriverBaseNtAcc::~CTRexExtendedDriverBaseNtAcc() {
 }
 
 void CTRexExtendedDriverBaseNtAcc::add_del_rules(enum rte_filter_op op, uint8_t port_id, uint16_t type,
-    uint8_t l4_proto, int queue, uint32_t f_id, char *ntpl_str) {
-    int ret=rte_eth_dev_filter_supported(port_id, RTE_ETH_FILTER_GENERIC);
-    if ( ret != 0 ){
-        rte_exit(EXIT_FAILURE, "rte_eth_dev_filter_supported "
+                                                 uint8_t l4_proto, int queue, uint32_t f_id, char *ntpl_str) {
+    int ret = rte_eth_dev_filter_supported(port_id, RTE_ETH_FILTER_GENERIC);
+    if (ret != 0) {
+        rte_exit(EXIT_FAILURE,
+                 "rte_eth_dev_filter_supported "
                  "err=%d, port=%u \n",
                  ret, port_id);
     }
@@ -103,7 +99,7 @@ void CTRexExtendedDriverBaseNtAcc::add_del_rules(enum rte_filter_op op, uint8_t 
             rte_exit(EXIT_FAILURE, "Failed to add RTE_FLOW\n");
         }
 
-        fid_s *fid = (fid_s*)malloc(sizeof(fid_s));
+        fid_s *fid = (fid_s *)malloc(sizeof(fid_s));
         if (fid == NULL) {
             rte_exit(EXIT_FAILURE, "Failed to allocate memory\n");
         }
@@ -115,7 +111,7 @@ void CTRexExtendedDriverBaseNtAcc::add_del_rules(enum rte_filter_op op, uint8_t 
     } else {
         fid_s *fid, *tfid;
         TAILQ_FOREACH_SAFE(fid, &lh_fid, leTQ, tfid) {
-            if ((fid->id == f_id) && (fid->port_id == port_id)){
+            if ((fid->id == f_id) && (fid->port_id == port_id)) {
                 TAILQ_REMOVE(&lh_fid, fid, leTQ);
                 ntacc_del_rules(port_id, fid->rte_flow);
                 free(fid);
@@ -125,19 +121,20 @@ void CTRexExtendedDriverBaseNtAcc::add_del_rules(enum rte_filter_op op, uint8_t 
 }
 
 int CTRexExtendedDriverBaseNtAcc::add_del_eth_type_rule(uint8_t port_id, enum rte_filter_op op, uint16_t eth_type) {
-    int ret=rte_eth_dev_filter_supported(port_id, RTE_ETH_FILTER_GENERIC);
+    int ret = rte_eth_dev_filter_supported(port_id, RTE_ETH_FILTER_GENERIC);
 
-    if ( ret != 0 ){
-        rte_exit(EXIT_FAILURE, "rte_eth_dev_filter_supported "
+    if (ret != 0) {
+        rte_exit(EXIT_FAILURE,
+                 "rte_eth_dev_filter_supported "
                  "err=%d, port=%u \n",
                  ret, port_id);
     }
     return ret;
 }
 
-int CTRexExtendedDriverBaseNtAcc::configure_rx_filter_rules_stateless(CPhyEthIF * _if) {
+int CTRexExtendedDriverBaseNtAcc::configure_rx_filter_rules_stateless(CPhyEthIF *_if) {
     set_rcv_all(_if, false);
-    repid_t port_id =_if->get_repid();
+    repid_t port_id = _if->get_repid();
 
 #if 0
     // Enable this when all NICs have rte_flow support
@@ -160,9 +157,9 @@ int CTRexExtendedDriverBaseNtAcc::configure_rx_filter_rules_stateless(CPhyEthIF 
     return 0;
 }
 
-int CTRexExtendedDriverBaseNtAcc::configure_rx_filter_rules_statefull(CPhyEthIF * _if) {
+int CTRexExtendedDriverBaseNtAcc::configure_rx_filter_rules_statefull(CPhyEthIF *_if) {
     set_rcv_all(_if, false);
-    repid_t port_id =_if->get_repid();
+    repid_t port_id = _if->get_repid();
 
     char ntpl_str[] =
         "((Data[DynOffset = DynOffIpv4Frame; Offset = 1; DataType = ByteStr1 ; DataMask = [0:0]] == 1) OR "
@@ -174,27 +171,22 @@ int CTRexExtendedDriverBaseNtAcc::configure_rx_filter_rules_statefull(CPhyEthIF 
     return 0;
 }
 
-
-int CTRexExtendedDriverBaseNtAcc::set_rcv_all(CPhyEthIF * _if, bool set_on) {
-    repid_t port_id =_if->get_repid();
-    add_del_rules(set_on == true ? RTE_ETH_FILTER_ADD : RTE_ETH_FILTER_DELETE,
-        port_id, RTE_ETH_FLOW_RAW, 0, MAIN_DPDK_RX_Q, 1, NULL);
+int CTRexExtendedDriverBaseNtAcc::set_rcv_all(CPhyEthIF *_if, bool set_on) {
+    repid_t port_id = _if->get_repid();
+    add_del_rules(set_on == true ? RTE_ETH_FILTER_ADD : RTE_ETH_FILTER_DELETE, port_id, RTE_ETH_FLOW_RAW, 0,
+                  MAIN_DPDK_RX_Q, 1, NULL);
     return 0;
 }
 
-void CTRexExtendedDriverBaseNtAcc::clear_extended_stats(CPhyEthIF * _if){
-    rte_eth_stats_reset(_if->get_repid());
-}
+void CTRexExtendedDriverBaseNtAcc::clear_extended_stats(CPhyEthIF *_if) { rte_eth_stats_reset(_if->get_repid()); }
 
-bool CTRexExtendedDriverBaseNtAcc::get_extended_stats(CPhyEthIF * _if,CPhyEthIFStats *stats) {
+bool CTRexExtendedDriverBaseNtAcc::get_extended_stats(CPhyEthIF *_if, CPhyEthIFStats *stats) {
     return get_extended_stats_fixed(_if, stats, 0, 0);
 }
 
-int CTRexExtendedDriverBaseNtAcc::verify_fw_ver(int port_id) {
-    return 0;
-}
+int CTRexExtendedDriverBaseNtAcc::verify_fw_ver(int port_id) { return 0; }
 
-int CTRexExtendedDriverBaseNtAcc::configure_rx_filter_rules(CPhyEthIF * _if) {
+int CTRexExtendedDriverBaseNtAcc::configure_rx_filter_rules(CPhyEthIF *_if) {
     if (get_is_stateless()) {
         /* Statefull currently work as stateless */
         return configure_rx_filter_rules_stateless(_if);
@@ -203,25 +195,20 @@ int CTRexExtendedDriverBaseNtAcc::configure_rx_filter_rules(CPhyEthIF * _if) {
     }
 }
 
-void CTRexExtendedDriverBaseNtAcc::reset_rx_stats(CPhyEthIF * _if, uint32_t *stats, int min, int len) {
-}
+void CTRexExtendedDriverBaseNtAcc::reset_rx_stats(CPhyEthIF *_if, uint32_t *stats, int min, int len) {}
 
-int CTRexExtendedDriverBaseNtAcc::get_rx_stats(CPhyEthIF * _if, uint32_t *pkts, uint32_t *prev_pkts
-                                             ,uint32_t *bytes, uint32_t *prev_bytes, int min, int max) {
-  //TODO:
-  return 0;
+int CTRexExtendedDriverBaseNtAcc::get_rx_stats(CPhyEthIF *_if, uint32_t *pkts, uint32_t *prev_pkts, uint32_t *bytes,
+                                               uint32_t *prev_bytes, int min, int max) {
+    // TODO:
+    return 0;
 }
 
 // if fd != NULL, dump fdir stats of _if
 // return num of filters
-int CTRexExtendedDriverBaseNtAcc::dump_fdir_global_stats(CPhyEthIF * _if, FILE *fd)
-{
- return (0);
-}
+int CTRexExtendedDriverBaseNtAcc::dump_fdir_global_stats(CPhyEthIF *_if, FILE *fd) { return (0); }
 
 CFlowStatParser *CTRexExtendedDriverBaseNtAcc::get_flow_stat_parser() {
     CFlowStatParser *parser = new CFlowStatParser(CFlowStatParser::FLOW_STAT_PARSER_MODE_HW);
-    assert (parser);
+    assert(parser);
     return parser;
 }
-

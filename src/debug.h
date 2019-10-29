@@ -25,18 +25,18 @@ class CTrexDebug {
     uint32_t m_max_ports;
     uint32_t m_rx_q_num;
 
-    int rcv_send(int port,int queue_id);
+    int rcv_send(int port, int queue_id);
     int rcv_send_all(int queue_id);
-    rte_mbuf_t *create_pkt(uint8_t *pkt,int pkt_size);
+    rte_mbuf_t *create_pkt(uint8_t *pkt, int pkt_size);
     rte_mbuf_t *create_pkt_indirect(rte_mbuf_t *m, uint32_t new_pkt_size);
     rte_mbuf_t *create_udp_pkt();
     rte_mbuf_t *create_udp_9k_pkt();
-    int  set_promisc_all(bool enable);
+    int set_promisc_all(bool enable);
     int test_send_pkts(rte_mbuf_t *, uint16_t queue_id, int pkt, int port);
     rte_mbuf_t *create_test_pkt(int ip_ver, uint16_t l4_proto, uint8_t ttl, uint32_t ip_id, uint16_t flags);
     int verify_hw_rules(bool recv_all);
 
- public:
+  public:
     CTrexDebug(CPhyEthIF *m_ports_arg, int max_ports, uint32_t rx_q_num);
     int test_send(uint pkt_type);
 };

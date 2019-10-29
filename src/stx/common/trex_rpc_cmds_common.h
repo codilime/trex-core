@@ -34,10 +34,8 @@ limitations under the License.
  * contains all the common RPC commands
  */
 class TrexRpcCmdsCommon : public TrexRpcComponent {
-public:
-
+  public:
     TrexRpcCmdsCommon();
 };
 
 #endif /* __TREX_RPC_CMDS_COMMON_H__ */
-

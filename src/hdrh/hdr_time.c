@@ -1,8 +1,8 @@
 /**
-* hdr_time.h
-* Written by Michael Barker and Philip Orwig and released to the public domain,
-* as explained at http://creativecommons.org/publicdomain/zero/1.0/
-*/
+ * hdr_time.h
+ * Written by Michael Barker and Philip Orwig and released to the public domain,
+ * as explained at http://creativecommons.org/publicdomain/zero/1.0/
+ */
 
 #include "hdr_time.h"
 
@@ -17,14 +17,12 @@
 static int s_clockPeriodSet = 0;
 static double s_clockPeriod = 1.0;
 
-void hdr_gettime(hdr_timespec* t)
-{
+void hdr_gettime(hdr_timespec *t) {
     LARGE_INTEGER num;
     /* if this is distasteful, we can add in an hdr_time_init() */
-    if (!s_clockPeriodSet)
-    {
+    if (!s_clockPeriodSet) {
         QueryPerformanceFrequency(&num);
-        s_clockPeriod = 1.0 / (double) num.QuadPart;
+        s_clockPeriod = 1.0 / (double)num.QuadPart;
         s_clockPeriodSet = 1;
     }
 
@@ -33,8 +31,8 @@ void hdr_gettime(hdr_timespec* t)
     double integral;
     double remainder = modf(seconds, &integral);
 
-    t->tv_sec  = (long) integral;
-    t->tv_nsec = (long) (remainder * 1000000000);
+    t->tv_sec = (long)integral;
+    t->tv_nsec = (long)(remainder * 1000000000);
 }
 
 #elif defined(__APPLE__)
@@ -42,9 +40,7 @@ void hdr_gettime(hdr_timespec* t)
 #include <mach/clock.h>
 #include <mach/mach.h>
 
-
-void hdr_gettime(hdr_timespec* ts)
-{
+void hdr_gettime(hdr_timespec *ts) {
     clock_serv_t cclock;
     mach_timespec_t mts;
     host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
@@ -54,11 +50,7 @@ void hdr_gettime(hdr_timespec* ts)
     ts->tv_nsec = mts.tv_nsec;
 }
 
-
-void hdr_getnow(hdr_timespec* ts)
-{
-    hdr_gettime(ts);
-}
+void hdr_getnow(hdr_timespec *ts) { hdr_gettime(ts); }
 
 #elif defined(__linux__) || defined(__CYGWIN__)
 
@@ -83,20 +75,15 @@ void hdr_getnow(hdr_timespec* t)
 
 #endif
 
-double hdr_timespec_as_double(const hdr_timespec* t)
-{
+double hdr_timespec_as_double(const hdr_timespec *t) {
     double d = t->tv_sec;
     return d + (t->tv_nsec / 1000000000.0);
 }
 
-void hdr_timespec_from_double(hdr_timespec* t, double value)
-{
-    int seconds = (int) value;
-    int milliseconds = (int) round((value - seconds) * 1000);
+void hdr_timespec_from_double(hdr_timespec *t, double value) {
+    int seconds = (int)value;
+    int milliseconds = (int)round((value - seconds) * 1000);
 
     t->tv_sec = seconds;
     t->tv_nsec = milliseconds * 1000000;
 }
-
-
-

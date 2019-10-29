@@ -24,14 +24,10 @@
  * @return
  *   -1 if the BPF program couldn't be loaded. An fd (int) otherwise.
  */
-int tap_flow_bpf_cls_q(__u32 queue_idx)
-{
-	cls_q_insns[1].imm = queue_idx;
+int tap_flow_bpf_cls_q(__u32 queue_idx) {
+    cls_q_insns[1].imm = queue_idx;
 
-	return bpf_load(BPF_PROG_TYPE_SCHED_CLS,
-		(struct bpf_insn *)cls_q_insns,
-		RTE_DIM(cls_q_insns),
-		"Dual BSD/GPL");
+    return bpf_load(BPF_PROG_TYPE_SCHED_CLS, (struct bpf_insn *)cls_q_insns, RTE_DIM(cls_q_insns), "Dual BSD/GPL");
 }
 
 /**
@@ -46,15 +42,12 @@ int tap_flow_bpf_cls_q(__u32 queue_idx)
  * @return
  *   -1 if the BPF program couldn't be loaded. An fd (int) otherwise.
  */
-int tap_flow_bpf_calc_l3_l4_hash(__u32 key_idx, int map_fd)
-{
-	l3_l4_hash_insns[4].imm = key_idx;
-	l3_l4_hash_insns[9].imm = map_fd;
+int tap_flow_bpf_calc_l3_l4_hash(__u32 key_idx, int map_fd) {
+    l3_l4_hash_insns[4].imm = key_idx;
+    l3_l4_hash_insns[9].imm = map_fd;
 
-	return bpf_load(BPF_PROG_TYPE_SCHED_ACT,
-		(struct bpf_insn *)l3_l4_hash_insns,
-		RTE_DIM(l3_l4_hash_insns),
-		"Dual BSD/GPL");
+    return bpf_load(BPF_PROG_TYPE_SCHED_ACT, (struct bpf_insn *)l3_l4_hash_insns, RTE_DIM(l3_l4_hash_insns),
+                    "Dual BSD/GPL");
 }
 
 /**
@@ -66,10 +59,7 @@ int tap_flow_bpf_calc_l3_l4_hash(__u32 key_idx, int map_fd)
  * @return
  *   64 bit unsigned long type of pointer address
  */
-static inline __u64 ptr_to_u64(const void *ptr)
-{
-	return (__u64)(unsigned long)ptr;
-}
+static inline __u64 ptr_to_u64(const void *ptr) { return (__u64)(unsigned long)ptr; }
 
 /**
  * Call BPF system call
@@ -86,10 +76,8 @@ static inline __u64 ptr_to_u64(const void *ptr)
  * @return
  *   -1 if BPF system call failed, 0 otherwise
  */
-static inline int sys_bpf(enum bpf_cmd cmd, union bpf_attr *attr,
-			unsigned int size)
-{
-	return syscall(__NR_bpf, cmd, attr, size);
+static inline int sys_bpf(enum bpf_cmd cmd, union bpf_attr *attr, unsigned int size) {
+    return syscall(__NR_bpf, cmd, attr, size);
 }
 
 /**
@@ -110,23 +98,19 @@ static inline int sys_bpf(enum bpf_cmd cmd, union bpf_attr *attr,
  * @return
  *   -1 if the BPF program couldn't be loaded, fd (file descriptor) otherwise
  */
-static int bpf_load(enum bpf_prog_type type,
-		  const struct bpf_insn *insns,
-		  size_t insns_cnt,
-		  const char *license)
-{
-	union bpf_attr attr = {};
+static int bpf_load(enum bpf_prog_type type, const struct bpf_insn *insns, size_t insns_cnt, const char *license) {
+    union bpf_attr attr = {};
 
-	bzero(&attr, sizeof(attr));
-	attr.prog_type = type;
-	attr.insn_cnt = (__u32)insns_cnt;
-	attr.insns = ptr_to_u64(insns);
-	attr.license = ptr_to_u64(license);
-	attr.log_buf = ptr_to_u64(NULL);
-	attr.log_level = 0;
-	attr.kern_version = 0;
+    bzero(&attr, sizeof(attr));
+    attr.prog_type = type;
+    attr.insn_cnt = (__u32)insns_cnt;
+    attr.insns = ptr_to_u64(insns);
+    attr.license = ptr_to_u64(license);
+    attr.log_buf = ptr_to_u64(NULL);
+    attr.log_level = 0;
+    attr.kern_version = 0;
 
-	return sys_bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
+    return sys_bpf(BPF_PROG_LOAD, &attr, sizeof(attr));
 }
 
 /**
@@ -144,19 +128,16 @@ static int bpf_load(enum bpf_prog_type type,
  * @return
  *   -1 if BPF map couldn't be created, map fd otherwise
  */
-int tap_flow_bpf_rss_map_create(unsigned int key_size,
-		unsigned int value_size,
-		unsigned int max_entries)
-{
-	union bpf_attr attr = {};
+int tap_flow_bpf_rss_map_create(unsigned int key_size, unsigned int value_size, unsigned int max_entries) {
+    union bpf_attr attr = {};
 
-	bzero(&attr, sizeof(attr));
-	attr.map_type    = BPF_MAP_TYPE_HASH;
-	attr.key_size    = key_size;
-	attr.value_size  = value_size;
-	attr.max_entries = max_entries;
+    bzero(&attr, sizeof(attr));
+    attr.map_type = BPF_MAP_TYPE_HASH;
+    attr.key_size = key_size;
+    attr.value_size = value_size;
+    attr.max_entries = max_entries;
 
-	return sys_bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
+    return sys_bpf(BPF_MAP_CREATE, &attr, sizeof(attr));
 }
 
 /**
@@ -174,17 +155,16 @@ int tap_flow_bpf_rss_map_create(unsigned int key_size,
  * @return
  *   -1 if RSS entry failed to be updated, 0 otherwise
  */
-int tap_flow_bpf_update_rss_elem(int fd, void *key, void *value)
-{
-	union bpf_attr attr = {};
+int tap_flow_bpf_update_rss_elem(int fd, void *key, void *value) {
+    union bpf_attr attr = {};
 
-	bzero(&attr, sizeof(attr));
+    bzero(&attr, sizeof(attr));
 
-	attr.map_type = BPF_MAP_TYPE_HASH;
-	attr.map_fd = fd;
-	attr.key = ptr_to_u64(key);
-	attr.value = ptr_to_u64(value);
-	attr.flags = BPF_ANY;
+    attr.map_type = BPF_MAP_TYPE_HASH;
+    attr.map_fd = fd;
+    attr.key = ptr_to_u64(key);
+    attr.value = ptr_to_u64(value);
+    attr.flags = BPF_ANY;
 
-	return sys_bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
+    return sys_bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
 }

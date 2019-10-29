@@ -25,31 +25,23 @@ limitations under the License.
 #include "bp_sim.h"
 
 TrexDpCore::TrexDpCore(uint32_t thread_id, CFlowGenListPerThread *core, state_e init_state) {
-    m_thread_id  = thread_id;
-    m_core       = core;
+    m_thread_id = thread_id;
+    m_core = core;
 
     CMessagingManager *cp_dp = CMsgIns::Ins()->getCpDp();
 
     m_ring_from_cp = cp_dp->getRingCpToDp(thread_id);
-    m_ring_to_cp   = cp_dp->getRingDpToCp(thread_id);
+    m_ring_to_cp = cp_dp->getRingDpToCp(thread_id);
 
-    m_state  = init_state;
+    m_state = init_state;
 }
 
-
-
-void
-TrexDpCore::barrier(uint8_t port_id, uint32_t profile_id, int event_id) {
+void TrexDpCore::barrier(uint8_t port_id, uint32_t profile_id, int event_id) {
 
     CNodeRing *ring = CMsgIns::Ins()->getCpDp()->getRingDpToCp(m_core->m_thread_id);
-    TrexDpToCpMsgBase *event_msg = new TrexDpPortEventMsg(m_core->m_thread_id,
-                                                          port_id,
-                                                          profile_id,
-                                                          event_id);
+    TrexDpToCpMsgBase *event_msg = new TrexDpPortEventMsg(m_core->m_thread_id, port_id, profile_id, event_id);
     ring->SecureEnqueue((CGenNode *)event_msg, true);
 }
-
-
 
 /**
  * in idle state loop, the processor most of the time sleeps
@@ -57,12 +49,11 @@ TrexDpCore::barrier(uint8_t port_id, uint32_t profile_id, int event_id) {
  *
  * @author imarom (01-Nov-15)
  */
-void
-TrexDpCore::idle_state_loop() {
+void TrexDpCore::idle_state_loop() {
 
-    const int SHORT_DELAY_MS    = 2;
-    const int LONG_DELAY_MS     = 50;
-    const int DEEP_SLEEP_LIMIT  = 2000;
+    const int SHORT_DELAY_MS = 2;
+    const int LONG_DELAY_MS = 50;
+    const int DEEP_SLEEP_LIMIT = 2000;
 
     int counter = 0;
 
@@ -96,30 +87,21 @@ TrexDpCore::idle_state_loop() {
     }
 }
 
-bool
-TrexDpCore::rx_for_idle(void) {
-    return false;
-}
+bool TrexDpCore::rx_for_idle(void) { return false; }
 
-bool
-TrexDpCore::is_hot_state() {
-    return false;
-}
+bool TrexDpCore::is_hot_state() { return false; }
 
-void
-TrexDpCore::start_once() {
+void TrexDpCore::start_once() {
     /* for simulation */
 
-    if ( (m_state == STATE_IDLE) && (are_any_pending_cp_messages()) ) {
+    if ((m_state == STATE_IDLE) && (are_any_pending_cp_messages())) {
         idle_state_loop();
     }
 
     start_scheduler();
 }
 
-
-void
-TrexDpCore::start() {
+void TrexDpCore::start() {
 
     while (true) {
 
@@ -138,11 +120,8 @@ TrexDpCore::start() {
         case STATE_TERMINATE:
             return;
         }
-
     }
-
 }
-
 
 void TrexDpCore::stop() {
     m_core->set_terminate_mode(true); /* mark it as terminated */
@@ -150,11 +129,9 @@ void TrexDpCore::stop() {
     add_global_duration(0.0001);
 }
 
-
-void
-TrexDpCore::add_global_duration(double duration) {
+void TrexDpCore::add_global_duration(double duration) {
     if (duration > 0.0) {
-        CGenNode *node = m_core->create_node() ;
+        CGenNode *node = m_core->create_node();
 
         node->m_type = CGenNode::EXIT_SCHED;
 
@@ -165,14 +142,11 @@ TrexDpCore::add_global_duration(double duration) {
     }
 }
 
-
 /**
  * handle a message from CP to DP
  *
  */
-void
-TrexDpCore::handle_cp_msg(TrexCpToDpMsgBase *msg) {
+void TrexDpCore::handle_cp_msg(TrexCpToDpMsgBase *msg) {
     msg->handle(this);
     delete msg;
 }
-

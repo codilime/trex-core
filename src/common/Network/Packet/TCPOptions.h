@@ -18,64 +18,42 @@ limitations under the License.
 
 #include "PacketHeaderBase.h"
 
+class TCPOptions {
 
-class TCPOptions
-{
+  public:
+    //--------------------------------------------------------------------------------------------------
+    // Typedef & Enum
+    //--------------------------------------------------------------------------------------------------
 
-public:
-
-//--------------------------------------------------------------------------------------------------
-// Typedef & Enum
-//--------------------------------------------------------------------------------------------------
-
-    struct  Kind
-    {
-        enum Val
-        {
-            EOL         =   0,
-            NO_OP       =   1,
-            MSS         =   2,
-            WIN_SCL     =   3,
-            SACK_PER    =   4,
-            SACK        =   5,
-            TIME_STAMP  =   8
-        };
+    struct Kind {
+        enum Val { EOL = 0, NO_OP = 1, MSS = 2, WIN_SCL = 3, SACK_PER = 4, SACK = 5, TIME_STAMP = 8 };
     };
 
-    enum
-    {
-        TimeStampSize   =   12
+    enum { TimeStampSize = 12 };
+
+    enum { MaxOptionsInPacket = 64 };
+
+    struct Option {
+        uint8_t theKind;
+        uint8_t theLength;  // Not always valid, depends on theKind
+        uint8_t theData[1]; // variable. [1] only for compilation
     };
 
-    enum
-    {
-        MaxOptionsInPacket = 64
+    struct Counters {
+        uint32_t itsOptionsSizeMismatch;
+        uint32_t itsZeroLengthOptions;
+        uint32_t itsPossibleEndlessLoop;
     };
 
-    struct  Option
-    {
-        uint8_t   theKind;
-        uint8_t   theLength; //Not always valid, depends on theKind
-        uint8_t   theData[1];//variable. [1] only for compilation
-    };
+    //--------------------------------------------------------------------------------------------------
+    // Constructor & Destructor
+    //--------------------------------------------------------------------------------------------------
 
-    struct  Counters
-    {
-        uint32_t    itsOptionsSizeMismatch;
-        uint32_t    itsZeroLengthOptions;
-        uint32_t    itsPossibleEndlessLoop;
-    };
+    TCPOptions(uint8_t *argOptionsP, uint16_t argOptionsSize);
 
-
-//--------------------------------------------------------------------------------------------------
-// Constructor & Destructor
-//--------------------------------------------------------------------------------------------------
-
-    TCPOptions(uint8_t*   argOptionsP, uint16_t argOptionsSize);
-
-//--------------------------------------------------------------------------------------------------
-// Utility methods
-//--------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------
+    // Utility methods
+    //--------------------------------------------------------------------------------------------------
 
     /**
      * This method allows the user of this class to query whether
@@ -84,12 +62,11 @@ public:
      *
      * @return  true if the specified option exist.
      */
-    bool    doesContain(Kind::Val);
+    bool doesContain(Kind::Val);
 
-//--------------------------------------------------------------------------------------------------
-// Get methods
-//--------------------------------------------------------------------------------------------------
-
+    //--------------------------------------------------------------------------------------------------
+    // Get methods
+    //--------------------------------------------------------------------------------------------------
 
     /**
      * Returns a pointer to the current option.
@@ -99,7 +76,7 @@ public:
      * @param argLength
      * @return
      */
-    uint8_t*  getCurrentOption    (Kind::Val&    argKind, uint8_t& argLength);
+    uint8_t *getCurrentOption(Kind::Val &argKind, uint8_t &argLength);
 
     /**
      * This method gives the length of the current option.
@@ -108,7 +85,7 @@ public:
      *
      * @return
      */
-    uint8_t   getCurrentOptionLength();
+    uint8_t getCurrentOptionLength();
 
     /**
      * This is an internal method that verifies based on the current
@@ -117,11 +94,11 @@ public:
      *
      * @return
      */
-    bool    isLastOption        ();
+    bool isLastOption();
 
-//--------------------------------------------------------------------------------------------------
-// Set methods
-//--------------------------------------------------------------------------------------------------
+    //--------------------------------------------------------------------------------------------------
+    // Set methods
+    //--------------------------------------------------------------------------------------------------
 
     /**
      * This method tells the object to advance one option ahead.
@@ -130,34 +107,29 @@ public:
      * @return True if next option exist.
      *         False if we are at the last option.
      */
-    bool    nextOption          ();
+    bool nextOption();
 
+    //--------------------------------------------------------------------------------------------------
+    // Miscellaneous Operations
+    //--------------------------------------------------------------------------------------------------
 
-//--------------------------------------------------------------------------------------------------
-// Miscellaneous Operations
-//--------------------------------------------------------------------------------------------------
+    static void get(Counters &);
 
-    static  void get (Counters&);
+    void dump(FILE *argOutputFile);
 
-            void dump(FILE* argOutputFile);
+  private:
+    //--------------------------------------------------------------------------------------------------
+    // Data members
+    //--------------------------------------------------------------------------------------------------
 
+    uint8_t *myOptionsP;
+    uint16_t myOptionsSize;
 
-private:
+    Option *myCurrentOptionP;
 
-//--------------------------------------------------------------------------------------------------
-// Data members
-//--------------------------------------------------------------------------------------------------
+    static Counters ourCounters;
 
-    uint8_t*           myOptionsP;
-    uint16_t           myOptionsSize;
-
-    Option*          myCurrentOptionP;
-
-    static  Counters ourCounters;
-
-    static  bool     ourOneShotDump;
+    static bool ourOneShotDump;
 };
 
-
 #endif // _TCP_OPTIONS_H_
-

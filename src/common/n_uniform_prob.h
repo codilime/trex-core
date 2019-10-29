@@ -28,104 +28,106 @@ limitations under the License.
 #define U32_MAX 0xFFFFFFFF
 
 class KxuRand {
- public:
+  public:
     virtual ~KxuRand() { ; }
-    virtual uint32_t    getRandom() = 0;
-    virtual double getRandomUnit() { return (((double)getRandom()) / U32_MAX ); }
- };
+    virtual uint32_t getRandom() = 0;
+    virtual double getRandomUnit() { return (((double)getRandom()) / U32_MAX); }
+};
 
 class KxuRandUniform : public KxuRand {
- public:
+  public:
     virtual ~KxuRandUniform() { ; }
-    virtual void setSeed( uint32_t seed ) = 0;
+    virtual void setSeed(uint32_t seed) = 0;
 
-    uint32_t  getRandomInRange( uint32_t n )
-       { uint64_t v = getRandom(); v *= n; return uint32_t( v >> 32 ); }
-    uint32_t  getRandomInRange( uint32_t start, uint32_t end )
-       { return getRandomInRange( end - start ) + start; }
+    uint32_t getRandomInRange(uint32_t n) {
+        uint64_t v = getRandom();
+        v *= n;
+        return uint32_t(v >> 32);
+    }
+    uint32_t getRandomInRange(uint32_t start, uint32_t end) { return getRandomInRange(end - start) + start; }
 
-    double  getRandomInRange( double start, double end)  {
-        assert(start<end);
-        uint32_t   rand= getRandom();
-        return (((double)rand* (end -start)/((double)U32_MAX)+start));
+    double getRandomInRange(double start, double end) {
+        assert(start < end);
+        uint32_t rand = getRandom();
+        return (((double)rand * (end - start) / ((double)U32_MAX) + start));
     }
 };
 
 // a dead simple Linear Congruent random number generator
 class KxuLCRand : public KxuRandUniform {
- public:
-    KxuLCRand( uint32_t seed = 555 ) { setSeed( seed ); }
-    void setSeed( uint32_t seed ) { if ( !seed ) seed = 0x333; mState = seed | 1; }
-    uint32_t getRandom() { mState = ( mState * 69069 ) + 1; return mState; }
+  public:
+    KxuLCRand(uint32_t seed = 555) { setSeed(seed); }
+    void setSeed(uint32_t seed) {
+        if (!seed)
+            seed = 0x333;
+        mState = seed | 1;
+    }
+    uint32_t getRandom() {
+        mState = (mState * 69069) + 1;
+        return mState;
+    }
 
- private:
+  private:
     uint32_t mState;
 };
 
-typedef uint32_t u32 ;
-
+typedef uint32_t u32;
 
 class Distribution {
-public:
-   Distribution() {}
-   Distribution( u32 a,
-                 u32 b,
-                 u32 p ) { mA = a; mB = b, mProb = p; }
+  public:
+    Distribution() {}
+    Distribution(u32 a, u32 b, u32 p) {
+        mA = a;
+        mB = b, mProb = p;
+    }
 
-   u32 mA;
-   u32 mB;
-   u32 mProb;
+    u32 mA;
+    u32 mB;
+    u32 mProb;
 };
 
 class KxuNuRand : public KxuRand {
-public:
-   KxuNuRand( const std::vector<u32>& dist, KxuRandUniform* rand );
-   KxuNuRand( const std::vector<double> prob, KxuRandUniform* rand );
+  public:
+    KxuNuRand(const std::vector<u32> &dist, KxuRandUniform *rand);
+    KxuNuRand(const std::vector<double> prob, KxuRandUniform *rand);
 
-   u32 getRandom();
+    u32 getRandom();
 
-protected:
-   std::vector<Distribution> mDist;
-   KxuRandUniform*           mRand;
-private:
-    void init(const std::vector<u32>& dist, KxuRandUniform* rand );
+  protected:
+    std::vector<Distribution> mDist;
+    KxuRandUniform *mRand;
+
+  private:
+    void init(const std::vector<u32> &dist, KxuRandUniform *rand);
 };
 
-inline double fixedToFloat_0_32( u32 val ) { return (((double)val) / U32_MAX ); }
-inline u32    floatToFixed_0_32( double val ) { return (u32)( val * U32_MAX ); }
+inline double fixedToFloat_0_32(u32 val) { return (((double)val) / U32_MAX); }
+inline u32 floatToFixed_0_32(double val) { return (u32)(val * U32_MAX); }
 
-void Kx_norm_prob(std::vector<double> prob,
-                  std::vector<double> & result );
+void Kx_norm_prob(std::vector<double> prob, std::vector<double> &result);
 
 void Kx_dump_prob(std::vector<double> prob);
 
 /* Binary distribution, you should give one number for success betwean 0.. 1 */
 class KxuNuBinRand {
-public:
-    KxuNuBinRand(double prob_sucess){
-        std::vector<double>  dist {
-            prob_sucess,
-            1-prob_sucess};
+  public:
+    KxuNuBinRand(double prob_sucess) {
+        std::vector<double> dist{prob_sucess, 1 - prob_sucess};
         m_rnd = new KxuLCRand();
-        m_ru = new KxuNuRand(dist,m_rnd);
+        m_ru = new KxuNuRand(dist, m_rnd);
     }
-    ~KxuNuBinRand(){
+    ~KxuNuBinRand() {
         delete m_ru;
         delete m_rnd;
     }
 
-    void setSeed(uint32_t seed){
-        m_rnd->setSeed(seed);
-    }
+    void setSeed(uint32_t seed) { m_rnd->setSeed(seed); }
 
-    bool getRandom(){
-        return(m_ru->getRandom()==0?true:false);
-    }
+    bool getRandom() { return (m_ru->getRandom() == 0 ? true : false); }
 
-private:
-    KxuLCRand * m_rnd;
-    KxuNuRand * m_ru;
+  private:
+    KxuLCRand *m_rnd;
+    KxuNuRand *m_ru;
 };
-
 
 #endif

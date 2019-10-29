@@ -31,104 +31,87 @@ limitations under the License.
 #include <queue>
 #include <assert.h>
 
-
 class CFlowTimerHandle;
 
-struct CFlowTimer  {
-public:
-	CFlowTimer(){
-		m_updated_time = -1.0;
-
-	}
-	/* C1 */
+struct CFlowTimer {
+  public:
+    CFlowTimer() { m_updated_time = -1.0; }
+    /* C1 */
     /* time to expire */
-	double              m_time;
+    double m_time;
     /* time when timer was updated */
-	double              m_updated_time;
+    double m_updated_time;
 
-	CFlowTimerHandle *	m_flow; /* back pointer to the flow */
+    CFlowTimerHandle *m_flow; /* back pointer to the flow */
 
-	bool is_valid(){
-		return (m_flow ? true : false);
-	}
+    bool is_valid() { return (m_flow ? true : false); }
 
-public:
-	bool operator <(const CFlowTimer * rsh) const {
-		return (m_time<rsh->m_time);
-	}
-	bool operator ==(const CFlowTimer * rsh) const {
-		return (m_time == rsh->m_time);
-	}
-	bool operator >(const CFlowTimer * rsh) const {
-		return (m_time>rsh->m_time);
-	}
-
+  public:
+    bool operator<(const CFlowTimer *rsh) const { return (m_time < rsh->m_time); }
+    bool operator==(const CFlowTimer *rsh) const { return (m_time == rsh->m_time); }
+    bool operator>(const CFlowTimer *rsh) const { return (m_time > rsh->m_time); }
 };
 
-struct CFlowTimerCompare
-{
-	bool operator() (const CFlowTimer * lhs, const CFlowTimer * rhs)
-	{
-		return lhs->m_time > rhs->m_time;
-	}
+struct CFlowTimerCompare {
+    bool operator()(const CFlowTimer *lhs, const CFlowTimer *rhs) { return lhs->m_time > rhs->m_time; }
 };
 
 class CFlowTimerHandle;
-typedef void(*CallbackType_t)(CFlowTimerHandle * timer_handle);
+typedef void (*CallbackType_t)(CFlowTimerHandle *timer_handle);
 
 class CFlowTimerHandle {
-public:
-	CFlowTimerHandle(){
-		m_timer = 0;
-		m_object = 0;
-        m_object1=0;
-		m_callback = 0;
-		m_id = 0;
-	}
-	CFlowTimer *	m_timer;
-	void *			m_object;
-    void *			m_object1;
-	CallbackType_t  m_callback;
-	uint32_t		m_id;
+  public:
+    CFlowTimerHandle() {
+        m_timer = 0;
+        m_object = 0;
+        m_object1 = 0;
+        m_callback = 0;
+        m_id = 0;
+    }
+    CFlowTimer *m_timer;
+    void *m_object;
+    void *m_object1;
+    CallbackType_t m_callback;
+    uint32_t m_id;
 };
 
-typedef CFlowTimer * timer_handle_t;
+typedef CFlowTimer *timer_handle_t;
 
 typedef std::priority_queue<CFlowTimer *, std::vector<CFlowTimer *>, CFlowTimerCompare> tw_pqueue_t;
 
 class CTimerWheel {
 
-public:
-    CTimerWheel(){
-      m_st_alloc=0;
-      m_st_free=0;
-      m_st_start=0;
-      m_st_stop=0;
-      m_st_handle=0;
+  public:
+    CTimerWheel() {
+        m_st_alloc = 0;
+        m_st_free = 0;
+        m_st_start = 0;
+        m_st_stop = 0;
+        m_st_handle = 0;
     }
-public:
-	void restart_timer(CFlowTimerHandle *  timer,double new_time);
-	void stop_timer(CFlowTimerHandle *  timer);
-	bool peek_top_time(double & time);
+
+  public:
+    void restart_timer(CFlowTimerHandle *timer, double new_time);
+    void stop_timer(CFlowTimerHandle *timer);
+    bool peek_top_time(double &time);
     void try_handle_events(double now);
     void drain_all();
 
-	bool handle();
-public:
+    bool handle();
+
+  public:
     void Dump(FILE *fd);
-    void dump_json(std::string & json );
+    void dump_json(std::string &json);
 
-private:
-	tw_pqueue_t   m_pq;
-public:
+  private:
+    tw_pqueue_t m_pq;
 
-    uint32_t   m_st_alloc;
-    uint32_t   m_st_free;
-    uint32_t   m_st_start;
-    uint32_t   m_st_stop;
-    uint32_t   m_st_handle;
-
+  public:
+    uint32_t m_st_alloc;
+    uint32_t m_st_free;
+    uint32_t m_st_start;
+    uint32_t m_st_stop;
+    uint32_t m_st_handle;
 };
-
 
 #endif

@@ -29,13 +29,12 @@
 #include "trex_defs.h"
 #include "dpdk_port_map.h"
 
-
 class CPreTestStats {
- public:
+  public:
     uint32_t m_rx_arp; // how many ARP packets we received
     uint32_t m_tx_arp; // how many ARP packets we sent
 
- public:
+  public:
     void clear() {
         m_rx_arp = 0;
         m_tx_arp = 0;
@@ -44,7 +43,6 @@ class CPreTestStats {
 
 class CPhyEthIF;
 
-
 class CPretestOnePortInfo {
     friend class CPretest;
     enum CPretestOnePortInfoStates {
@@ -52,7 +50,7 @@ class CPretestOnePortInfo {
         RESOLVE_NOT_NEEDED,
     };
 
- public:
+  public:
     CPretestOnePortInfo();
     ~CPretestOnePortInfo();
     void add_src(uint32_t ip, uint16_t vlan, MacAddress mac);
@@ -63,51 +61,45 @@ class CPretestOnePortInfo {
     bool get_mac(uint16_t ip[8], uint16_t vlan, uint8_t *mac);
     bool get_mac(COneIPInfo *ip, uint8_t *mac);
     COneIPInfo *get_src(uint16_t vlan, uint8_t ip_ver);
-    void set_port_id(uint16_t port_id)  {m_port_id = port_id;}
+    void set_port_id(uint16_t port_id) { m_port_id = port_id; }
     void dump(FILE *fd, char *offset);
-    bool is_loopback() {return m_is_loopback;}
-    CPreTestStats get_stats() {return m_stats;}
+    bool is_loopback() { return m_is_loopback; }
+    CPreTestStats get_stats() { return m_stats; }
     bool resolve_needed();
     void send_grat_arp_all();
     void send_arp_req_all();
 
- private:
+  private:
     COneIPv4Info *find_ip(uint32_t ip, uint16_t vlan);
     COneIPv4Info *find_next_hop(uint32_t ip, uint16_t vlan);
     COneIPv6Info *find_ipv6(uint16_t *ip, uint16_t vlan);
     bool get_mac(COneIPInfo *ip, uint16_t vlan, uint8_t *mac, uint8_t ip_ver);
 
-    CPhyEthIF *  get_port(){
-        return (m_port);
-    }
+    CPhyEthIF *get_port() { return (m_port); }
 
-    void         set_port(CPhyEthIF * p){
-        m_port = p;
-    }
+    void set_port(CPhyEthIF *p) { m_port = p; }
 
- private:
+  private:
     bool m_is_loopback;
     CPretestOnePortInfoStates m_state;
     CPreTestStats m_stats;
-    uint16_t        m_port_id;
-    CPhyEthIF *     m_port;
+    uint16_t m_port_id;
+    CPhyEthIF *m_port;
     std::vector<COneIPInfo *> m_src_info;
     std::vector<COneIPInfo *> m_dst_info;
 };
 
 class CPretest {
- public:
+  public:
     CPretest(uint16_t max_ports, uint16_t queues_per_port) {
         m_max_ports = max_ports;
-        for (int i =0; i < max_ports; i++) {
+        for (int i = 0; i < max_ports; i++) {
             m_port_info[i].set_port_id(i);
         }
         m_num_q = queues_per_port;
     }
 
-    void set_port(uint8_t port_id,CPhyEthIF * p){
-        m_port_info[port_id].set_port(p);
-    }
+    void set_port(uint8_t port_id, CPhyEthIF *p) { m_port_info[port_id].set_port(p); }
 
     void add_ip(uint16_t port, uint32_t ip, uint16_t vlan, MacAddress src_mac);
     void add_ip(uint16_t port, uint32_t ip, MacAddress src_mac);
@@ -129,10 +121,10 @@ class CPretest {
     void dump(FILE *fd);
     void test();
 
- private:
+  private:
     int handle_rx(int port, int queue_id);
 
- private:
+  private:
     CPretestOnePortInfo m_port_info[TREX_MAX_PORTS];
     uint16_t m_max_ports;
     uint16_t m_num_q;

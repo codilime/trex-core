@@ -28,5 +28,4 @@ limitations under the License.
 
 void check_offloads(const struct rte_eth_dev_info *dev_info, const struct rte_eth_conf *m_port_conf);
 
-
 #endif /* UTL_OFFLOADS_H */

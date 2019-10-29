@@ -4,8 +4,4 @@
 
 #include "rte_hypervisor.h"
 
-enum rte_hypervisor
-rte_hypervisor_get(void)
-{
-	return RTE_HYPERVISOR_UNKNOWN;
-}
+enum rte_hypervisor rte_hypervisor_get(void) { return RTE_HYPERVISOR_UNKNOWN; }

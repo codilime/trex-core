@@ -29,50 +29,36 @@ limitations under the License.
 #include <valijson/validator.hpp>
 #include <valijson/validation_results.hpp>
 
-
-
-using valijson::adapters::JsonCppAdapter;
-using valijson::Validator;
+using valijson::ConstraintBuilder;
 using valijson::Schema;
 using valijson::SchemaParser;
 using valijson::ValidationResults;
-using valijson::SchemaParser;
-using valijson::ConstraintBuilder;
+using valijson::Validator;
+using valijson::adapters::JsonCppAdapter;
 using valijson::constraints::Constraint;
 
-
 class CAstfJsonValidator {
-public:
-    CAstfJsonValidator(){
-        m_schema_adapter = NULL;
-    }
+  public:
+    CAstfJsonValidator() { m_schema_adapter = NULL; }
 
     bool Create(std::string input_schema_file);
     void Delete();
 
-    bool validate_profile_file(std::string  input_json_filename,
-                               std::string & err);
+    bool validate_profile_file(std::string input_json_filename, std::string &err);
 
-    bool validate_profile(Json::Value  profile,
-                          std::string & err);
+    bool validate_profile(Json::Value profile, std::string &err);
 
-private:
+  private:
+    bool validate_program(Json::Value profile, std::string &err);
+    int get_max_buffer(Json::Value program);
+    bool validate_ip_gen(Json::Value ip_gen, std::string &err);
 
-    bool validate_program(Json::Value  profile,
-                          std::string & err);
-    int get_max_buffer(Json::Value  program);
-    bool validate_ip_gen(Json::Value  ip_gen,
-                        std::string & err);
-
-
-
-private:
-    std::string  m_input_schema_file;
-    Json::Value  m_schema_doc;
-    Schema       m_schema;
+  private:
+    std::string m_input_schema_file;
+    Json::Value m_schema_doc;
+    Schema m_schema;
     SchemaParser m_parser;
-    JsonCppAdapter * m_schema_adapter;
+    JsonCppAdapter *m_schema_adapter;
 };
-
 
 #endif

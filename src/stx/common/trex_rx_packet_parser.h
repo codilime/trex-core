@@ -29,23 +29,22 @@
 #include "common/Network/Packet/IPHeader.h"
 #include "common/Network/Packet/VLANHeader.h"
 
-
 /**************************************
  * RX feature server (ARP, ICMP) and etc.
  *
  *************************************/
 
 class RXPktParser {
-public:
+  public:
     RXPktParser(const rte_mbuf_t *mbuf);
-    const rte_mbuf_t         *m_mbuf;
-    EthernetHeader           *m_ether;
-    ArpHdr                   *m_arp;
-    IPHeader                 *m_ipv4;
-    ICMPHeader               *m_icmp;
-    std::vector<uint16_t>     m_vlan_ids;
+    const rte_mbuf_t *m_mbuf;
+    EthernetHeader *m_ether;
+    ArpHdr *m_arp;
+    IPHeader *m_ipv4;
+    ICMPHeader *m_icmp;
+    std::vector<uint16_t> m_vlan_ids;
 
-protected:
+  protected:
     uint16_t parse_l2(void);
     const uint8_t *parse_bytes(uint32_t size);
     void parse_arp(void);
@@ -54,8 +53,7 @@ protected:
     void parse_err(void);
 
     const uint8_t *m_current;
-    uint16_t       m_size_left;
+    uint16_t m_size_left;
 };
 
 #endif /* __TREX_RX_PACKET_PARSER_H__ */
-

@@ -33,11 +33,8 @@ limitations under the License.
  *
  */
 class TrexRpcCmdsSTL : public TrexRpcComponent {
-public:
-
+  public:
     TrexRpcCmdsSTL();
 };
 
 #endif /* __TREX_STL_RPC_CMDS_H__ */
-
-

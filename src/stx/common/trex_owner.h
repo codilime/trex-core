@@ -32,16 +32,13 @@ limitations under the License.
  *
  */
 class TrexOwner {
-public:
-
+  public:
     TrexOwner();
 
     /**
      * is port free to acquire
      */
-    bool is_free() {
-        return m_is_free;
-    }
+    bool is_free() { return m_is_free; }
 
     void release();
 
@@ -55,23 +52,20 @@ public:
 
     const std::string &get_handler();
 
-    const uint32_t get_session_id() {
-        return m_session_id;
-    }
+    const uint32_t get_session_id() { return m_session_id; }
 
-private:
-
+  private:
     /* is this port owned by someone ? */
-    bool         m_is_free;
+    bool m_is_free;
 
     /* user provided info */
-    std::string  m_owner_name;
+    std::string m_owner_name;
 
     /* which session of the user holds this port*/
-    uint32_t     m_session_id;
+    uint32_t m_session_id;
 
     /* handler genereated internally */
-    std::string  m_handler;
+    std::string m_handler;
 
     /* seed for generating random values */
     unsigned int m_seed;
@@ -82,4 +76,3 @@ private:
 };
 
 #endif /* __TREX_OWNER_H__ */
-

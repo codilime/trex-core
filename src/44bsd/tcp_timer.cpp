@@ -33,8 +33,6 @@
  *  @(#)tcp_timer.c 8.2 (Berkeley) 5/24/95
  */
 
-
-
 #include "tcp.h"
 #include "tcp_fsm.h"
 #include "tcp_seq.h"
@@ -42,59 +40,45 @@
 #include "tcp_var.h"
 #include "tcpip.h"
 
-
-const int   tcp_backoff[TCP_MAXRXTSHIFT + 1] =
-    { 1, 2, 4, 8, 16, 32 };
+const int tcp_backoff[TCP_MAXRXTSHIFT + 1] = {1, 2, 4, 8, 16, 32};
 /*64, 64, 64, 64, 64, 64, 64 };*/
 
-const int	tcp_syn_backoff[TCP_MAXRXTSHIFT + 1] =
-    { 1, 1, 1, 2, 2 , 3 };
-    /*, 4, 8, 16, 32, 64, 64, 64 };*/
+const int tcp_syn_backoff[TCP_MAXRXTSHIFT + 1] = {1, 1, 1, 2, 2, 3};
+/*, 4, 8, 16, 32, 64, 64, 64 };*/
 
-
-int tcp_totbackoff = 511;   /* sum of tcp_backoff[] */
-
+int tcp_totbackoff = 511; /* sum of tcp_backoff[] */
 
 /*
  * Fast timeout routine for processing delayed acks
  */
-void tcp_fasttimo(CPerProfileCtx * pctx, struct tcpcb *tp){
+void tcp_fasttimo(CPerProfileCtx *pctx, struct tcpcb *tp) {
 
-        if (tp->t_flags & TF_DELACK) {
-            tp->t_flags &= ~TF_DELACK;
-            tp->t_flags |= TF_ACKNOW;
-            INC_STAT(pctx, tp->m_flow->m_tg_id, tcps_delack);
-            (void) tcp_output(pctx,tp);
-        }
+    if (tp->t_flags & TF_DELACK) {
+        tp->t_flags &= ~TF_DELACK;
+        tp->t_flags |= TF_ACKNOW;
+        INC_STAT(pctx, tp->m_flow->m_tg_id, tcps_delack);
+        (void)tcp_output(pctx, tp);
+    }
 }
-
-
-
-
 
 /*
  * Cancel all timers for TCP tp.
  */
-void tcp_canceltimers(struct tcpcb *tp){
+void tcp_canceltimers(struct tcpcb *tp) {
     int i;
 
-    for (i = 0; i < TCPT_NTIMERS; i++){
+    for (i = 0; i < TCPT_NTIMERS; i++) {
         tp->t_timer[i] = 0;
     }
 }
 
-
-
-
-
 /*
  * TCP timer processing.
  */
-struct tcpcb *
-tcp_timers(CPerProfileCtx * pctx,struct tcpcb *tp, int timer){
+struct tcpcb *tcp_timers(CPerProfileCtx *pctx, struct tcpcb *tp, int timer) {
     register int rexmt;
     uint16_t tg_id = tp->m_flow->m_tg_id;
-    CTcpPerThreadCtx * ctx = pctx->m_ctx;
+    CTcpPerThreadCtx *ctx = pctx->m_ctx;
 
     switch (timer) {
 
@@ -105,11 +89,10 @@ tcp_timers(CPerProfileCtx * pctx,struct tcpcb *tp, int timer){
      * control block.  Otherwise, check again in a bit.
      */
     case TCPT_2MSL:
-        if (tp->t_state != TCPS_TIME_WAIT &&
-            tp->t_idle <= ctx->tcp_maxidle)
+        if (tp->t_state != TCPS_TIME_WAIT && tp->t_idle <= ctx->tcp_maxidle)
             tp->t_timer[TCPT_2MSL] = ctx->tcp_keepintvl;
         else
-            tp = tcp_close(pctx,tp);
+            tp = tcp_close(pctx, tp);
         break;
 
     /*
@@ -121,20 +104,18 @@ tcp_timers(CPerProfileCtx * pctx,struct tcpcb *tp, int timer){
         if (++tp->t_rxtshift > TCP_MAXRXTSHIFT) {
             tp->t_rxtshift = TCP_MAXRXTSHIFT;
             INC_STAT(pctx, tg_id, tcps_timeoutdrop);
-            tp = tcp_drop_now(pctx,tp, tp->t_softerror ?
-                tp->t_softerror : TCP_US_ETIMEDOUT);
+            tp = tcp_drop_now(pctx, tp, tp->t_softerror ? tp->t_softerror : TCP_US_ETIMEDOUT);
             break;
         }
-        if (tp->t_state < TCPS_ESTABLISHED){
+        if (tp->t_state < TCPS_ESTABLISHED) {
             rexmt = TCP_REXMTVAL(tp) * tcp_syn_backoff[tp->t_rxtshift];
             INC_STAT(pctx, tg_id, tcps_rexmttimeo_syn);
-        }else{
+        } else {
             INC_STAT(pctx, tg_id, tcps_rexmttimeo);
             rexmt = TCP_REXMTVAL(tp) * tcp_backoff[tp->t_rxtshift];
         }
 
-        TCPT_RANGESET(tp->t_rxtcur, rexmt,
-            tp->t_rttmin, TCPTV_REXMTMAX);
+        TCPT_RANGESET(tp->t_rxtcur, rexmt, tp->t_rttmin, TCPTV_REXMTMAX);
         tp->t_timer[TCPT_REXMT] = tp->t_rxtcur;
         /*
          * If losing, let the lower level know and try for
@@ -145,7 +126,7 @@ tcp_timers(CPerProfileCtx * pctx,struct tcpcb *tp, int timer){
          * retransmit times until then.
          */
         if (tp->t_rxtshift > TCP_MAXRXTSHIFT / 4) {
-            //in_losing(tp->t_inpcb); # no need that
+            // in_losing(tp->t_inpcb); # no need that
             tp->t_rttvar += (tp->t_srtt >> TCP_RTT_SHIFT);
             tp->t_srtt = 0;
         }
@@ -179,14 +160,14 @@ tcp_timers(CPerProfileCtx * pctx,struct tcpcb *tp, int timer){
          * to go below this.)
          */
         {
-        u_int win = bsd_umin(tp->snd_wnd, tp->snd_cwnd) / 2 / tp->t_maxseg;
-        if (win < 2)
-            win = 2;
-        tp->snd_cwnd = tp->t_maxseg;
-        tp->snd_ssthresh = win * tp->t_maxseg;
-        tp->t_dupacks = 0;
+            u_int win = bsd_umin(tp->snd_wnd, tp->snd_cwnd) / 2 / tp->t_maxseg;
+            if (win < 2)
+                win = 2;
+            tp->snd_cwnd = tp->t_maxseg;
+            tp->snd_ssthresh = win * tp->t_maxseg;
+            tp->t_dupacks = 0;
         }
-        (void) tcp_output(pctx,tp);
+        (void)tcp_output(pctx, tp);
         break;
 
     /*
@@ -203,15 +184,14 @@ tcp_timers(CPerProfileCtx * pctx,struct tcpcb *tp, int timer){
          * backoff that we would use if retransmitting.
          */
         if (tp->t_rxtshift == TCP_MAXRXTSHIFT &&
-            (tp->t_idle >= ctx->tcp_maxpersistidle ||
-            tp->t_idle >= TCP_REXMTVAL(tp) * tcp_totbackoff)) {
+            (tp->t_idle >= ctx->tcp_maxpersistidle || tp->t_idle >= TCP_REXMTVAL(tp) * tcp_totbackoff)) {
             INC_STAT(pctx, tg_id, tcps_persistdrop);
-            tp = tcp_drop_now(pctx,tp, TCP_US_ETIMEDOUT);
+            tp = tcp_drop_now(pctx, tp, TCP_US_ETIMEDOUT);
             break;
         }
-        tcp_setpersist(pctx,tp);
+        tcp_setpersist(pctx, tp);
         tp->t_force = 1;
-        (void) tcp_output(pctx,tp);
+        (void)tcp_output(pctx, tp);
         tp->t_force = 0;
         break;
 
@@ -224,7 +204,7 @@ tcp_timers(CPerProfileCtx * pctx,struct tcpcb *tp, int timer){
         if (tp->t_state < TCPS_ESTABLISHED)
             goto dropit;
         if (tp->m_socket.so_options & US_SO_KEEPALIVE) {
-                if (tp->t_idle >= ctx->tcp_keepidle + ctx->tcp_maxidle)
+            if (tp->t_idle >= ctx->tcp_keepidle + ctx->tcp_maxidle)
                 goto dropit;
             /*
              * Send a packet designed to force a response
@@ -239,45 +219,40 @@ tcp_timers(CPerProfileCtx * pctx,struct tcpcb *tp, int timer){
              * correspondent TCP to respond.
              */
             INC_STAT(pctx, tg_id, tcps_keepprobe);
-            tcp_respond(pctx,tp,
-                tp->rcv_nxt, tp->snd_una - 1, TH_ACK);
+            tcp_respond(pctx, tp, tp->rcv_nxt, tp->snd_una - 1, TH_ACK);
             tp->t_timer[TCPT_KEEP] = ctx->tcp_keepintvl;
         } else
             tp->t_timer[TCPT_KEEP] = ctx->tcp_keepidle;
         break;
     dropit:
         INC_STAT(pctx, tg_id, tcps_keepdrops);
-        tp = tcp_drop_now(pctx,tp, TCP_US_ETIMEDOUT);
+        tp = tcp_drop_now(pctx, tp, TCP_US_ETIMEDOUT);
         break;
     }
     return (tp);
 }
-
-
 
 /*
  * Tcp protocol timeout routine called every 500 ms.
  * Updates the timers in all active tcb's and
  * causes finite state machine actions if timers expire.
  */
-void tcp_slowtimo(CPerProfileCtx * pctx, struct tcpcb *tp)
-{
+void tcp_slowtimo(CPerProfileCtx *pctx, struct tcpcb *tp) {
     int i;
 
     if (tp->t_state == TCPS_LISTEN)
-        return ;
+        return;
 
     for (i = 0; i < TCPT_NTIMERS; i++) {
         if (tp->t_timer[i] && --tp->t_timer[i] == 0) {
-            tcp_timers(pctx,tp, i);
+            tcp_timers(pctx, tp, i);
             if (tp->t_state == TCPS_CLOSED) {
                 return;
             }
         }
     }
     tp->t_idle++;
-    if (tp->t_rtt){
+    if (tp->t_rtt) {
         tp->t_rtt++;
     }
 }
-

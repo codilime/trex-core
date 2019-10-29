@@ -4,19 +4,17 @@
 
 #include "rte_hypervisor.h"
 
-const char *
-rte_hypervisor_get_name(enum rte_hypervisor id)
-{
-	switch (id) {
-	case RTE_HYPERVISOR_NONE:
-		return "none";
-	case RTE_HYPERVISOR_KVM:
-		return "KVM";
-	case RTE_HYPERVISOR_HYPERV:
-		return "Hyper-V";
-	case RTE_HYPERVISOR_VMWARE:
-		return "VMware";
-	default:
-		return "unknown";
-	}
+const char *rte_hypervisor_get_name(enum rte_hypervisor id) {
+    switch (id) {
+    case RTE_HYPERVISOR_NONE:
+        return "none";
+    case RTE_HYPERVISOR_KVM:
+        return "KVM";
+    case RTE_HYPERVISOR_HYPERV:
+        return "Hyper-V";
+    case RTE_HYPERVISOR_VMWARE:
+        return "VMware";
+    default:
+        return "unknown";
+    }
 }

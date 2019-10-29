@@ -18,29 +18,28 @@ limitations under the License.
 #include "common_mbuf.h"
 
 /* Dump structure of mbuf chain, without the data */
-void
-utl_rte_pktmbuf_dump(const struct rte_mbuf *m) {
-            while (m) {
-                printf("(%d %d %d)", m->pkt_len, m->data_len,
+void utl_rte_pktmbuf_dump(const struct rte_mbuf *m) {
+    while (m) {
+        printf("(%d %d %d)", m->pkt_len, m->data_len,
 #ifdef TREX_SIM
-                       (int)m->refcnt_reserved);
+               (int)m->refcnt_reserved);
 #else
-                       (int)m->refcnt_atomic.cnt);
+               (int)m->refcnt_atomic.cnt);
 #endif
-                if (RTE_MBUF_CLONED(m)) {
+        if (RTE_MBUF_CLONED(m)) {
 #ifdef TREX_SIM
-                    struct rte_mbuf *md = RTE_MBUF_FROM_BADDR(m->buf_addr);
+            struct rte_mbuf *md = RTE_MBUF_FROM_BADDR(m->buf_addr);
 #else
-                    struct rte_mbuf *md = rte_mbuf_from_indirect((struct rte_mbuf *)m);
+            struct rte_mbuf *md = rte_mbuf_from_indirect((struct rte_mbuf *)m);
 #endif
-                    printf("(direct %d %d %d)", md->pkt_len, md->data_len,
+            printf("(direct %d %d %d)", md->pkt_len, md->data_len,
 #ifdef TREX_SIM
-                           (int)md->refcnt_reserved);
+                   (int)md->refcnt_reserved);
 #else
-                           (int)md->refcnt_atomic.cnt);
+                   (int)md->refcnt_atomic.cnt);
 #endif
-                }
-                m = m->next;
-            }
-            printf("\n");
+        }
+        m = m->next;
+    }
+    printf("\n");
 }

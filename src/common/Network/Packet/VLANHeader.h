@@ -20,7 +20,6 @@ limitations under the License.
 #include "PacketHeaderBase.h"
 #include "EthernetHeader.h"
 
-
 /*
                               VLAN Header Fields
                               ------------------
@@ -38,70 +37,61 @@ limitations under the License.
  * The data is saved in network byte order, and therefore the class can be used to create a packet in a buffer
  * and send it over the network.
  */
-class VLANHeader
-{
+class VLANHeader {
 
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Field Manipulation
-////////////////////////////////////////////////////////////////////////////////////////
-public:
-
+    ////////////////////////////////////////////////////////////////////////////////////////
+    // Field Manipulation
+    ////////////////////////////////////////////////////////////////////////////////////////
+  public:
     // Sets the complete tag field without sub fields manipulation, host byte order
-    void    setVlanTag          (uint16_t data);
-    uint16_t  getVlanTag          ();
+    void setVlanTag(uint16_t data);
+    uint16_t getVlanTag();
 
-    void    setTagUserPriorty   (uint8_t data);
-    uint8_t   getTagUserPriorty   ();
+    void setTagUserPriorty(uint8_t data);
+    uint8_t getTagUserPriorty();
 
-    bool    getTagCFI           ();
-    void    setTagCFI           (bool);
+    bool getTagCFI();
+    void setTagCFI(bool);
 
-    uint16_t  getTagID            ();
-    void    setTagID            (uint16_t);
+    uint16_t getTagID();
+    void setTagID(uint16_t);
 
-    void    incrementTagID(uint16_t inc_value);
+    void incrementTagID(uint16_t inc_value);
 
-    void    setFromPkt          (uint8_t* data);
+    void setFromPkt(uint8_t *data);
 
-    uint8_t   reconstructPkt      (uint8_t* destBuff);
+    uint8_t reconstructPkt(uint8_t *destBuff);
 
+    ////////////////////////////////////////////////////////////////////////////////////////
+    // Common Interface
+    ////////////////////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////////////////////
-// Common Interface
-////////////////////////////////////////////////////////////////////////////////////////
+  public:
+    uint8_t *getPointer() { return (uint8_t *)this; }
+    uint32_t getSize() { return (uint32_t)sizeof(VLANHeader); }
 
-public:
-    uint8_t*  getPointer          (){return (uint8_t*)this;}
-    uint32_t  getSize      (){return (uint32_t)sizeof(VLANHeader);}
+    uint16_t getNextProtocolNetOrder();
+    uint16_t getNextProtocolHostOrder();
+    void setNextProtocolFromNetOrder(uint16_t);
+    void setNextProtocolFromHostOrder(uint16_t);
 
-    uint16_t  getNextProtocolNetOrder    ();
-	uint16_t  getNextProtocolHostOrder   ();
-    void    setNextProtocolFromNetOrder(uint16_t);
-	void    setNextProtocolFromHostOrder(uint16_t);
+    void dump(FILE *fd);
 
-    void    dump                (FILE*  fd);
+    static uint16_t bytesToSkip(uint8_t *base) { return sizeof(VLANHeader); }
 
-	static uint16_t bytesToSkip(uint8_t* base)
-	{
-		return sizeof(VLANHeader);
-	}
+    static uint8_t reconstructFromBuffer(uint8_t *destBuffer, uint8_t *srcBuffer);
 
-	static uint8_t reconstructFromBuffer(uint8_t* destBuffer, uint8_t* srcBuffer);
+    static uint8_t fillReconstructionBuffer(uint8_t *destBuffer, uint8_t *srcBuffer);
 
-	static uint8_t fillReconstructionBuffer(uint8_t* destBuffer, uint8_t* srcBuffer);
+    static uint8_t fillReconstructionBuffer(uint8_t *destBuffer, VLANHeader &vHeader);
 
-    static uint8_t fillReconstructionBuffer(uint8_t* destBuffer, VLANHeader& vHeader);
+    static uint32_t getMaxVlanTag() { return (1 << 12) - 1; }
 
-
-    static uint32_t getMaxVlanTag()  { return (1<<12) - 1 ; }
-
-public:
-    uint16_t      myTag;
-    uint16_t      myNextProtocol;
+  public:
+    uint16_t myTag;
+    uint16_t myNextProtocol;
 };
 
 #include "VLANHeader.inl"
 
 #endif //_VLAN_HEADER_H_
-

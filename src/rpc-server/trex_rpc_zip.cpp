@@ -24,8 +24,7 @@ limitations under the License.
 #include <arpa/inet.h>
 #include <iostream>
 
-bool
-TrexRpcZip::is_compressed(const std::string &input) {
+bool TrexRpcZip::is_compressed(const std::string &input) {
     /* check for minimum size */
     if (input.size() < sizeof(header_st)) {
         return false;
@@ -43,8 +42,7 @@ TrexRpcZip::is_compressed(const std::string &input) {
     return true;
 }
 
-bool
-TrexRpcZip::uncompress(const std::string &input, std::string &output) {
+bool TrexRpcZip::uncompress(const std::string &input, std::string &output) {
 
     /* sanity check first */
     if (!is_compressed(input)) {
@@ -67,25 +65,20 @@ TrexRpcZip::uncompress(const std::string &input, std::string &output) {
     uLongf dest_len = uncmp_size;
 
     /* try to uncompress */
-    int z_err = ::uncompress(u_buffer,
-                             &dest_len,
-                             (const Bytef *)header->data,
-                             (uLong)input.size() - sizeof(header_st));
+    int z_err = ::uncompress(u_buffer, &dest_len, (const Bytef *)header->data, (uLong)input.size() - sizeof(header_st));
 
     if (z_err != Z_OK) {
-        delete [] u_buffer;
+        delete[] u_buffer;
         return false;
     }
 
     output.append((const char *)u_buffer, dest_len);
 
-    delete [] u_buffer;
+    delete[] u_buffer;
     return true;
 }
 
-
-bool
-TrexRpcZip::compress(const std::string &input, std::string &output) {
+bool TrexRpcZip::compress(const std::string &input, std::string &output) {
 
     /* get a bound */
     int bound_size = compressBound((uLong)input.size()) + sizeof(header_st);
@@ -97,15 +90,12 @@ TrexRpcZip::compress(const std::string &input, std::string &output) {
     }
 
     header_st *header = (header_st *)buffer;
-    uLongf destLen    = bound_size;
+    uLongf destLen = bound_size;
 
-    int z_err = ::compress((Bytef *)header->data,
-                           &destLen,
-                           (const Bytef *)input.c_str(),
-                           (uLong)input.size());
+    int z_err = ::compress((Bytef *)header->data, &destLen, (const Bytef *)input.c_str(), (uLong)input.size());
 
     if (z_err != Z_OK) {
-        delete [] buffer;
+        delete[] buffer;
         return false;
     }
 
@@ -113,12 +103,12 @@ TrexRpcZip::compress(const std::string &input, std::string &output) {
     header->data[destLen] = 0;
 
     /* add the header */
-    header->magic      = htonl(G_HEADER_MAGIC);
+    header->magic = htonl(G_HEADER_MAGIC);
     header->uncmp_size = htonl(input.size());
 
     output.append((const char *)header, sizeof(header_st) + destLen);
 
-    delete [] buffer;
+    delete[] buffer;
 
     return true;
 }

@@ -14,22 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-
 #include "TcpHeader.h"
 
-
-
-void TCPHeader::dump(FILE *fd)
-{
+void TCPHeader::dump(FILE *fd) {
     fprintf(fd, "\nTCPHeader");
-    fprintf(fd, "\nSourcePort 0x%.4X, DestPort 0x%.4X",
-            getSourcePort(), getDestPort());
-    fprintf(fd, "\nSeqNum 0x%.8lX, AckNum 0x%.8lX, Window %d",
-            (ulong)getSeqNumber(), (ulong)getAckNumber(), getWindowSize());
-    fprintf(fd, "\nHeader Length : %d, Checksum : 0x%.4X",
-            getHeaderLength(), getChecksum());
-    fprintf(fd, "\nFlags : SYN - %d, FIN - %d, ACK - %d, URG - %d, RST - %d, PSH - %d",
-            getSynFlag(), getFinFlag(), getAckFlag(), getUrgentFlag(), getResetFlag(), getPushFlag());
+    fprintf(fd, "\nSourcePort 0x%.4X, DestPort 0x%.4X", getSourcePort(), getDestPort());
+    fprintf(fd, "\nSeqNum 0x%.8lX, AckNum 0x%.8lX, Window %d", (ulong)getSeqNumber(), (ulong)getAckNumber(),
+            getWindowSize());
+    fprintf(fd, "\nHeader Length : %d, Checksum : 0x%.4X", getHeaderLength(), getChecksum());
+    fprintf(fd, "\nFlags : SYN - %d, FIN - %d, ACK - %d, URG - %d, RST - %d, PSH - %d", getSynFlag(), getFinFlag(),
+            getAckFlag(), getUrgentFlag(), getResetFlag(), getPushFlag());
     fprintf(fd, "\nUrgent Offset %d", getUrgentOffset());
-	fprintf(fd, "\n");
+    fprintf(fd, "\n");
 }

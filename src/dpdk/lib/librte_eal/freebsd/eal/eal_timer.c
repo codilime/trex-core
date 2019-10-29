@@ -25,40 +25,36 @@
 
 enum timer_source eal_timer_source = EAL_TIMER_TSC;
 
-uint64_t
-get_tsc_freq(void)
-{
-	size_t sz;
-	int tmp;
-	uint64_t tsc_hz;
+uint64_t get_tsc_freq(void) {
+    size_t sz;
+    int tmp;
+    uint64_t tsc_hz;
 
-	sz = sizeof(tmp);
-	tmp = 0;
+    sz = sizeof(tmp);
+    tmp = 0;
 
-	if (sysctlbyname("kern.timecounter.smp_tsc", &tmp, &sz, NULL, 0))
-		RTE_LOG(WARNING, EAL, "%s\n", strerror(errno));
-	else if (tmp != 1)
-		RTE_LOG(WARNING, EAL, "TSC is not safe to use in SMP mode\n");
+    if (sysctlbyname("kern.timecounter.smp_tsc", &tmp, &sz, NULL, 0))
+        RTE_LOG(WARNING, EAL, "%s\n", strerror(errno));
+    else if (tmp != 1)
+        RTE_LOG(WARNING, EAL, "TSC is not safe to use in SMP mode\n");
 
-	tmp = 0;
+    tmp = 0;
 
-	if (sysctlbyname("kern.timecounter.invariant_tsc", &tmp, &sz, NULL, 0))
-		RTE_LOG(WARNING, EAL, "%s\n", strerror(errno));
-	else if (tmp != 1)
-		RTE_LOG(WARNING, EAL, "TSC is not invariant\n");
+    if (sysctlbyname("kern.timecounter.invariant_tsc", &tmp, &sz, NULL, 0))
+        RTE_LOG(WARNING, EAL, "%s\n", strerror(errno));
+    else if (tmp != 1)
+        RTE_LOG(WARNING, EAL, "TSC is not invariant\n");
 
-	sz = sizeof(tsc_hz);
-	if (sysctlbyname("machdep.tsc_freq", &tsc_hz, &sz, NULL, 0)) {
-		RTE_LOG(WARNING, EAL, "%s\n", strerror(errno));
-		return 0;
-	}
+    sz = sizeof(tsc_hz);
+    if (sysctlbyname("machdep.tsc_freq", &tsc_hz, &sz, NULL, 0)) {
+        RTE_LOG(WARNING, EAL, "%s\n", strerror(errno));
+        return 0;
+    }
 
-	return tsc_hz;
+    return tsc_hz;
 }
 
-int
-rte_eal_timer_init(void)
-{
-	set_tsc_freq();
-	return 0;
+int rte_eal_timer_init(void) {
+    set_tsc_freq();
+    return 0;
 }

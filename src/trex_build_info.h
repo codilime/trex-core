@@ -31,8 +31,7 @@ limitations under the License.
  */
 class TrexBuildInfo {
 
-public:
-
+  public:
     /**
      * returns true if the image is sanitized
      *
@@ -53,7 +52,6 @@ public:
      */
     static std::string get_glibc_built_with_version();
 
-
     /**
      * machine GLIBC version
      *
@@ -62,7 +60,6 @@ public:
      * @return std::string
      */
     static std::string get_host_glibc_version();
-
 
     /**
      * print all information to stdout
@@ -73,4 +70,3 @@ public:
 };
 
 #endif /* __TREX_BUILD_INFO_H__ */
-

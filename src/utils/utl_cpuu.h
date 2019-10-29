@@ -29,27 +29,16 @@ limitations under the License.
 
 class CCpuUtlDp {
 
-public:
-    CCpuUtlDp(){
-        m_data=0;
-    }
-    inline void  start_work1(){
-        m_data=1;
+  public:
+    CCpuUtlDp() { m_data = 0; }
+    inline void start_work1() { m_data = 1; }
+    inline void commit1() { m_data = 0; }
 
-    }
-    inline void commit1(){
-        m_data=0;
-    }
+    inline uint8_t sample_data() { return (m_data); }
 
-    inline uint8_t sample_data(){
-        return (m_data);
-    }
-
-
-private:
+  private:
     volatile uint8_t m_data;
 } __rte_cache_aligned;
-
 
 /**
  * a thin wrapper over CPU util class
@@ -59,16 +48,13 @@ private:
  * @author imarom (7/6/2017)
  */
 class CCpuUtlDpPredict {
-public:
-
+  public:
     CCpuUtlDpPredict() {
-        m_cpu_util  = NULL;
+        m_cpu_util = NULL;
         m_predictor = false;
     }
 
-    void create(CCpuUtlDp *cpu_util) {
-        m_cpu_util = cpu_util;
-    }
+    void create(CCpuUtlDp *cpu_util) { m_cpu_util = cpu_util; }
 
     /**
      * start with heuristics
@@ -104,19 +90,16 @@ public:
         m_predictor = result;
     }
 
-    inline void commit() {
-        m_cpu_util->commit1();
-    }
+    inline void commit() { m_cpu_util->commit1(); }
 
-private:
+  private:
     CCpuUtlDp *m_cpu_util;
-    bool       m_predictor;
+    bool m_predictor;
 };
 
-
 class CCpuUtlCp {
-public:
-    void Create(CCpuUtlDp * cdp);
+  public:
+    void Create(CCpuUtlDp *cdp);
     void Delete();
     /* should be called each 1 sec */
     void Update();
@@ -124,16 +107,17 @@ public:
     double GetVal();
     uint8_t GetValRaw();
     void GetHistory(cpu_vct_st &cpu_vct);
-private:
-    void AppendHistory(uint8_t);
-    CCpuUtlDp *          m_dpcpu;
-    uint32_t             m_ticks;
-    uint32_t             m_work;
 
-    static const int    m_history_size=20;
-    uint8_t             m_cpu_util[m_history_size]; // history as cyclic array
-    uint8_t             m_history_latest_index;
-    double              m_cpu_util_lpf;
+  private:
+    void AppendHistory(uint8_t);
+    CCpuUtlDp *m_dpcpu;
+    uint32_t m_ticks;
+    uint32_t m_work;
+
+    static const int m_history_size = 20;
+    uint8_t m_cpu_util[m_history_size]; // history as cyclic array
+    uint8_t m_history_latest_index;
+    double m_cpu_util_lpf;
 };
 
 #endif

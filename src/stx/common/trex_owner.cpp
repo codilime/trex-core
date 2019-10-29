@@ -41,9 +41,7 @@ void TrexOwner::release() {
     m_session_id = 0;
 }
 
-bool TrexOwner::is_owned_by(const std::string &user) {
-    return ( !m_is_free && (m_owner_name == user) );
-}
+bool TrexOwner::is_owned_by(const std::string &user) { return (!m_is_free && (m_owner_name == user)); }
 
 void TrexOwner::own(const std::string &owner_name, uint32_t session_id) {
 
@@ -56,16 +54,8 @@ void TrexOwner::own(const std::string &owner_name, uint32_t session_id) {
     m_is_free = false;
 }
 
-bool TrexOwner::verify(const std::string &handler) {
-    return ( (!m_is_free) && (m_handler == handler) );
-}
+bool TrexOwner::verify(const std::string &handler) { return ((!m_is_free) && (m_handler == handler)); }
 
-const std::string &TrexOwner::get_name() {
-    return (!m_is_free ? m_owner_name : g_unowned_name);
-}
+const std::string &TrexOwner::get_name() { return (!m_is_free ? m_owner_name : g_unowned_name); }
 
-const std::string &TrexOwner::get_handler() {
-    return (!m_is_free ? m_handler : g_unowned_handler);
-}
-
-
+const std::string &TrexOwner::get_handler() { return (!m_is_free ? m_handler : g_unowned_handler); }

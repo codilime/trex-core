@@ -27,22 +27,16 @@ limitations under the License.
 #include <rte_branch_prediction.h>
 #include <rte_pause.h>
 
-
 #define PAL_WORDSWAP(x) rte_bswap16(x)
 
+#define PAL_NTOHL(x) ((uint32_t)(rte_bswap32(x)))
+#define PAL_NTOHS(x) ((uint16_t)(rte_bswap16(x)))
 
-#define PAL_NTOHL(x)     ( (uint32_t)( rte_bswap32(x) ) )
-#define PAL_NTOHS(x)     ( (uint16_t)( rte_bswap16(x) ) )
-
-#define PAL_HTONS(x)     (PAL_NTOHS(x))
-#define PAL_HTONL(x)     (PAL_NTOHL(x))
+#define PAL_HTONS(x) (PAL_NTOHS(x))
+#define PAL_HTONL(x) (PAL_NTOHL(x))
 
 #define pal_ntohl64(x) rte_bswap64(x)
 
-#define PAL_NTOHLL(x)     ( rte_bswap64(x) )
-
-
+#define PAL_NTOHLL(x) (rte_bswap64(x))
 
 #endif
-
-

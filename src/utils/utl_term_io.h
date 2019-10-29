@@ -28,6 +28,4 @@ int utl_termio_try_getch(void);
 
 int utl_termio_reset(void);
 
-
-
 #endif

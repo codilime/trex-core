@@ -54,22 +54,16 @@ typedef std::unordered_map<uint8_t, TrexPort *> stx_port_map_t;
  * config object for STX object
  */
 class TrexSTXCfg {
-public:
+  public:
+    TrexSTXCfg() { m_publisher = nullptr; }
 
-    TrexSTXCfg() {
-        m_publisher = nullptr;
-    }
+    TrexSTXCfg(const TrexRpcServerConfig &rpc_cfg, const CRxSlCfg &rx_cfg, TrexPublisher *publisher)
+        : m_rpc_req_resp_cfg(rpc_cfg), m_rx_cfg(rx_cfg), m_publisher(publisher) {}
 
-    TrexSTXCfg(const TrexRpcServerConfig &rpc_cfg,
-               const CRxSlCfg &rx_cfg,
-               TrexPublisher *publisher) : m_rpc_req_resp_cfg(rpc_cfg), m_rx_cfg(rx_cfg), m_publisher(publisher) {
-    }
-
-    TrexRpcServerConfig           m_rpc_req_resp_cfg;
-    CRxSlCfg                      m_rx_cfg;
-    TrexPublisher                *m_publisher;
+    TrexRpcServerConfig m_rpc_req_resp_cfg;
+    CRxSlCfg m_rx_cfg;
+    TrexPublisher *m_publisher;
 };
-
 
 /**
  * abstract class (meant for derived implementation)
@@ -79,46 +73,39 @@ public:
  * @author imarom (8/30/2017)
  */
 class TrexSTX {
-public:
-
+  public:
     /**
      * create a STX object with configuration
      *
      */
     TrexSTX(const TrexSTXCfg &cfg);
 
-
     /**
      * pure virtual DTOR to enforce deriviation
      */
     virtual ~TrexSTX();
-
 
     /**
      * starts the control plane side
      */
     virtual void launch_control_plane() = 0;
 
-
     /**
      * shutdown the server
      */
     virtual void shutdown() = 0;
 
-
     /**
      * create a DP core object
      *
      */
-    virtual TrexDpCore * create_dp_core(uint32_t thread_id, CFlowGenListPerThread *core) = 0;
-
+    virtual TrexDpCore *create_dp_core(uint32_t thread_id, CFlowGenListPerThread *core) = 0;
 
     /**
      * publish config-specific data
      *
      */
     virtual void publish_async_data() = 0;
-
 
     /**
      * fast path tick
@@ -134,13 +121,11 @@ public:
         }
     }
 
-
     /**
      * can be implemented by the derived class for slowpath tick
      *
      */
     virtual void slowpath_tick() {}
-
 
     /**
      * DP core has finished
@@ -152,9 +137,9 @@ public:
      */
     virtual void dp_core_error(int thread_id, uint32_t profile_id, const std::string &err);
 
-    virtual void set_capture_feature(const std::set<uint8_t>& rx_cores) {};
+    virtual void set_capture_feature(const std::set<uint8_t> &rx_cores){};
 
-    virtual void unset_capture_feature() {};
+    virtual void unset_capture_feature(){};
 
     /**
      * fills ignored stats on 'stat'
@@ -164,47 +149,32 @@ public:
         get_rx()->get_ignore_stats(port_id, ign_stats, get_diff);
     }
 
-
     /**
      * send a message to the RX core
      */
     void send_msg_to_rx(TrexCpToRxMsgBase *msg) const;
-
 
     /**
      * returns the port count
      */
     uint8_t get_port_count() const;
 
-
-   /**
-    * returns the TRex port (interactive)
-    * by ID
-    */
-    TrexPort * get_port_by_id(uint8_t port_id);
-
+    /**
+     * returns the TRex port (interactive)
+     * by ID
+     */
+    TrexPort *get_port_by_id(uint8_t port_id);
 
     /**
      * returns a map of CP ports
      */
-    const stx_port_map_t &get_port_map() const {
-        return m_ports;
-    }
+    const stx_port_map_t &get_port_map() const { return m_ports; }
 
+    TrexRpcServer *get_rpc_server() { return &m_rpc_server; }
 
-    TrexRpcServer * get_rpc_server() {
-        return &m_rpc_server;
-    }
+    TrexPublisher *get_publisher() { return m_cfg.m_publisher; }
 
-
-    TrexPublisher * get_publisher() {
-        return m_cfg.m_publisher;
-    }
-
-
-    TrexRxCore *get_rx() {
-        return m_rx;
-    }
+    TrexRxCore *get_rx() { return m_rx; }
 
     /**
      * check for messages from any core
@@ -222,36 +192,34 @@ public:
     void add_task_by_ticket(uint64_t ticket_id, async_ticket_task_t &task);
     bool get_task_by_ticket(uint64_t ticket_id, async_ticket_task_t &task);
 
-protected:
-
+  protected:
     void check_for_dp_message_from_core(int thread_id);
     void send_msg_to_all_dp(TrexCpToDpMsgBase *msg);
     void send_msg_to_dp(uint8_t core_id, TrexCpToDpMsgBase *msg);
 
     /* no copy or assignment */
-    TrexSTX(TrexSTX const&)              = delete;
-    void operator=(TrexSTX const&)       = delete;
+    TrexSTX(TrexSTX const &) = delete;
+    void operator=(TrexSTX const &) = delete;
 
     /* RPC server array */
-    TrexRpcServer               m_rpc_server;
+    TrexRpcServer m_rpc_server;
 
     /* ports */
     stx_port_map_t m_ports;
 
     /* RX */
-    TrexRxCore                 *m_rx;
-    const TrexSTXCfg            m_cfg;
+    TrexRxCore *m_rx;
+    const TrexSTXCfg m_cfg;
 
-    uint8_t                     m_dp_core_count;
-    uint64_t                    m_ticket_id;
-    async_ticket_map_t          m_async_task_by_ticket;
+    uint8_t m_dp_core_count;
+    uint64_t m_ticket_id;
+    async_ticket_map_t m_async_task_by_ticket;
 };
-
 
 /**
  * get the STX object - implemented by main_dpdk or
  * simulator
  */
-TrexSTX * get_stx();
+TrexSTX *get_stx();
 
 #endif /* __TREX_STX_H__ */

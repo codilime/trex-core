@@ -27,11 +27,10 @@ limitations under the License.
 
 class TrexPublisher {
 
-public:
-
+  public:
     TrexPublisher() {
-        m_context      = NULL;
-        m_publisher    = NULL;
+        m_context = NULL;
+        m_publisher = NULL;
         m_is_connected = false;
     }
 
@@ -42,24 +41,24 @@ public:
     virtual void publish_json(const std::string &s, uint32_t zip_threshold = MSG_COMPRESS_THRESHOLD);
 
     enum event_type_e {
-        EVENT_PORT_STARTED          = 0,
-        EVENT_PORT_STOPPED          = 1,
-        EVENT_PORT_PAUSED           = 2,
-        EVENT_PORT_RESUMED          = 3,
-        EVENT_PORT_FINISHED_TX      = 4,
-        EVENT_PORT_ACQUIRED         = 5,
-        EVENT_PORT_RELEASED         = 6,
-        EVENT_PORT_ERROR            = 7,
-        EVENT_PORT_ATTR_CHANGED     = 8,
+        EVENT_PORT_STARTED = 0,
+        EVENT_PORT_STOPPED = 1,
+        EVENT_PORT_PAUSED = 2,
+        EVENT_PORT_RESUMED = 3,
+        EVENT_PORT_FINISHED_TX = 4,
+        EVENT_PORT_ACQUIRED = 5,
+        EVENT_PORT_RELEASED = 6,
+        EVENT_PORT_ERROR = 7,
+        EVENT_PORT_ATTR_CHANGED = 8,
 
-        EVENT_PROFILE_STARTED       = 10,
-        EVENT_PROFILE_STOPPED       = 11,
-        EVENT_PROFILE_PAUSED        = 12,
-        EVENT_PROFILE_RESUMED       = 13,
-        EVENT_PROFILE_FINISHED_TX   = 14,
-        EVENT_PROFILE_ERROR         = 17,
+        EVENT_PROFILE_STARTED = 10,
+        EVENT_PROFILE_STOPPED = 11,
+        EVENT_PROFILE_PAUSED = 12,
+        EVENT_PROFILE_RESUMED = 13,
+        EVENT_PROFILE_FINISHED_TX = 14,
+        EVENT_PROFILE_ERROR = 17,
 
-        EVENT_ASTF_STATE_CHG        = 50,
+        EVENT_ASTF_STATE_CHG = 50,
         /*
         EVENT_ASTF_IDLE             = 50,
         EVENT_ASTF_LOADED           = 51,
@@ -70,10 +69,9 @@ public:
         */
 
         EVENT_ASTF_PROFILE_STATE_CHG = 60,
-        EVENT_ASTF_PROFILE_CLEARED   = 61,
+        EVENT_ASTF_PROFILE_CLEARED = 61,
 
-        EVENT_SERVER_STOPPED        = 100,
-
+        EVENT_SERVER_STOPPED = 100,
 
     };
 
@@ -95,19 +93,17 @@ public:
      * return true if the publisher socket is currently connected
      *
      */
-    bool is_connected() const {
-        return (m_is_connected);
-    }
+    bool is_connected() const { return (m_is_connected); }
 
-private:
+  private:
     void show_zmq_last_error(const std::string &err);
     void publish_zipped_json(const std::string &s);
     void publish_raw_json(const std::string &s);
 
-private:
-    void * m_context;
-    void * m_publisher;
-    bool   m_is_connected;
+  private:
+    void *m_context;
+    void *m_publisher;
+    bool m_is_connected;
 
     static const int MSG_COMPRESS_THRESHOLD = 256;
 };

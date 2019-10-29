@@ -28,7 +28,6 @@ limitations under the License.
 #include <sstream>
 #include <os_time.h>
 
-
 /**
  * port events
  */
@@ -37,8 +36,7 @@ TrexDpPortEvents::TrexDpPortEvents(TrexPort *port) {
     m_event_id_counter = EVENT_ID_INVALID;
 }
 
-TrexDpPortEvent *
-TrexDpPortEvents::lookup(int event_id) {
+TrexDpPortEvent *TrexDpPortEvents::lookup(int event_id) {
     auto search = m_events.find(event_id);
 
     if (search != m_events.end()) {
@@ -53,8 +51,7 @@ TrexDpPortEvents::lookup(int event_id) {
  * all other events will be disabled
  *
  */
-int
-TrexDpPortEvents::create_event(TrexDpPortEvent *event, int timeout_ms) {
+int TrexDpPortEvents::create_event(TrexDpPortEvent *event, int timeout_ms) {
     /* allocate ID for event */
     int event_id = ++m_event_id_counter;
 
@@ -65,8 +62,7 @@ TrexDpPortEvents::create_event(TrexDpPortEvent *event, int timeout_ms) {
     return event_id;
 }
 
-void
-TrexDpPortEvents::destroy_event(int event_id) {
+void TrexDpPortEvents::destroy_event(int event_id) {
     TrexDpPortEvent *event = lookup(event_id);
     if (!event) {
         /* cannot find event */
@@ -78,23 +74,17 @@ TrexDpPortEvents::destroy_event(int event_id) {
 }
 
 class DPBarrier : public TrexDpPortEvent {
-protected:
-    virtual void on_event() {
-        /* do nothing */
-    }
-    virtual void on_error(int thread_id) {
-        /* do nothing */
-    }
+  protected:
+    virtual void on_event() { /* do nothing */ }
+    virtual void on_error(int thread_id) { /* do nothing */ }
 };
 
+void TrexDpPortEvents::barrier(uint32_t profile_id) {
 
-void
-TrexDpPortEvents::barrier(uint32_t profile_id) {
-
-    /* simulator will be stuck here forever */
-    #ifdef TREX_SIM
+/* simulator will be stuck here forever */
+#ifdef TREX_SIM
     return;
-    #endif
+#endif
 
     int barrier_id = create_event(new DPBarrier());
 
@@ -111,8 +101,7 @@ TrexDpPortEvents::barrier(uint32_t profile_id) {
  * handle an event
  *
  */
-void
-TrexDpPortEvents::on_core_reporting_in(int event_id, int thread_id, bool status) {
+void TrexDpPortEvents::on_core_reporting_in(int event_id, int thread_id, bool status) {
     TrexDpPortEvent *event = lookup(event_id);
     /* event might have been deleted */
     if (!event) {
@@ -126,12 +115,10 @@ TrexDpPortEvents::on_core_reporting_in(int event_id, int thread_id, bool status)
     }
 }
 
-
 /**
  * return true if a core is still pending on an event
  */
-bool
-TrexDpPortEvents::is_core_pending_on_event(int event_id, int thread_id) {
+bool TrexDpPortEvents::is_core_pending_on_event(int event_id, int thread_id) {
     TrexDpPortEvent *event = lookup(event_id);
     /* event might have been deleted */
     if (!event) {
@@ -150,8 +137,7 @@ TrexDpPortEvent::TrexDpPortEvent() {
     m_event_id = -1;
 }
 
-void
-TrexDpPortEvent::init(TrexPort *port, int event_id, int timeout_ms) {
+void TrexDpPortEvent::init(TrexPort *port, int event_id, int timeout_ms) {
     m_port = port;
     m_event_id = event_id;
 
@@ -170,14 +156,12 @@ TrexDpPortEvent::init(TrexPort *port, int event_id, int timeout_ms) {
     }
 }
 
-bool
-TrexDpPortEvent::on_core_reporting_in(int thread_id, bool status) {
+bool TrexDpPortEvent::on_core_reporting_in(int thread_id, bool status) {
     /* mark sure no double signal */
     if (m_signal.at(thread_id)) {
         std::stringstream err;
         err << "double signal detected on event id: " << m_event_id;
         throw TrexException(err.str());
-
     }
 
     /* mark */
@@ -198,9 +182,7 @@ TrexDpPortEvent::on_core_reporting_in(int thread_id, bool status) {
     }
 }
 
-bool
-TrexDpPortEvent::is_core_pending_on_event(int thread_id) {
+bool TrexDpPortEvent::is_core_pending_on_event(int thread_id) {
     /* if the core has yet to mark its 'done' bit - it is still pending */
     return !m_signal.at(thread_id);
 }
-

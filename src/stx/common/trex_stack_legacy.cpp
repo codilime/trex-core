@@ -23,21 +23,18 @@
 #include "trex_stack_legacy.h"
 #include "pkt_gen.h"
 
-
 /***************************************
-*            CStackLegacy              *
-***************************************/
+ *            CStackLegacy              *
+ ***************************************/
 
 CStackLegacy::CStackLegacy(RXFeatureAPI *api, CRXCoreIgnoreStat *ignore_stats) : CStackBase(api, ignore_stats) {
     debug("Legacy stack ctor");
 }
 
-CStackLegacy::~CStackLegacy() {
-    debug("Legacy stack dtor");
-}
+CStackLegacy::~CStackLegacy() { debug("Legacy stack dtor"); }
 
-CNodeBase* CStackLegacy::add_node_internal(const std::string &mac_buf) {
-    assert(m_nodes.size()==0);
+CNodeBase *CStackLegacy::add_node_internal(const std::string &mac_buf) {
+    assert(m_nodes.size() == 0);
     CLegacyNode *node = new CLegacyNode(mac_buf);
     if (node == nullptr) {
         string mac_str = utl_macaddr_to_str((uint8_t *)mac_buf.data());
@@ -49,7 +46,7 @@ CNodeBase* CStackLegacy::add_node_internal(const std::string &mac_buf) {
 
 void CStackLegacy::del_node_internal(const std::string &mac_buf) {
     auto iter_pair = m_nodes.find(mac_buf);
-    if ( iter_pair == m_nodes.end() ) {
+    if (iter_pair == m_nodes.end()) {
         string mac_str = utl_macaddr_to_str((uint8_t *)mac_buf.data());
         throw TrexException("Node with MAC " + mac_str + " does not exist!");
     }
@@ -57,15 +54,13 @@ void CStackLegacy::del_node_internal(const std::string &mac_buf) {
     m_nodes.erase(iter_pair->first);
 }
 
-uint16_t CStackLegacy::get_capa() {
-    return (FAST_OPS);
-}
+uint16_t CStackLegacy::get_capa() { return (FAST_OPS); }
 
 void CStackLegacy::grat_to_json(Json::Value &res) {
     assert(!m_is_running_tasks); // CP should check this
     bool is_active = is_grat_active();
     res["is_active"] = is_active;
-    if ( is_active ) {
+    if (is_active) {
         res["interval_sec"] = CGlobalInfo::m_options.m_arp_ref_per;
     }
 }
@@ -74,7 +69,7 @@ void CStackLegacy::handle_pkt(const rte_mbuf_t *m) {
     try {
         RXPktParser parser(m);
         // verify that packet matches the port VLAN config
-        if ( m_port_node->get_vlan_tags() != parser.m_vlan_ids ) {
+        if (m_port_node->get_vlan_tags() != parser.m_vlan_ids) {
             return;
         }
         if (parser.m_icmp) {
@@ -125,7 +120,8 @@ void CStackLegacy::handle_icmp(RXPktParser &parser) {
 
     /* update type and fix checksum */
     response_parser.m_icmp->setType(ICMPHeader::TYPE_ECHO_REPLY);
-    response_parser.m_icmp->updateCheckSum(response_parser.m_ipv4->getTotalLength() - response_parser.m_ipv4->getHeaderLength());
+    response_parser.m_icmp->updateCheckSum(response_parser.m_ipv4->getTotalLength() -
+                                           response_parser.m_ipv4->getHeaderLength());
 
     /* send */
     bool rc = m_api->tx_pkt(response);
@@ -153,7 +149,7 @@ void CStackLegacy::handle_arp(RXPktParser &parser) {
     }
 
     /* are we the target ? if not - go home */
-    if (parser.m_arp->m_arp_tip != *(uint32_t *) m_port_node->get_src_ip4().c_str()) {
+    if (parser.m_arp->m_arp_tip != *(uint32_t *)m_port_node->get_src_ip4().c_str()) {
         return;
     }
 
@@ -198,7 +194,7 @@ bool CStackLegacy::is_grat_active() {
 uint16_t CStackLegacy::handle_tx(uint16_t limit) {
     uint16_t sent = 0;
 
-    if ( is_grat_active() && now_sec() >= m_next_grat_arp_sec ) {
+    if (is_grat_active() && now_sec() >= m_next_grat_arp_sec) {
         m_next_grat_arp_sec += (double)CGlobalInfo::m_options.m_arp_ref_per;
         debug("Sending GARP");
         send_grat_arp();
@@ -241,7 +237,7 @@ uint16_t CStackLegacy::send_grat_arp() {
     return 0;
 }
 
-rte_mbuf_t* CStackLegacy::duplicate_mbuf(const rte_mbuf_t *m) {
+rte_mbuf_t *CStackLegacy::duplicate_mbuf(const rte_mbuf_t *m) {
 
     /* allocate */
     rte_mbuf_t *clone_mbuf = CGlobalInfo::pktmbuf_alloc_by_port(m_api->get_port_id(), rte_pktmbuf_pkt_len(m));
@@ -257,23 +253,20 @@ rte_mbuf_t* CStackLegacy::duplicate_mbuf(const rte_mbuf_t *m) {
     return clone_mbuf;
 }
 
-
 /***************************************
-*             CLegacyNode              *
-***************************************/
+ *             CLegacyNode              *
+ ***************************************/
 
 CLegacyNode::CLegacyNode(const string &mac_buf) {
     debug("Legacy node ctor");
     m_src_mac = mac_buf;
 }
 
-CLegacyNode::~CLegacyNode() {
-    debug("Legacy node dtor");
-}
+CLegacyNode::~CLegacyNode() { debug("Legacy node dtor"); }
 
 void CLegacyNode::conf_vlan_internal(const vlan_list_t &vlans, const vlan_list_t &tpids) {
     debug("Legacy stack: conf vlan internal");
-    if ( tpids.size() ) {
+    if (tpids.size()) {
         throw TrexException("Current stack does not support custom tpids in VLAN");
     }
     m_vlan_tags = vlans;
@@ -285,4 +278,3 @@ void CLegacyNode::conf_ip4_internal(const string &ip4_buf, const string &gw4_buf
     m_ip4 = ip4_buf;
     m_gw4 = gw4_buf;
 }
-

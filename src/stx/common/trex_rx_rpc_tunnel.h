@@ -35,47 +35,40 @@
 
 using namespace std;
 
-
 typedef std::function<trex_rpc_cmd_rc_e(const Json::Value &params, Json::Value &result)> rpc_method_cb_t;
 
-typedef std::map<const string,rpc_method_cb_t> int_rpc_map_t;
-typedef std::map<const string,rpc_method_cb_t>::iterator int_rpc_map_it_t;
-typedef std::pair<const string,rpc_method_cb_t> int_rpc_map_pair_t;
+typedef std::map<const string, rpc_method_cb_t> int_rpc_map_t;
+typedef std::map<const string, rpc_method_cb_t>::iterator int_rpc_map_it_t;
+typedef std::pair<const string, rpc_method_cb_t> int_rpc_map_pair_t;
 
 class CRpcDispatch {
-public:
+  public:
     virtual ~CRpcDispatch();
-    void register_func(const string & json_name,rpc_method_cb_t cb);
-    rpc_method_cb_t find_func_by_name(const string & json_name);
-private:
+    void register_func(const string &json_name, rpc_method_cb_t cb);
+    rpc_method_cb_t find_func_by_name(const string &json_name);
+
+  private:
     int_rpc_map_t m_map;
 };
-
 
 /* this class derive from  TrexRpcCommand  to use the template function to parse json in the command */
 class CRpcTunnelBatch : public TrexRpcCommand {
 
-public:
-    CRpcTunnelBatch():TrexRpcCommand("dummy",NULL,false,false){
-    }
-    virtual ~CRpcTunnelBatch(){
-    }
-    void register_func(const string & json_name,rpc_method_cb_t cb);
+  public:
+    CRpcTunnelBatch() : TrexRpcCommand("dummy", NULL, false, false) {}
+    virtual ~CRpcTunnelBatch() {}
+    void register_func(const string &json_name, rpc_method_cb_t cb);
 
-    trex_rpc_cmd_rc_e run_batch(const Json::Value &commands,Json::Value &results);
+    trex_rpc_cmd_rc_e run_batch(const Json::Value &commands, Json::Value &results);
 
-protected:
+  protected:
     /* dummy */
     virtual trex_rpc_cmd_rc_e _run(const Json::Value &params, Json::Value &result);
     /* callback, call by batch to update number of commands */
-    virtual void update_cmd_count(uint32_t total_commands,
-                                  uint32_t err_commands);
+    virtual void update_cmd_count(uint32_t total_commands, uint32_t err_commands);
 
-private:
-    CRpcDispatch  m_rpc_dispatch;
+  private:
+    CRpcDispatch m_rpc_dispatch;
 };
 
-
-
 #endif
-

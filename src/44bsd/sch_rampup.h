@@ -29,33 +29,26 @@ class CAstfTimerFunctorObj;
 #include <stdint.h>
 #include <stdlib.h>
 
-
 class CAstfFifRampup {
 
-private:
-    const int TICK_MSEC=1000; /* each 1000msec a tick */
+  private:
+    const int TICK_MSEC = 1000; /* each 1000msec a tick */
 
-public:
-    CAstfFifRampup(CPerProfileCtx * pctx,
-                   uint16_t           rampup_sec,
-                   double             cps);
+  public:
+    CAstfFifRampup(CPerProfileCtx *pctx, uint16_t rampup_sec, double cps);
     ~CAstfFifRampup();
 
     /* update dtime_fif in sec and restart the timer if needed */
     void on_timer_update(CAstfTimerFunctorObj *tmr);
 
-private:
-    CTcpPerThreadCtx * m_ctx;
-    CPerProfileCtx   * m_pctx;
-    CAstfTimerFunctorObj  * m_tmr;
-    double             m_cps;
-    uint16_t           m_ticks;
-    uint16_t           m_cur_tick;
-    uint16_t           m_rampup_sec;
+  private:
+    CTcpPerThreadCtx *m_ctx;
+    CPerProfileCtx *m_pctx;
+    CAstfTimerFunctorObj *m_tmr;
+    double m_cps;
+    uint16_t m_ticks;
+    uint16_t m_cur_tick;
+    uint16_t m_rampup_sec;
 };
 
-
-
 #endif
-
-

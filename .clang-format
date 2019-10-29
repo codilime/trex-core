@@ -1,0 +1,12 @@
+---
+# Defaults from LLVM style, 4 columns indentation
+BasedOnStyle:  LLVM
+IndentWidth:   4
+ColumnLimit:   120
+TabWidth:      8
+UseTab:        Never
+---
+Language:      Cpp
+SortIncludes:  false
+IncludeBlocks: Preserve
+...

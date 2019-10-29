@@ -32,8 +32,7 @@ limitations under the License.
  * @author imarom (12-Aug-15)
  */
 class TrexJsonRpcV2ParsedObject {
-public:
-
+  public:
     TrexJsonRpcV2ParsedObject(const Json::Value &msg_id, bool force);
     virtual ~TrexJsonRpcV2ParsedObject() {}
 
@@ -43,15 +42,14 @@ public:
      */
     void execute(Json::Value &response);
 
-protected:
-
+  protected:
     /**
      * instance private implementation
      */
     virtual void _execute(Json::Value &response) = 0;
 
-    Json::Value   m_msg_id;
-    bool          m_respond;
+    Json::Value m_msg_id;
+    bool m_respond;
 };
 
 /**
@@ -61,8 +59,7 @@ protected:
  */
 class TrexJsonRpcV2Parser {
 
-public:
-
+  public:
     /**
      * creates a JSON-RPC object from a string
      *
@@ -105,8 +102,7 @@ public:
      */
     static std::string pretty_json_str(const std::string &json_str);
 
-private:
-
+  private:
     /**
      * handle a single request
      *
@@ -117,4 +113,3 @@ private:
 };
 
 #endif /* __TREX_RPC_JSONRPC_V2_PARSER_H__ */
-

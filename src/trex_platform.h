@@ -31,7 +31,6 @@ typedef uint8_t port_id_t;
 /* the real phsical thread id */
 typedef uint8_t physical_thread_id_t;
 
-
 typedef uint8_t virtual_thread_id_t;
 
 class CPlatformCoresYamlInfo;
@@ -55,66 +54,58 @@ DEFAULT:
 
   */
 
-
-
 class CPlatformSocketInfoBase {
 
-
-public:
+  public:
     /* sockets API */
 
     /* is socket enabled */
-    virtual bool is_sockets_enable(socket_id_t socket)=0;
+    virtual bool is_sockets_enable(socket_id_t socket) = 0;
 
     /* number of main active sockets. socket #0 is always used  */
-    virtual socket_id_t max_num_active_sockets()=0;
+    virtual socket_id_t max_num_active_sockets() = 0;
 
     virtual ~CPlatformSocketInfoBase() {}
 
-public:
+  public:
     /* which socket to allocate memory to each port */
-    virtual socket_id_t port_to_socket(port_id_t port)=0;
+    virtual socket_id_t port_to_socket(port_id_t port) = 0;
 
-public:
+  public:
     /* this is from CLI, number of thread per dual port */
-    virtual void set_number_of_threads_per_ports(uint8_t num_threads)=0;
-    virtual void set_rx_thread_is_enabled(bool enable)=0;
-    virtual void set_number_of_dual_ports(uint8_t num_dual_ports)=0;
+    virtual void set_number_of_threads_per_ports(uint8_t num_threads) = 0;
+    virtual void set_rx_thread_is_enabled(bool enable) = 0;
+    virtual void set_number_of_dual_ports(uint8_t num_dual_ports) = 0;
 
-
-    virtual bool sanity_check()=0;
+    virtual bool sanity_check() = 0;
 
     /* return the core mask */
-    virtual uint64_t get_cores_mask()=0;
+    virtual uint64_t get_cores_mask() = 0;
 
     /* return the core list */
-    virtual void get_cores_list(char *)=0;
+    virtual void get_cores_list(char *) = 0;
 
     /* virtual thread_id is always from   1..number of threads  virtual  */
-    virtual virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t  phy_id)=0;
+    virtual virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t phy_id) = 0;
 
     /* return  the map betwean virtual to phy id */
-    virtual physical_thread_id_t thread_virt_to_phy(virtual_thread_id_t virt_id)=0;
-
+    virtual physical_thread_id_t thread_virt_to_phy(virtual_thread_id_t virt_id) = 0;
 
     virtual physical_thread_id_t get_master_phy_id() = 0;
-    virtual bool thread_phy_is_rx(physical_thread_id_t  phy_id)=0;
+    virtual bool thread_phy_is_rx(physical_thread_id_t phy_id) = 0;
 
-    virtual void dump(FILE *fd)=0;
+    virtual void dump(FILE *fd) = 0;
 
-    bool thread_phy_is_master(physical_thread_id_t  phy_id) {
-        return (get_master_phy_id() == phy_id);
-    }
-
+    bool thread_phy_is_master(physical_thread_id_t phy_id) { return (get_master_phy_id() == phy_id); }
 };
 
 class CPlatformSocketInfoNoConfig : public CPlatformSocketInfoBase {
 
-public:
-    CPlatformSocketInfoNoConfig(){
-        m_dual_if=0;
-        m_threads_per_dual_if=0;
-        m_rx_is_enabled=false;
+  public:
+    CPlatformSocketInfoNoConfig() {
+        m_dual_if = 0;
+        m_threads_per_dual_if = 0;
+        m_rx_is_enabled = false;
     }
 
     /* is socket enabled */
@@ -123,11 +114,11 @@ public:
     /* number of main active sockets. socket #0 is always used  */
     socket_id_t max_num_active_sockets();
 
-public:
+  public:
     /* which socket to allocate memory to each port */
     socket_id_t port_to_socket(port_id_t port);
 
-public:
+  public:
     /* this is from CLI, number of thread per dual port */
     void set_number_of_threads_per_ports(uint8_t num_threads);
     void set_rx_thread_is_enabled(bool enable);
@@ -142,41 +133,39 @@ public:
     uint32_t get_cores_count(void);
 
     /* virtual thread_id is always from   1..number of threads  virtual  */
-    virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t  phy_id);
+    virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t phy_id);
 
     /* return  the map betwean virtual to phy id */
     physical_thread_id_t thread_virt_to_phy(virtual_thread_id_t virt_id);
 
     physical_thread_id_t get_master_phy_id();
-    bool thread_phy_is_rx(physical_thread_id_t  phy_id);
+    bool thread_phy_is_rx(physical_thread_id_t phy_id);
 
     virtual void dump(FILE *fd);
 
-private:
-    uint32_t                 m_dual_if;
-    uint32_t                 m_threads_per_dual_if;
-    bool                     m_rx_is_enabled;
+  private:
+    uint32_t m_dual_if;
+    uint32_t m_threads_per_dual_if;
+    bool m_rx_is_enabled;
 };
-
-
 
 /* there is a configuration file */
 class CPlatformSocketInfoConfig : public CPlatformSocketInfoBase {
-public:
-    bool Create(CPlatformCoresYamlInfo * platform);
+  public:
+    bool Create(CPlatformCoresYamlInfo *platform);
     void Delete();
 
-        /* is socket enabled */
+    /* is socket enabled */
     bool is_sockets_enable(socket_id_t socket);
 
     /* number of main active sockets. socket #0 is always used  */
     socket_id_t max_num_active_sockets();
 
-public:
+  public:
     /* which socket to allocate memory to each port */
     socket_id_t port_to_socket(port_id_t port);
 
-public:
+  public:
     /* this is from CLI, number of thread per dual port */
     void set_number_of_threads_per_ports(uint8_t num_threads);
     void set_rx_thread_is_enabled(bool enable);
@@ -190,45 +179,44 @@ public:
     void get_cores_list(char *);
 
     /* virtual thread_id is always from   1..number of threads  virtual  */
-    virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t  phy_id);
+    virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t phy_id);
 
     /* return  the map betwean virtual to phy id */
     physical_thread_id_t thread_virt_to_phy(virtual_thread_id_t virt_id);
 
     physical_thread_id_t get_master_phy_id();
-    bool thread_phy_is_rx(physical_thread_id_t  phy_id);
+    bool thread_phy_is_rx(physical_thread_id_t phy_id);
 
-public:
+  public:
     virtual void dump(FILE *fd);
-private:
+
+  private:
     void reset();
     bool init();
 
-private:
-    bool                     m_sockets_enable[MAX_SOCKETS_SUPPORTED];
-    uint32_t                 m_sockets_enabled;
-    socket_id_t              m_socket_per_dual_if[(TREX_MAX_PORTS >> 1)];
+  private:
+    bool m_sockets_enable[MAX_SOCKETS_SUPPORTED];
+    uint32_t m_sockets_enabled;
+    socket_id_t m_socket_per_dual_if[(TREX_MAX_PORTS >> 1)];
 
-    uint32_t                 m_max_threads_per_dual_if;
+    uint32_t m_max_threads_per_dual_if;
 
-    uint32_t                 m_num_dual_if;
-    uint32_t                 m_threads_per_dual_if;
-    bool                     m_rx_is_enabled;
-    uint8_t                  m_thread_virt_to_phy[MAX_THREADS_SUPPORTED];
-    uint8_t                  m_thread_phy_to_virtual[MAX_THREADS_SUPPORTED];
+    uint32_t m_num_dual_if;
+    uint32_t m_threads_per_dual_if;
+    bool m_rx_is_enabled;
+    uint8_t m_thread_virt_to_phy[MAX_THREADS_SUPPORTED];
+    uint8_t m_thread_phy_to_virtual[MAX_THREADS_SUPPORTED];
 
-    CPlatformCoresYamlInfo * m_platform;
+    CPlatformCoresYamlInfo *m_platform;
 };
-
-
 
 class CPlatformSocketInfo {
 
-public:
-    bool Create(CPlatformCoresYamlInfo * platform);
+  public:
+    bool Create(CPlatformCoresYamlInfo *platform);
     void Delete();
 
-public:
+  public:
     /* sockets API */
 
     /* is socket enabled */
@@ -237,16 +225,15 @@ public:
     /* number of main active sockets. socket #0 is always used  */
     socket_id_t max_num_active_sockets();
 
-public:
+  public:
     /* which socket to allocate memory to each port */
     socket_id_t port_to_socket(port_id_t port);
 
-public:
+  public:
     /* this is from CLI, number of thread per dual port */
     void set_number_of_threads_per_ports(uint8_t num_threads);
     void set_rx_thread_is_enabled(bool enable);
     void set_number_of_dual_ports(uint8_t num_dual_ports);
-
 
     bool sanity_check();
 
@@ -256,21 +243,20 @@ public:
     void get_cores_list(char *);
 
     /* virtual thread_id is always from   1..number of threads  virtual  */
-    virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t  phy_id);
+    virtual_thread_id_t thread_phy_to_virt(physical_thread_id_t phy_id);
 
     /* return  the map betwean virtual to phy id */
     physical_thread_id_t thread_virt_to_phy(virtual_thread_id_t virt_id);
 
-    bool thread_phy_is_master(physical_thread_id_t  phy_id);
+    bool thread_phy_is_master(physical_thread_id_t phy_id);
     physical_thread_id_t get_master_phy_id();
-    bool thread_phy_is_rx(physical_thread_id_t  phy_id);
+    bool thread_phy_is_rx(physical_thread_id_t phy_id);
 
     void dump(FILE *fd);
 
-
-private:
-    CPlatformSocketInfoBase * m_obj;
-    CPlatformCoresYamlInfo * m_platform;
+  private:
+    CPlatformSocketInfoBase *m_obj;
+    CPlatformCoresYamlInfo *m_platform;
 };
 
 #endif
