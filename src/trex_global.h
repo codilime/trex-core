@@ -637,6 +637,8 @@ public:
     uint8_t         m_timesync_method;
     uint32_t        m_timesync_period;
 
+    double          (*m_now_sec)();
+    void            (*m_time_init)();
 
 public:
     uint8_t *       get_src_mac_addr(int if_index){

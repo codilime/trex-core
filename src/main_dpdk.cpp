@@ -6436,10 +6436,16 @@ COLD_FUNC int main_test(int argc , char * argv[]){
     if (CGlobalInfo::m_options.m_latency_measurement == CParserOption::LATENCY_METHOD_NANOS) {
         CGlobalInfo::m_options.m_get_latency_timestamp = &get_time_epoch_nanoseconds;
         CGlobalInfo::m_options.m_timestamp_diff_to_dsec = &ptime_convert_ns_dsec;
+        CGlobalInfo::m_options.m_now_sec = &now_sec_timer;
+        CGlobalInfo::m_options.m_time_init = &time_init_timer;
+
         printf("Using realtime (nanoseconds) timestamps in latency stream.\n");
     } else {
         CGlobalInfo::m_options.m_get_latency_timestamp = &os_get_hr_tick_64;
         CGlobalInfo::m_options.m_timestamp_diff_to_dsec = &ptime_convert_hr_dsec;
+        CGlobalInfo::m_options.m_now_sec = &now_sec_ticker;
+        CGlobalInfo::m_options.m_time_init = &time_init_ticker;
+
         printf("Using cpu ticks timestamps in latency stream.\n");
     }
 

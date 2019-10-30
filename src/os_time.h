@@ -24,6 +24,7 @@ limitations under the License.
 #include <stdint.h>
 #include <time.h>
 #include "pal_utl.h"
+#include "trex_global.h"
 
 uint32_t 	 os_get_time_msec();
 uint32_t 	 os_get_time_freq();
@@ -172,10 +173,19 @@ hr_time_t    os_get_hr_freq(void);
 
 extern  COsTimeGlobalData  timer_gd;
 
-static inline void time_init(){
+
+static inline void time_init_ticker(){
     timer_gd.m_start_time = os_get_hr_tick_64();
     timer_gd.m_freq       = (double)os_get_hr_freq();
     timer_gd.m_1_div_freq = 1.0/timer_gd.m_freq;
+}
+
+static inline void time_init_timer(){
+    timer_gd.m_start_time = get_time_epoch_nanoseconds();
+}
+
+static inline void time_init(){
+    CGlobalInfo::m_options.m_time_init();
 }
 
 
@@ -193,11 +203,20 @@ static inline dsec_t ptime_convert_ns_dsec(hr_time_t hrt){
     return static_cast<dsec_t>(static_cast<double>(hrt) / (1000 * 1000 * 1000));
 }
 
-
 /* should be fixed , need to move to high rez tick */
-static inline dsec_t now_sec(void){
+static inline dsec_t now_sec_ticker(void){
     hr_time_t d=os_get_hr_tick_64() - timer_gd.m_start_time;
-	return ( ptime_convert_hr_dsec(d) );
+    return ( ptime_convert_hr_dsec(d) );
+}
+
+static inline dsec_t now_sec_timer(void){
+    dsec_t d=get_time_epoch_nanoseconds() - timer_gd.m_start_time;
+	return (ptime_convert_ns_dsec(d));
+}
+
+static inline dsec_t now_sec(void){
+    dsec_t d = CGlobalInfo::m_options.m_now_sec();
+    return (d);
 }
 
 

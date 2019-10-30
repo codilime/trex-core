@@ -111,7 +111,7 @@ static CSimpleOpt::SOption parser_options[] =
 
     { OPT_DRY_RUN,            "--dry",      SO_NONE },
 
-    
+
     SO_END_OF_OPTIONS
 };
 
@@ -370,6 +370,11 @@ static int parse_options(int argc,
     return 0;
 }
 
+void set_default_time_method(){
+  CGlobalInfo::m_options.m_now_sec = &now_sec_ticker;
+  CGlobalInfo::m_options.m_time_init = &time_init_ticker;
+}
+
 void set_default_mac_addr(){
 
     int i;
@@ -413,6 +418,7 @@ int main(int argc , char * argv[]){
         exit(-1);
     }
     set_default_mac_addr();
+    set_default_time_method();
 
 
     opt_type_e type = (opt_type_e) params["type"];
