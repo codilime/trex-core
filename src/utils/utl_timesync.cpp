@@ -30,7 +30,7 @@ dsec_t do_timesync(dsec_t cur_time) {
     }
 
     if (CGlobalInfo::m_options.m_timesync_method == CParserOption::TIMESYNC_PTP) {
-        printf("Syncing time with PTP method.\n");
+        printf("Syncing time with PTP method (master side).\n");
         #ifdef _DEBUG
         printf("PTP time synchronisation is currently not supported (but we are working on that).\n");
         #endif

@@ -3455,10 +3455,15 @@ inline int CNodeGenerator::flush_file_realtime(dsec_t max_time,
     dsec_t offset=0.0;
     dsec_t cur_time;
     dsec_t n_time;
-    dsec_t timesync_period = CGlobalInfo::m_options.m_timesync_period;
-    dsec_t timesync_time = (CGlobalInfo::m_options.m_timesync_method == CParserOption::TIMESYNC_NONE)
-                         ? (60.0 * 60.0 * 24.0 * 365.25)   // a kind of never-happen scenario
-                         : -timesync_period;
+
+    // This is a sending part for time synchronisation.  Enable it only if `timesync-method` is set
+    // and `timesync-interval` is greater than 0.
+    dsec_t timesync_interval = CGlobalInfo::m_options.m_timesync_interval;
+    dsec_t timesync_time =
+        ((CGlobalInfo::m_options.m_timesync_method != CParserOption::TIMESYNC_NONE) && (timesync_interval > 0))
+            ? -timesync_interval              // synchronise immediately after starting the loop
+            : (60.0 * 60.0 * 24.0 * 365.25);  // a kind of never-happen scenario
+
     if (ON_TERIMATE) {
          offset=old_offset;
     }else{
@@ -3490,7 +3495,7 @@ inline int CNodeGenerator::flush_file_realtime(dsec_t max_time,
                     state = scSTRECH;
                 } else if (dt > 0) {
                     state = scWORK;
-                } else if (timesync_time + timesync_period < cur_time) {
+                } else if (timesync_time + timesync_interval < cur_time) {
                     // do the timesyncing only if not working, i.e. possibly do not sync at all for high-throughput streams
                     state = scTIMESYNC;
                 } else {
