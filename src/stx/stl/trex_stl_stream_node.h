@@ -705,42 +705,63 @@ static_assert(sizeof(CGenNodePCAP) == sizeof(CGenNode), "sizeof(CGenNodePCAP) !=
 
 /* this is a event for time synchronization. */
 struct CGenNodeTimesync : public CGenNodeBase {
-    // This part if a copy of CGenNode
-    uint32_t m_src_ip;  /* client ip */
-    uint32_t m_dest_ip; /* server ip */
+public:
 
-    uint64_t m_flow_id; /* id that goes up for each flow */
+    inline void init() {
+        set_send_immediately(true);
+        m_state = PTP_WAIT;
+    }
 
-    /*c2*/
-    CFlowPktInfo *m_pkt_info;
+    inline void handle(CFlowGenListPerThread *thread) {
 
-    CCapFileFlowInfo *m_flow_info;
-    CFlowYamlInfo *m_template_info;
+        //placeholder
+        timesync_last = now_sec();
+        return;
 
-    void *m_plugin_info;
+        switch(m_state) {
+            case PTP_WAIT:
+                return; break;
 
-    /* cache line -2 */
-    CHTimerObj m_tmr;
-    uint64_t m_tmr_pad[4];
+            case PTP_SYNC:
+                thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
+                break;
 
-    /* cache line -3 */
+            case PTP_INVALID:
+            default:
+                assert(0);
+        }
+    }
 
-    CTupleGeneratorSmart *m_tuple_gen;
-    // cache line 1 - 64bytes waste of space !
-    uint32_t m_nat_external_ipv4;       // NAT client IP
-    uint32_t m_nat_tcp_seq_diff_client; // support for firewalls that do TCP seq num randomization
-    uint32_t m_nat_tcp_seq_diff_server; // And some do seq num randomization for server->client also
-    uint16_t m_nat_external_port;       // NAT client port
-    uint16_t m_nat_pad[1];
-    const ClientCfgBase *m_client_cfg;
-    // Here comes the actual CGenNodeTimesync part (the difference is last 4 * 64 bits)
-    // uint32_t            m_src_idx;
-    // uint32_t            m_dest_idx;
-    // uint32_t            m_end_of_cache_line[6];
     dsec_t timesync_last;
+
+private:
+    enum {
+        PTP_INVALID = 0,
+        PTP_WAIT,
+        PTP_SYNC,
+        PTP_FOLLOW_UP_MASTER,
+        PTP_DELAYED_REQ,
+        PTP_FOLLOW_UP_SLAVE,
+        PTP_DELAYED_RESP,
+        PTP_MARKED_FOR_FREE
+    };
+
+    /* cache line 0 */
+    /* important stuff here */
+    uint32_t             m_slave_ip_addr;
+    uint8_t             m_state;
+
+    double t1;
     double t2;
     double t3;
     double t4;
+
+    /* pad to match the size of CGenNode */
+    uint8_t             m_pad_end[10];
+
+    /* CACHE_LINE */
+    uint64_t            m_pad3[8];
+
 } __rte_cache_aligned;
 
 static_assert(sizeof(CGenNodeTimesync) == sizeof(CGenNode), "sizeof(CGenNodeTimesync) != sizeof(CGenNode)");

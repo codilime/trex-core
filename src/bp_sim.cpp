@@ -3808,8 +3808,7 @@ void CNodeGenerator::handle_pcap_pkt(CGenNode *node, CFlowGenListPerThread *thre
 }
 
 void CNodeGenerator::handle_timesync_msg(CGenNodeTimesync *node, CFlowGenListPerThread *thread, bool &exit_scheduler) {
-    printf("MATEUSZ CNodeGenerator::handle_timesync_msg (PTP master) #0\n");
-    
+
     /* first pop the node */
     m_p_queue.pop();
 
@@ -3819,18 +3818,16 @@ void CNodeGenerator::handle_timesync_msg(CGenNodeTimesync *node, CFlowGenListPer
         exit_scheduler = true;
     } else {
         dsec_t cur_time = now_sec();
-        printf("MATEUSZ CNodeGenerator::handle_timesync_msg (PTP master) #1\ttimesync_last = %g\ttimesync_interval = %d\tcur_time = %g\n",
-            node->timesync_last, CGlobalInfo::m_options.m_timesync_interval, cur_time);
+
         if (node->timesync_last + (double) CGlobalInfo::m_options.m_timesync_interval < cur_time) {
-            // do the timesyncing
-            printf("MATEUSZ CNodeGenerator::handle_timesync_msg (PTP master) #2\n");
-            node->timesync_last = do_timesync(cur_time);  // thread?
+            // handle timesync
+            node->handle(thread);
         }
+
         /* schedule for next time synchronization check */
         node->m_time += SYNC_TIME_OUT;
         m_p_queue.push((CGenNode *)node);
     }
-    printf("MATEUSZ CNodeGenerator::handle_timesync_msg (PTP master) #3\n");
 }
 
 bool
