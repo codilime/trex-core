@@ -3455,15 +3455,6 @@ inline int CNodeGenerator::flush_file_realtime(dsec_t max_time,
     dsec_t offset=0.0;
     dsec_t cur_time;
     dsec_t n_time;
-
-    // This is a sending part for time synchronisation.  Enable it only if `timesync-method` is set
-    // and `timesync-interval` is greater than 0.
-    dsec_t timesync_interval = CGlobalInfo::m_options.m_timesync_interval;
-    dsec_t timesync_time =
-        ((CGlobalInfo::m_options.m_timesync_method != CParserOption::TIMESYNC_NONE) && (timesync_interval > 0))
-            ? -timesync_interval              // synchronise immediately after starting the loop
-            : (60.0 * 60.0 * 24.0 * 365.25);  // a kind of never-happen scenario
-
     if (ON_TERIMATE) {
          offset=old_offset;
     }else{
@@ -3478,11 +3469,6 @@ inline int CNodeGenerator::flush_file_realtime(dsec_t max_time,
     n_time = node->m_time + offset;
     cur_time = now_sec();
 
-    // TODO think of solution for this problem:
-    // cur_time stores time in seconds (double) where zero is the time TRex starts running.
-    // Currently now_sec (and thus cur_time) is measured using approximate value from TSC.
-    // It might be nice to replace it with actual configurable (nanos or not-nanos) solution.
-
     while (state!=scTERMINATE) {
 
          switch (state) {
@@ -3495,9 +3481,6 @@ inline int CNodeGenerator::flush_file_realtime(dsec_t max_time,
                     state = scSTRECH;
                 } else if (dt > 0) {
                     state = scWORK;
-                } else if (timesync_time + timesync_interval < cur_time) {
-                    // do the timesyncing only if not working, i.e. possibly do not sync at all for high-throughput streams
-                    state = scTIMESYNC;
                 } else {
                     state = scWAIT;
                 }
@@ -3528,11 +3511,6 @@ inline int CNodeGenerator::flush_file_realtime(dsec_t max_time,
                 } while (true);
                 break;
             }
-
-         case scTIMESYNC:
-                timesync_time = do_timesync(cur_time);
-                state=scINIT;   // after syncing time do the initial calculations or not?
-                break;
 
          case scWAIT:
                 do_sleep(cur_time,thread,n_time); // estimate  loop
@@ -3829,6 +3807,32 @@ void CNodeGenerator::handle_pcap_pkt(CGenNode *node, CFlowGenListPerThread *thre
     }
 }
 
+void CNodeGenerator::handle_timesync_msg(CGenNodeTimesync *node, CFlowGenListPerThread *thread, bool &exit_scheduler) {
+    printf("MATEUSZ CNodeGenerator::handle_timesync_msg (PTP master) #0\n");
+    
+    /* first pop the node */
+    m_p_queue.pop();
+
+    /* exit in case this is the last node*/
+    if ( m_p_queue.size() == m_parent->m_non_active_nodes ) {
+        thread->free_node((CGenNode *)node);
+        exit_scheduler = true;
+    } else {
+        dsec_t cur_time = now_sec();
+        printf("MATEUSZ CNodeGenerator::handle_timesync_msg (PTP master) #1\ttimesync_last = %g\ttimesync_interval = %d\tcur_time = %g\n",
+            node->timesync_last, CGlobalInfo::m_options.m_timesync_interval, cur_time);
+        if (node->timesync_last + (double) CGlobalInfo::m_options.m_timesync_interval < cur_time) {
+            // do the timesyncing
+            printf("MATEUSZ CNodeGenerator::handle_timesync_msg (PTP master) #2\n");
+            node->timesync_last = do_timesync(cur_time);  // thread?
+        }
+        /* schedule for next time synchronization check */
+        node->m_time += SYNC_TIME_OUT;
+        m_p_queue.push((CGenNode *)node);
+    }
+    printf("MATEUSZ CNodeGenerator::handle_timesync_msg (PTP master) #3\n");
+}
+
 bool
 CNodeGenerator::handle_slow_messages(uint8_t type,
                                      CGenNode * node,
@@ -3886,6 +3890,10 @@ CNodeGenerator::handle_slow_messages(uint8_t type,
 
     case CGenNode::STL_RX_FLUSH:
         thread->handle_stl_rx(node,on_terminate);
+        break;
+
+    case CGenNode::TIMESYNC:
+        handle_timesync_msg((CGenNodeTimesync *)node, thread, exit_scheduler);
         break;
 
     default:
