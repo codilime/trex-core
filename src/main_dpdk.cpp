@@ -2070,6 +2070,11 @@ CCoreEthIFStateless::generate_slow_path_node_pkt(CGenNodeStateless *node_sl) {
         return pcap_node->get_pkt();
     }
 
+    if (node_sl->m_type == CGenNode::TIMESYNC) {
+        CGenNodeTimesync *timesync_node = (CGenNodeTimesync *)node_sl;
+        return timesync_node->get_pkt();
+    }
+
     /* unhandled case of slow path node */
     assert(0);
     return (NULL);
