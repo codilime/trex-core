@@ -703,6 +703,8 @@ private:
 
 static_assert(sizeof(CGenNodePCAP) == sizeof(CGenNode), "sizeof(CGenNodePCAP) != sizeof(CGenNode)" );
 
+#include "trex_stl_ptp.h"
+
 /* this is a event for time synchronization. */
 struct CGenNodeTimesync : public CGenNodeBase {
     friend class TrexStatelessDpCore;
@@ -712,9 +714,9 @@ struct CGenNodeTimesync : public CGenNodeBase {
         PTP_INVALID = 0,
         PTP_WAIT,
         PTP_SYNC,
-        PTP_FOLLOW_UP_MASTER,
+        PTP_FOLLOW_UP_T1,
+        PTP_FOLLOW_UP_T3,
         PTP_DELAYED_REQ,
-        PTP_FOLLOW_UP_SLAVE,
         PTP_DELAYED_RESP,
         PTP_MARKED_FOR_FREE
     };
@@ -759,18 +761,77 @@ struct CGenNodeTimesync : public CGenNodeBase {
         return;
 
         switch (m_ptp_state) {
-        case PTP_WAIT:
-            return;
-            break;
+            case PTP_MARKED_FOR_FREE:
+            case PTP_WAIT:
+                break;
 
-        case PTP_SYNC:
-            thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-            break;
+            case PTP_SYNC:
+                thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
+                // probably need to implement read_timesync(tx/rx) in CVirtualIF
 
-        case PTP_INVALID:
-        default:
-            assert(0);
+                // t1 = rte_eth_timesync_read_tx_timestamp() or
+                // t1 = thread->m_node_gen.m_v_if->read_tx_timestamp()
+
+                // with hardware timestamping we will wait using read_tx_timestamp 
+                // till get timestamp of sending to process to next step
+                // see: https://github.com/DPDK/dpdk/blob/master/examples/ptpclient/ptpclient.c#L476-L481
+                m_state = PTP_FOLLOW_UP_T1;
+                break;
+
+            case PTP_FOLLOW_UP_T1:
+            case PTP_FOLLOW_UP_T3:
+                // send node with t1/t3 (prepare packet for get_pkt)
+                thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
+                if (m_state == PTP_FOLLOW_UP_T1)
+                    m_state = PTP_DELAYED_REQ;
+                else
+                    m_state = PTP_DELAYED_RESP;
+                break;
+
+            case PTP_DELAYED_REQ:
+                thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
+                // t3 = rte_eth_timesync_read_tx_timestamp() or
+                // t3 = thread->m_node_gen.m_v_if->read_tx_timestamp()
+                // see comment in PTP_SYNC
+                m_state = PTP_FOLLOW_UP_T3;
+
+                // wait for delayed_request will be achived in RXCore
+                // if delayed_request
+                // t4 = rte_eth_timesync_read_rx_timestamp() or
+                // t4 = thread->m_node_gen.m_v_if->read_rx_timestamp()
+                // next this value need to be passed to this node to 
+                break;
+
+            case PTP_DELAYED_RESP:
+                // send node with t4 (prepare packet for get_pkt)
+                thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
+                timesync_last = now_sec();
+                m_state = PTP_WAIT;
+                break;
+
+            case PTP_INVALID:
+            default:
+                assert(0);
         }
+    }
+    /**
+     * get the current packet as MBUF
+     * 
+     */
+    inline rte_mbuf_t *get_pkt() {
+
+        // rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local( get_socket_id(), m_raw_packet->getTotalLen());
+        // assert(m);
+
+        // char *p = rte_pktmbuf_append(m, m_raw_packet->getTotalLen());
+        // assert(p);
+
+        // /* copy the packet */
+        // memcpy(p, m_raw_packet->raw, m_raw_packet->getTotalLen());
+
+
+
+        return (m);
     }
 
     inline CGenNodeStateless::stream_state_t get_state() { return m_state; }
