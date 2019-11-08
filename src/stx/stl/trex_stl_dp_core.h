@@ -101,6 +101,9 @@ public:
         return m_event_id;
     }
 
+private:
+  template <typename T> void free_node(CDpOneStream &dp_stream, T *node);
+
 public:
 
     state_e                     m_state;
@@ -363,6 +366,25 @@ private:
                     TrexStreamsCompiledObj *comp,
                     double start_at_ts = 0);
 
+    void build_mbuf_from_packet(TrexStream * stream,
+                                pkt_dir_t dir,
+                                CGenNodeStateless *node);
+
+    void allocate_no_vm_node(TrexStream * stream,
+                             pkt_dir_t dir,
+                             CGenNodeStateless *node);
+
+    void allocate_vm_node(TrexStream * stream,
+                          pkt_dir_t dir,
+                          CGenNodeStateless *node);
+
+    void add_timesync_node(PerPortProfile *profile,
+                           uint32_t profile_id,
+                           TrexStream *stream,
+                           double start_at_ts = 0);
+
+    template <typename T> void push_one_stream(PerPortProfile *profile,
+                                               T *node);
 
     void replay_vm_into_cache(TrexStream * stream,
                               CGenNodeStateless *node);

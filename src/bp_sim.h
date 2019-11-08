@@ -527,7 +527,7 @@ public:
         RX_MSG                  =16,  /* message to Rx core */
         STL_RX_FLUSH            =17,
 
-        TIMESYNC                =18,
+        TIMESYNC                =31,
     };
 
     /* flags MASKS*/

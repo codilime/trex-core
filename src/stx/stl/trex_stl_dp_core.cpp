@@ -810,13 +810,10 @@ bool PerPortProfile::stop_traffic(uint8_t  port_id,
     for (auto& dp_stream : m_active_nodes) {
         CGenNodeStateless * node =dp_stream.m_node;
         assert(node->get_port_id() == port_id);
-        if ( node->get_state() == CGenNodeStateless::ss_ACTIVE) {
-            node->mark_for_free();
-            m_active_streams--;
-            dp_stream.DeleteOnlyStream();
-
-        }else{
-            dp_stream.Delete(m_port->m_core);
+        if (node->m_type != CGenNode::TIMESYNC) {
+            free_node(dp_stream, node);
+        } else {
+            free_node(dp_stream, reinterpret_cast<CGenNodeTimesync *>(node));
         }
     }
 
@@ -829,6 +826,16 @@ bool PerPortProfile::stop_traffic(uint8_t  port_id,
     m_state=PerPortProfile::ppSTATE_IDLE;
     return (true);
 }
+
+template <typename T> void PerPortProfile::free_node(CDpOneStream &dp_stream, T *node) {
+    if (node->get_state() == CGenNodeStateless::ss_ACTIVE) {
+        node->mark_for_free();
+        m_active_streams--;
+        dp_stream.DeleteOnlyStream();
+    } else {
+        dp_stream.Delete(m_port->m_core);
+    }
+};
 
 bool TrexStatelessDpPerPort::stop_traffic(uint8_t  port_id,
                                           uint32_t profile_id,
@@ -1022,17 +1029,6 @@ TrexStatelessDpCore::start_scheduler() {
         node_rx->m_type = CGenNode::STL_RX_FLUSH;
         node_rx->m_time = now_sec(); /* NOW to warm thing up */
         m_core->m_node_gen.add_node(node_rx);
-    }
-
-    if ((CGlobalInfo::m_options.m_timesync_method != CParserOption::TIMESYNC_NONE) &&
-        (CGlobalInfo::m_options.m_timesync_interval > 0)) {
-        // This is a Tx part for time synchronisation.  Enable it only if
-        // `timesync-method` is set and and `timesync-interval` is greater than 0.
-        CGenNodeTimesync *node_timesync = (CGenNodeTimesync *)m_core->create_node();
-        node_timesync->m_type = CGenNode::TIMESYNC;
-        node_timesync->m_time = m_core->m_cur_time_sec + SYNC_TIME_OUT;
-        node_timesync->timesync_last = -1.0 * (double)CGlobalInfo::m_options.m_timesync_interval;
-        m_core->m_node_gen.add_node((CGenNode *)node_timesync);
     }
 
     double old_offset = 0.0;
@@ -1283,38 +1279,53 @@ TrexStatelessDpCore::add_stream(PerPortProfile * profile,
     node->set_socket_id(m_core->m_node_gen.m_socket_id);
 
     /* build a mbuf from a packet */
+    build_mbuf_from_packet(stream, dir, node);
 
-    uint16_t pkt_size = stream->m_pkt.len;
-    const uint8_t *stream_pkt = stream->m_pkt.binary;
+    push_one_stream(profile, node);
 
+    /* schedule only if active */
+    if (node->m_state == CGenNodeStateless::ss_ACTIVE) {
+        m_core->m_node_gen.add_node((CGenNode *)node);
+    }
+
+    // create and add CGenNodeTimesync (moved from start_scheduler)
+    if (node->is_latency_stream() && CGlobalInfo::m_options.is_timesync_tx_enabled()) {
+        add_timesync_node(profile, profile_id, stream, start_at_ts);
+    }
+}
+
+void
+TrexStatelessDpCore::build_mbuf_from_packet(TrexStream *stream,
+                                            pkt_dir_t dir,
+                                            CGenNodeStateless *node) {
     node->m_stream_type = stream->m_type;
     node->m_next_time_offset_backup = 1.0 / stream->get_pps();
     node->m_null_stream = (stream->m_null_stream ? 1 : 0);
     node->set_pause(stream->m_start_paused);
 
     /* stateless specific fields */
-    switch ( stream->m_type ) {
+    switch (stream->m_type) {
 
-    case TrexStream::stCONTINUOUS :
-        node->m_single_burst=0;
-        node->m_single_burst_refill=0;
-        node->m_multi_bursts=0;
+    case TrexStream::stCONTINUOUS:
+        node->m_single_burst = 0;
+        node->m_single_burst_refill = 0;
+        node->m_multi_bursts = 0;
         break;
 
-    case TrexStream::stSINGLE_BURST :
-        node->m_stream_type             = TrexStream::stMULTI_BURST;
-        node->m_single_burst            = stream->m_burst_total_pkts;
-        node->m_single_burst_refill     = stream->m_burst_total_pkts;
-        node->m_multi_bursts            = 1;  /* single burst in multi burst of 1 */
-        break;
-
-    case TrexStream::stMULTI_BURST :
-        node->m_single_burst        = stream->m_burst_total_pkts;
+    case TrexStream::stSINGLE_BURST:
+        node->m_stream_type = TrexStream::stMULTI_BURST;
+        node->m_single_burst = stream->m_burst_total_pkts;
         node->m_single_burst_refill = stream->m_burst_total_pkts;
-        node->m_multi_bursts        = stream->m_num_bursts;
+        node->m_multi_bursts = 1; /* single burst in multi burst of 1 */
         break;
-    default:
 
+    case TrexStream::stMULTI_BURST:
+        node->m_single_burst = stream->m_burst_total_pkts;
+        node->m_single_burst_refill = stream->m_burst_total_pkts;
+        node->m_multi_bursts = stream->m_num_bursts;
+        break;
+
+    default:
         assert(0);
     };
 
@@ -1323,100 +1334,147 @@ TrexStatelessDpCore::add_stream(PerPortProfile * profile,
     /* set dir 0 or 1 client or server */
     node->set_mbuf_cache_dir(dir);
 
-
     if (node->m_ref_stream_info->getDpVm() == NULL) {
-        /* no VM */
-
-        node->m_vm_flow_var =  NULL;
-        node->m_vm_program  =  NULL;
-        node->m_vm_program_size =0;
-
-                /* allocate const mbuf */
-        rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), pkt_size);
-        assert(m);
-
-        char *p = rte_pktmbuf_append(m, pkt_size);
-        assert(p);
-        /* copy the packet */
-        memcpy(p,stream_pkt,pkt_size);
-
-        update_mac_addr(stream,node,dir,p);
-
-        /* set the packet as a readonly */
-        node->set_cache_mbuf(m);
-
-        node->m_original_packet_data_prefix =0;
-    }else{
-
-        /* set the program */
-        TrexStream * local_mem_stream = node->m_ref_stream_info;
-
-        StreamVmDp  * lpDpVm = local_mem_stream->getDpVm();
-
-        node->m_vm_flow_var      = lpDpVm->clone_bss(); /* clone the flow var */
-        node->m_vm_program       = lpDpVm->get_program(); /* same ref to the program */
-        node->m_vm_program_size  = lpDpVm->get_program_size();
-
-        /* generate random seed if needed*/
-        if (lpDpVm->is_random_seed()) {
-            node->generate_random_seed();
-        }
-
-        /* we need to copy the object */
-        if ( pkt_size > lpDpVm->get_prefix_size() ) {
-            /* we need const packet */
-            uint16_t const_pkt_size  = pkt_size - lpDpVm->get_prefix_size() ;
-            rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), const_pkt_size );
-            assert(m);
-
-            char *p = rte_pktmbuf_append(m, const_pkt_size);
-            assert(p);
-
-            /* copy packet data */
-            memcpy(p,(stream_pkt + lpDpVm->get_prefix_size()),const_pkt_size);
-
-            node->set_const_mbuf(m);
-        }
+        allocate_no_vm_node(stream, dir, node);
+    } else {
+        allocate_vm_node(stream, dir, node);
+    }
+}
 
 
-        if ( lpDpVm->is_pkt_size_var() ) {
-            // mark the node as varible size
-            node->set_var_pkt_size();
-        }
+void
+TrexStatelessDpCore::allocate_no_vm_node(TrexStream *stream,
+                                         pkt_dir_t dir,
+                                         CGenNodeStateless *node) {
+    uint16_t pkt_size = stream->m_pkt.len;
+    const uint8_t *stream_pkt = stream->m_pkt.binary;
 
+    node->m_vm_flow_var = NULL;
+    node->m_vm_program = NULL;
+    node->m_vm_program_size = 0;
 
-        if (lpDpVm->get_prefix_size() > pkt_size ) {
-            lpDpVm->set_prefix_size(pkt_size);
-        }
+    /* allocate const mbuf */
+    rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), pkt_size);
+    assert(m);
 
-        /* copy the headr */
-        uint16_t header_size = lpDpVm->get_prefix_size();
-        assert(header_size);
-        node->alloc_prefix_header(header_size);
-        uint8_t *p=node->m_original_packet_data_prefix;
-        assert(p);
+    char *p = rte_pktmbuf_append(m, pkt_size);
+    assert(p);
+    /* copy the packet */
+    memcpy(p, stream_pkt, pkt_size);
 
-        memcpy(p,stream_pkt , header_size);
+    update_mac_addr(stream, node, dir, p);
 
-        update_mac_addr(stream,node,dir,(char *)p);
+    /* set the packet as a readonly */
+    node->set_cache_mbuf(m);
 
-        if (stream->m_cache_size > 0 ) {
-            /* we need to create cache of objects */
-            replay_vm_into_cache(stream, node);
-        }
+    node->m_original_packet_data_prefix = 0;
+}
+
+void
+TrexStatelessDpCore::allocate_vm_node(TrexStream *stream,
+                                      pkt_dir_t dir,
+                                      CGenNodeStateless *node){
+    /* set the program */
+    uint16_t pkt_size = stream->m_pkt.len;
+    const uint8_t *stream_pkt = stream->m_pkt.binary;
+    TrexStream *local_mem_stream = node->m_ref_stream_info;
+    StreamVmDp *lpDpVm = local_mem_stream->getDpVm();
+
+    node->m_vm_flow_var = lpDpVm->clone_bss();  /* clone the flow var */
+    node->m_vm_program = lpDpVm->get_program(); /* same ref to the program */
+    node->m_vm_program_size = lpDpVm->get_program_size();
+
+    /* generate random seed if needed*/
+    if (lpDpVm->is_random_seed()) {
+        node->generate_random_seed();
     }
 
+    /* we need to copy the object */
+    if (pkt_size > lpDpVm->get_prefix_size()) {
+        /* we need const packet */
+        uint16_t const_pkt_size = pkt_size - lpDpVm->get_prefix_size();
+        rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), const_pkt_size);
+        assert(m);
 
+        char *p = rte_pktmbuf_append(m, const_pkt_size);
+        assert(p);
+
+        /* copy packet data */
+        memcpy(p, (stream_pkt + lpDpVm->get_prefix_size()), const_pkt_size);
+
+        node->set_const_mbuf(m);
+    }
+
+    if (lpDpVm->is_pkt_size_var()) {
+        // mark the node as varible size
+        node->set_var_pkt_size();
+    }
+
+    if (lpDpVm->get_prefix_size() > pkt_size) {
+        lpDpVm->set_prefix_size(pkt_size);
+    }
+
+    /* copy the headr */
+    uint16_t header_size = lpDpVm->get_prefix_size();
+    assert(header_size);
+    node->alloc_prefix_header(header_size);
+    uint8_t *p = node->m_original_packet_data_prefix;
+    assert(p);
+
+    memcpy(p, stream_pkt, header_size);
+
+    update_mac_addr(stream, node, dir, (char *)p);
+
+    if (stream->m_cache_size > 0) {
+        /* we need to create cache of objects */
+        replay_vm_into_cache(stream, node);
+    }
+}
+
+template <typename T> void TrexStatelessDpCore::push_one_stream(PerPortProfile *profile, T *node) {
     CDpOneStream one_stream;
 
     one_stream.m_dp_stream = node->m_ref_stream_info;
-    one_stream.m_node =node;
+    one_stream.m_node = reinterpret_cast<CGenNodeStateless *>(node);
 
     profile->m_active_nodes.push_back(one_stream);
+}
 
-    /* schedule only if active */
+void
+TrexStatelessDpCore::add_timesync_node(PerPortProfile *profile,
+                                       uint32_t profile_id,
+                                       TrexStream *stream,
+                                       double start_at_ts) {
+    CGenNodeTimesync *node = reinterpret_cast<CGenNodeTimesync *>(m_core->create_node());
+
+    node->m_thread_id = m_thread_id;
+    node->m_type = CGenNode::TIMESYNC;
+    node->m_flags = 0;
+    node->m_src_port = 0;
+    node->timesync_last = -1.0 * static_cast<double>(CGlobalInfo::m_options.m_timesync_interval);
+    node->m_stream_type = stream->m_type;
+    node->m_ref_stream_info = stream->clone();
+    node->m_port_id = stream->m_port_id;
+    node->m_profile_id = profile_id;
+    node->m_next_time_offset = 1.0 / stream->get_pps();  // these are latency stream's PPS, could be not frequent enough
+
+    if (stream->m_self_start) {
+        node->m_state = CGenNodeStateless::ss_ACTIVE;
+        profile->m_active_streams++;
+    } else {
+        node->m_state = CGenNodeStateless::ss_INACTIVE;
+    }
+
+    if (unlikely(start_at_ts)) {
+        node->m_time = start_at_ts + stream->get_start_delay_sec();
+    } else {
+        node->m_time = m_core->m_cur_time_sec + stream->get_start_delay_sec();
+    }
+
+    push_one_stream(profile, node);
+
     if (node->m_state == CGenNodeStateless::ss_ACTIVE) {
-        m_core->m_node_gen.add_node((CGenNode *)node);
+        m_core->m_node_gen.add_node(reinterpret_cast<CGenNode *>(node));
     }
 }
 
@@ -1445,13 +1503,17 @@ TrexStatelessDpCore::start_traffic(TrexStreamsCompiledObj *obj,
     /* no nodes in the list */
     assert(profile->m_active_nodes.size()==0);
 
+    uint32_t number_of_latency_streams = 0;
     for (auto single_stream : obj->get_objects()) {
         /* all commands should be for the same port */
         assert(obj->get_port_id() == single_stream.m_stream->m_port_id);
         add_stream(profile,profile_id,single_stream.m_stream,obj,start_at_ts);
+        if ((CGlobalInfo::m_options.is_timesync_tx_enabled()) && (single_stream.m_stream->is_latency_stream())) {
+            number_of_latency_streams++;
+        }
     }
 
-    uint32_t nodes = profile->m_active_nodes.size();
+    uint32_t nodes = profile->m_active_nodes.size() - number_of_latency_streams;
     /* find next stream */
     assert(nodes == obj->get_objects().size());
 
