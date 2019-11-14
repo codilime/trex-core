@@ -1457,6 +1457,12 @@ TrexStatelessDpCore::add_timesync_node(PerPortProfile *profile,
     node->m_port_id = stream->m_port_id;
     node->m_profile_id = profile_id;
     node->m_next_time_offset = 1.0 / stream->get_pps();  // these are latency stream's PPS, could be not frequent enough
+    node->init();
+
+    rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), node->engine->pkt_size());
+    assert(m);
+
+    node->m = m;
 
     if (stream->m_self_start) {
         node->m_state = CGenNodeStateless::ss_ACTIVE;
