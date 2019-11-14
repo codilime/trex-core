@@ -2,31 +2,11 @@
 #define __TREX_STL_PTP_H__
 
 #include <cstdint>
-#include <rte_ethdev.h>
+#include <mbuf.h>
 
 #define NSEC_PER_SEC        1000000000L
 #define KERNEL_TIME_ADJUST_LIMIT  20000
 #define PTP_PROTOCOL             0x88F7
-
-// struct ptpv2_data_slave_ordinary {
-//     struct rte_mbuf *m;
-//     struct timespec tstamp1;
-//     struct timespec tstamp2;
-//     struct timespec tstamp3;
-//     struct timespec tstamp4;
-//     struct clock_id client_clock_id;
-//     struct clock_id master_clock_id;
-//     struct timeval new_adj;
-//     int64_t delta;
-//     uint16_t portid;
-//     uint16_t seqID_SYNC;
-//     uint16_t seqID_FOLLOWUP;
-//     uint8_t ptpset;
-//     uint8_t kernel_time_set;
-//     uint16_t current_ptp_port;
-// };
-
-//static struct ptpv2_data_slave_ordinary ptp_data;
 
 /* Values for the PTP messageType field. */
 namespace PTP {
@@ -123,189 +103,38 @@ class PTPEngine {
 
 public:
 
-    static size_t pkt_size(){
-        return sizeof(struct ether_hdr) + sizeof(struct ptp_message);
-    }
-
-    static void set_clock_id(struct clock_id& clock, uint8_t new_clock[8]){
-        clock.id[0] = new_clock[0];
-        clock.id[1] = new_clock[1];
-        clock.id[2] = new_clock[2];
-        clock.id[3] = new_clock[3];
-        clock.id[4] = new_clock[4];
-        clock.id[5] = new_clock[5];
-        clock.id[6] = new_clock[6];
-        clock.id[7] = new_clock[7];
-    }
-
-    // template<typename T,int size>
-    // static void set_table(T& tbl_a[size], T& tbl_b[size]){
-    //     for(int i = 0; i < size; i++)
-    //         tbl_a[i] = tbl_b[i];
-    // }
-
-    // static void set_clock_id(struct clock_id& clock, uint8_t new_clock[8]){
-    //     set_table(clock.id, new_clock);
-    // }
-
-    static void prepare_header(ptp_header* header){
-        assert(header);
-
-        header->msg_type = PTP::message_type::SYNC;
-        header->ver = PTP::version::PTPv2;
-        header->message_length = sizeof(struct ptp_message);
-        header->domain_number = 0;
-        // header->reserved1 = 0;
-        header->flag_field.hb = 0;
-        header->flag_field.lb = 0;
-        header->correction = 0;
-
-        //header->source_port_id.clock_id
-        //header->source_port_id.port_number = 0;
-
-        //header->seq_id = htons(ptp_data->seqID_SYNC);
-        //header->msg_type = DELAY_REQ;
-        
-        //header->control = 1;
-        //header->log_message_interval = 127;
-    }
+    void prepare_header(ptp_header* header, PTP::message_type type, uint16_t seq_number = 0);
 
     /* Prepare message */
-    static bool prepare_sync(rte_mbuf_t* mbuf){
-        assert(mbuf);
+    bool prepare_sync(rte_mbuf_t* mbuf);
 
-        mbuf->data_len = pkt_size();
-        mbuf->pkt_len = pkt_size();
+    bool prepare_follow_up(rte_mbuf_t* mbuf, struct tstamp* t);
 
-        struct ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, struct ether_hdr *);
-        //rte_eth_macaddr_get(ptp_data->portid, &eth_hdr->s_addr);
+    bool prepare_delayed_req(rte_mbuf_t* mbuf);
 
-        /* Set multicast address 01-1B-19-00-00-00. */
-        //ether_addr_copy(&eth_multicast, &eth_hdr->d_addr);
-
-        eth_hdr->ether_type = htons(PTP_PROTOCOL);
-        struct ptp_message* ptp_msg = (struct ptp_message *)
-            (rte_pktmbuf_mtod(mbuf, char *) + sizeof(struct ether_hdr));
-
-        ptp_msg->header.ver = PTP::version::PTPv2;
-        // ptp_msg->delay_req.hdr.msg_type = DELAY_REQ;
-        // ptp_msg->delay_req.hdr.ver = 2;
-        // ptp_msg->delay_req.hdr.control = 1;
-        // ptp_msg->delay_req.hdr.log_message_interval = 127;
-
-        // /* Set up clock id. */
-        // client_clkid =
-        // 	&ptp_msg->delay_req.hdr.source_port_id.clock_id;
-
-        // client_clkid->id[0] = eth_hdr->s_addr.addr_bytes[0];
-        // client_clkid->id[1] = eth_hdr->s_addr.addr_bytes[1];
-        // client_clkid->id[2] = eth_hdr->s_addr.addr_bytes[2];
-        // client_clkid->id[3] = 0xFF;
-        // client_clkid->id[4] = 0xFE;
-        // client_clkid->id[5] = eth_hdr->s_addr.addr_bytes[3];
-        // client_clkid->id[6] = eth_hdr->s_addr.addr_bytes[4];
-        // client_clkid->id[7] = eth_hdr->s_addr.addr_bytes[5];
-
-        // rte_memcpy(&ptp_data->client_clock_id,
-        // 	   client_clkid,
-        // 	   sizeof(struct clock_id));
-
-        // /* Enable flag for hardware timestamping. */
-        // created_pkt->ol_flags |= PKT_TX_IEEE1588_TMST;
-
-        // /*Read value from NIC to prevent latching with old value. */
-        // rte_eth_timesync_read_tx_timestamp(ptp_data->portid,
-        // 		&ptp_data->tstamp3);
-
-        // /* Transmit the packet. */
-        // rte_eth_tx_burst(ptp_data->portid, 0, &created_pkt, 1);
-
-        // wait_us = 0;
-        // ptp_data->tstamp3.tv_nsec = 0;
-        // ptp_data->tstamp3.tv_sec = 0;
-
-        // /* Wait at least 1 us to read TX timestamp. */
-        // while ((rte_eth_timesync_read_tx_timestamp(ptp_data->portid,
-        // 		&ptp_data->tstamp3) < 0) && (wait_us < 1000)) {
-        // 	rte_delay_us(1);
-        // 	wait_us++;
-        // }
-        return true;
-    }
-
-    static bool prepare_follow_up(rte_mbuf_t* mbuf, struct tstamp* t) {
-        return true;
-    }
-
-    static bool prepare_delayed_req(rte_mbuf_t* mbuf) {
-        return true;
-    }
-
-    static bool prepare_delayed_resp(rte_mbuf_t* mbuf) {
-        return true;
-    }
+    bool prepare_delayed_resp(rte_mbuf_t* mbuf);
 
     /* Parse message */
-    static bool parse_sync(rte_mbuf_t* mbuf) {
-        return true;
-    }
+    bool parse_sync(rte_mbuf_t* mbuf);
 
-    static bool parse_follow_up(rte_mbuf_t* mbuf, struct tstamp* t) {
-        return true;
-    }
+    bool parse_follow_up(rte_mbuf_t* mbuf, struct tstamp* t);
 
-    static bool parse_delayed_req(rte_mbuf_t* mbuf) {
-        return true;
-    }
+    bool parse_delayed_req(rte_mbuf_t* mbuf);
 
-    static bool parse_delayed_resp(rte_mbuf_t* mbuf) {
-        return true;
-    }
+    bool parse_delayed_resp(rte_mbuf_t* mbuf);
 
     /* Helper methods */
-    /*static int64_t delta_eval(struct ptpv2_data_slave_ordinary *ptp_data){
-        int64_t delta;
-        uint64_t t1 = 0;
-        uint64_t t2 = 0;
-        uint64_t t3 = 0;
-        uint64_t t4 = 0;
+    size_t pkt_size();
 
-        t1 = timespec64_to_ns(&ptp_data->tstamp1);
-        t2 = timespec64_to_ns(&ptp_data->tstamp2);
-        t3 = timespec64_to_ns(&ptp_data->tstamp3);
-        t4 = timespec64_to_ns(&ptp_data->tstamp4);
+    void set_clock_id(struct clock_id& clock, uint8_t* new_clock);
 
-        delta = -((int64_t)((t2 - t1) - (t4 - t3))) / 2;
-
-        return delta;
-    }*/
+    int64_t delta_eval(const struct timespec& time1, const struct timespec& time2,
+                       const struct timespec& time3, const struct timespec& time4);
 
 private:
-    static uint64_t timespec64_to_ns(const struct timespec *ts){
-        return ((uint64_t) ts->tv_sec * NSEC_PER_SEC) + ts->tv_nsec;
-    }
+    uint64_t timespec64_to_ns(const struct timespec& ts);
 
-    static struct timeval ns_to_timeval(int64_t nsec){
-        struct timespec t_spec = {0, 0};
-        struct timeval t_eval = {0, 0};
-        int32_t rem;
-
-        if (nsec == 0)
-            return t_eval;
-        rem = nsec % NSEC_PER_SEC;
-        t_spec.tv_sec = nsec / NSEC_PER_SEC;
-
-        if (rem < 0) {
-            t_spec.tv_sec--;
-            rem += NSEC_PER_SEC;
-        }
-
-        t_spec.tv_nsec = rem;
-        t_eval.tv_sec = t_spec.tv_sec;
-        t_eval.tv_usec = t_spec.tv_nsec / 1000;
-
-        return t_eval;
-    }
+    struct timeval ns_to_timeval(int64_t nsec);
 };
 
 }
