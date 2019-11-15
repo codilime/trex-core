@@ -6,9 +6,10 @@
 #include <mbuf.h>
 #include <rte_ether.h>
 
+#include <common/Network/Packet/EthernetHeader.h>
+
 #define NSEC_PER_SEC        1000000000L
 #define KERNEL_TIME_ADJUST_LIMIT  20000
-#define PTP_PROTOCOL             0x88F7
 
 namespace PTP {
 
