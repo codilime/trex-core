@@ -26,9 +26,11 @@ limitations under the License.
 #include "pal_utl.h"
 
 
+#define PKT_HTONLL(x) (PAL_NTOHLL(x))
 #define PKT_HTONL(x) (PAL_NTOHL(x))
 #define PKT_HTONS(x) (PAL_NTOHS(x))
 
+#define PKT_NTOHLL(x) (PAL_NTOHLL(x))
 #define PKT_NTOHL(x) (PAL_NTOHL(x))
 #define PKT_NTOHS(x) (PAL_NTOHS(x))
 

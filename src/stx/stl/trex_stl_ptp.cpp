@@ -47,13 +47,13 @@ void PTPEngine::prepare_header(ptp_header* header, PTP::message_type type, uint1
 
     header->msg_type = type;
     header->ver = PTP::version::PTPv2;
-    header->message_length = htons(sizeof(ptp_message));
+    header->message_length = PKT_HTONS(sizeof(ptp_message));
     header->domain_number = 0;
     // header->reserved1 = 0;
     header->correction = 0;
     // header->reserved2 = 0;
 
-    header->seq_id = htons(seq_number);
+    header->seq_id = PKT_HTONS(seq_number);
 
     header->flag_field = PTP::PTP_NONE;
 
@@ -72,7 +72,7 @@ bool PTPEngine::prepare_sync(rte_mbuf_t* mbuf) {
     // Setup Ethernet header
     ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
     rte_eth_macaddr_get(tx_port_id, &eth_hdr->s_addr);
-    eth_hdr->ether_type = htons(PTP_PROTOCOL);
+    eth_hdr->ether_type = PKT_HTONS(EthernetHeader::Protocol::PTP);
 
     /* Set multicast address 01-1B-19-00-00-00. */
     ether_addr_copy(&ether_multicast, &eth_hdr->d_addr);
@@ -109,7 +109,7 @@ bool PTPEngine::prepare_follow_up(rte_mbuf_t* mbuf, struct tstamp* t) {
     // Setup Ethernet header
     ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
     rte_eth_macaddr_get(tx_port_id, &eth_hdr->s_addr);
-    eth_hdr->ether_type = htons(PTP_PROTOCOL);
+    eth_hdr->ether_type = PKT_HTONS(EthernetHeader::Protocol::PTP);
 
     /* Set multicast address 01-1B-19-00-00-00. */
     ether_addr_copy(&ether_multicast, &eth_hdr->d_addr);
@@ -127,9 +127,9 @@ bool PTPEngine::prepare_follow_up(rte_mbuf_t* mbuf, struct tstamp* t) {
     mbuf->ol_flags |= PKT_TX_IEEE1588_TMST;
 
     // Setup PTP sync
-    ptp_msg->follow_up.precise_origin_tstamp.sec_msb = htons(t->sec_msb);
-    ptp_msg->follow_up.precise_origin_tstamp.sec_lsb = htonl(t->sec_lsb);
-    ptp_msg->follow_up.precise_origin_tstamp.ns = htonl(t->ns);
+    ptp_msg->follow_up.precise_origin_tstamp.sec_msb = PKT_HTONS(t->sec_msb);
+    ptp_msg->follow_up.precise_origin_tstamp.sec_lsb = PKT_HTONL(t->sec_lsb);
+    ptp_msg->follow_up.precise_origin_tstamp.ns = PKT_HTONL(t->ns);
 
     return true;
 }
@@ -144,7 +144,7 @@ bool PTPEngine::prepare_delayed_req(rte_mbuf_t* mbuf) {
     // Setup Ethernet header
     ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
     rte_eth_macaddr_get(tx_port_id, &eth_hdr->s_addr);
-    eth_hdr->ether_type = htons(PTP_PROTOCOL);
+    eth_hdr->ether_type = PKT_HTONS(EthernetHeader::Protocol::PTP);
 
     /* Set multicast address 01-1B-19-00-00-00. */
     ether_addr_copy(&ether_multicast, &eth_hdr->d_addr);
@@ -180,7 +180,7 @@ bool PTPEngine::prepare_delayed_resp(rte_mbuf_t* mbuf, struct tstamp* t) {
     // Setup Ethernet header
     ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
     rte_eth_macaddr_get(tx_port_id, &eth_hdr->s_addr);
-    eth_hdr->ether_type = htons(PTP_PROTOCOL);
+    eth_hdr->ether_type = PKT_HTONS(EthernetHeader::Protocol::PTP);
 
     /* Set multicast address 01-1B-19-00-00-00. */
     ether_addr_copy(&ether_multicast, &eth_hdr->d_addr);
@@ -200,9 +200,9 @@ bool PTPEngine::prepare_delayed_resp(rte_mbuf_t* mbuf, struct tstamp* t) {
     // Setup PTP delayed response
     set_port_id(&(ptp_msg->delay_resp.req_port_id), eth_hdr);
 
-    ptp_msg->delay_resp.rx_tstamp.sec_msb = htons(t->sec_msb);
-    ptp_msg->delay_resp.rx_tstamp.sec_lsb = htonl(t->sec_lsb);
-    ptp_msg->delay_resp.rx_tstamp.ns = htonl(t->ns);
+    ptp_msg->delay_resp.rx_tstamp.sec_msb = PKT_HTONS(t->sec_msb);
+    ptp_msg->delay_resp.rx_tstamp.sec_lsb = PKT_HTONL(t->sec_lsb);
+    ptp_msg->delay_resp.rx_tstamp.ns = PKT_HTONL(t->ns);
 
     return true;
 }
