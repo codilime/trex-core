@@ -774,8 +774,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 // with hardware timestamping we will wait using read_tx_timestamp 
                 // till get timestamp of sending to process to next step
                 // see: https://github.com/DPDK/dpdk/blob/master/examples/ptpclient/ptpclient.c#L476-L481
-                timesync_last = now_sec();
-                m_ptp_state = PTP_WAIT;
+                m_ptp_state = PTP_FOLLOW_UP_T1;
                 break;
 
             case PTP_FOLLOW_UP_T1:
@@ -819,18 +818,42 @@ struct CGenNodeTimesync : public CGenNodeBase {
      * get the current packet as MBUF
      */
     inline rte_mbuf_t *get_pkt() {
+        switch (m_ptp_state) {
 
-        // rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local( get_socket_id(), m_raw_packet->getTotalLen());
-        // assert(m);
+            case PTP_SYNC:
+                engine->prepare_sync(m);
+                break;
 
-        // char *p = rte_pktmbuf_append(m, m_raw_packet->getTotalLen());
-        // assert(p);
+            case PTP_FOLLOW_UP_T1:
+            case PTP_FOLLOW_UP_T3:{
+                PTP::tstamp stmp;
 
-        // /* copy the packet */
-        // memcpy(p, m_raw_packet->raw, m_raw_packet->getTotalLen());
+                stmp.sec_msb = 0xDEAD;
+                stmp.sec_lsb = 0xCCCCCCCC;
+                stmp.ns = 0xCAFEBABE;
+                engine->prepare_follow_up(m, &stmp);
+            }break;
 
+            case PTP_DELAYED_REQ:
+                engine->prepare_delayed_req(m);
+                break;
 
-        engine->prepare_sync(m);
+            case PTP_DELAYED_RESP:{
+                PTP::tstamp stmp;
+
+                stmp.sec_msb = 0xDEAD;
+                stmp.sec_lsb = 0xCCCCCCCC;
+                stmp.ns = 0xCAFEBABE;
+                engine->prepare_delayed_resp(m, &stmp);
+            }break;
+
+            case PTP_MARKED_FOR_FREE:
+            case PTP_WAIT:
+            case PTP_INVALID:
+            default:
+                assert(0);
+        }
+
         return (m);
     }
 

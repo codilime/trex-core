@@ -3818,7 +3818,8 @@ void CNodeGenerator::handle_timesync_msg(CGenNodeTimesync *node, CFlowGenListPer
             node->handle(thread);
         }
         // schedule for next time synchronization check
-        node->m_time += node->m_next_time_offset;
+        // node->m_time += node->m_next_time_offset;
+        node->m_time += SYNC_TIME_OUT;
         m_p_queue.push((CGenNode *)node);
     }
 }
