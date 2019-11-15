@@ -6,24 +6,14 @@
 #include "trex_stl_ptp.h"
 
 static const struct ether_addr ether_multicast = {
-	.addr_bytes = {0x01, 0x1b, 0x19, 0x0, 0x0, 0x0}
+	//.addr_bytes = {0x01, 0x1b, 0x19, 0x0, 0x0, 0x0}
+    .addr_bytes = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}
 };
 
 using namespace PTP;
 
 size_t PTPEngine::pkt_size(){
     return sizeof(struct ether_hdr) + sizeof(struct ptp_message);
-}
-
-void set_clock_id(struct clock_id& clock, uint8_t* new_clock) {
-    clock.id[0] = new_clock[0];
-    clock.id[1] = new_clock[1];
-    clock.id[2] = new_clock[2];
-    clock.id[3] = new_clock[3];
-    clock.id[4] = new_clock[4];
-    clock.id[5] = new_clock[5];
-    clock.id[6] = new_clock[6];
-    clock.id[7] = new_clock[7];
 }
 
 // template<typename T,int size>
@@ -36,34 +26,38 @@ void set_clock_id(struct clock_id& clock, uint8_t* new_clock) {
 //     set_table(clock.id, new_clock);
 // }
 
+void PTPEngine::set_port_id(PTP::port_id* port_id, ether_hdr* eth_hdr) {
+    // 3 bytes  from MAC Addr
+    // 0xFF 0xFE
+    // next 3 bytes from MAC Addr
+    port_id->clock_id.id[0] = eth_hdr->s_addr.addr_bytes[0];
+    port_id->clock_id.id[1] = eth_hdr->s_addr.addr_bytes[1];
+    port_id->clock_id.id[2] = eth_hdr->s_addr.addr_bytes[2];
+    port_id->clock_id.id[3] = 0xFF;
+    port_id->clock_id.id[4] = 0xFE;
+    port_id->clock_id.id[5] = eth_hdr->s_addr.addr_bytes[3];
+    port_id->clock_id.id[6] = eth_hdr->s_addr.addr_bytes[4];
+    port_id->clock_id.id[7] = eth_hdr->s_addr.addr_bytes[5];
+
+    port_id->port_number = 0;
+}
+
 void PTPEngine::prepare_header(ptp_header* header, PTP::message_type type, uint16_t seq_number) {
     assert(header);
 
     header->msg_type = type;
     header->ver = PTP::version::PTPv2;
-    header->message_length = htons(sizeof(struct ptp_message));
+    header->message_length = htons(sizeof(ptp_message));
     header->domain_number = 0;
     // header->reserved1 = 0;
-    header->flag_field.hb = 0;
-    header->flag_field.lb = 0;
     header->correction = 0;
     // header->reserved2 = 0;
 
-    // set_clock_id(header->source_port_id.clock_id, &master_clock_id);
-    header->source_port_id.clock_id.id[0] = 0;
-    header->source_port_id.clock_id.id[1] = 0;
-    header->source_port_id.clock_id.id[2] = 0;
-    header->source_port_id.clock_id.id[3] = 0;
-    header->source_port_id.clock_id.id[4] = 0;
-    header->source_port_id.clock_id.id[5] = 0;
-    header->source_port_id.clock_id.id[6] = 0;
-    header->source_port_id.clock_id.id[7] = 1;
-
-    header->source_port_id.port_number = 0;
-
     header->seq_id = htons(seq_number);
 
-    header->control = 0;
+    header->flag_field = PTP::PTP_NONE;
+
+    header->control = PTP::controlField::CTL_SYNC;
     header->log_message_interval = 127;
 }
 
@@ -71,58 +65,145 @@ void PTPEngine::prepare_header(ptp_header* header, PTP::message_type type, uint1
 bool PTPEngine::prepare_sync(rte_mbuf_t* mbuf) {
     assert(mbuf);
 
+    // Setup mbuf common
     mbuf->data_len = pkt_size();
     mbuf->pkt_len = pkt_size();
 
-    struct ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, struct ether_hdr *);
+    // Setup Ethernet header
+    ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
     rte_eth_macaddr_get(0, &eth_hdr->s_addr);
     eth_hdr->ether_type = htons(PTP_PROTOCOL);
 
     /* Set multicast address 01-1B-19-00-00-00. */
     ether_addr_copy(&ether_multicast, &eth_hdr->d_addr);
 
-    //eth_hdr->ether_type = htons(PTP_PROTOCOL);
-    struct ptp_message* ptp_msg = (struct ptp_message *)
-        (rte_pktmbuf_mtod(mbuf, char *) + sizeof(struct ether_hdr));
+    // Setup PTP message
+    ptp_message* ptp_msg = rte_pktmbuf_mtod_offset(mbuf, ptp_message*, sizeof(ether_hdr));
 
-    prepare_header(&(ptp_msg->header), PTP::message_type::SYNC, 0);
+    // Setup PTP header
+    ptp_header* ptp_hdr = &(ptp_msg->sync.hdr);
 
-    /* Enable flag for hardware timestamping. */
+    prepare_header(ptp_hdr, PTP::message_type::SYNC, 0);
+    ptp_hdr->flag_field = PTP::flag_field::PTP_TWO_STEP;
+    set_port_id(&(ptp_hdr->source_port_id), eth_hdr);
+
+    // Enable flag for hardware timestamping.
     mbuf->ol_flags |= PKT_TX_IEEE1588_TMST;
 
-    ptp_msg->sync.origin_tstamp.sec_msb = htons(0xDEAD);
-    ptp_msg->sync.origin_tstamp.sec_lsb = htons(0xBEEF);
-    ptp_msg->sync.origin_tstamp.ns = htons(0xCAFE);
+    // Setup PTP sync
+    // As we do not support PTP_ONE_WAY currently, this is set to 0
+    ptp_msg->sync.origin_tstamp.sec_msb = 0;
+    ptp_msg->sync.origin_tstamp.sec_lsb = 0;
+    ptp_msg->sync.origin_tstamp.ns = 0;
 
-    // /*Read value from NIC to prevent latching with old value. */
-    // rte_eth_timesync_read_tx_timestamp(ptp_data->portid,
-    // 		&ptp_data->tstamp3);
-
-    // /* Transmit the packet. */
-    // rte_eth_tx_burst(ptp_data->portid, 0, &created_pkt, 1);
-
-    // wait_us = 0;
-    // ptp_data->tstamp3.tv_nsec = 0;
-    // ptp_data->tstamp3.tv_sec = 0;
-
-    // /* Wait at least 1 us to read TX timestamp. */
-    // while ((rte_eth_timesync_read_tx_timestamp(ptp_data->portid,
-    // 		&ptp_data->tstamp3) < 0) && (wait_us < 1000)) {
-    // 	rte_delay_us(1);
-    // 	wait_us++;
-    // }
     return true;
 }
 
 bool PTPEngine::prepare_follow_up(rte_mbuf_t* mbuf, struct tstamp* t) {
+    assert(mbuf);
+
+    // Setup mbuf common
+    mbuf->data_len = pkt_size();
+    mbuf->pkt_len = pkt_size();
+
+    // Setup Ethernet header
+    ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
+    rte_eth_macaddr_get(0, &eth_hdr->s_addr);
+    eth_hdr->ether_type = htons(PTP_PROTOCOL);
+
+    /* Set multicast address 01-1B-19-00-00-00. */
+    ether_addr_copy(&ether_multicast, &eth_hdr->d_addr);
+
+    // Setup PTP message
+    ptp_message* ptp_msg = rte_pktmbuf_mtod_offset(mbuf, ptp_message*, sizeof(ether_hdr));
+
+    // Setup PTP header
+    ptp_header* ptp_hdr = &(ptp_msg->follow_up.hdr);
+
+    prepare_header(ptp_hdr, PTP::message_type::FOLLOW_UP, 0);
+    set_port_id(&(ptp_hdr->source_port_id), eth_hdr);
+
+    /* Enable flag for hardware timestamping. */
+    mbuf->ol_flags |= PKT_TX_IEEE1588_TMST;
+
+    // Setup PTP sync
+    ptp_msg->follow_up.precise_origin_tstamp.sec_msb = htons(t->sec_msb);
+    ptp_msg->follow_up.precise_origin_tstamp.sec_lsb = htonl(t->sec_lsb);
+    ptp_msg->follow_up.precise_origin_tstamp.ns = htonl(t->ns);
+
     return true;
 }
 
 bool PTPEngine::prepare_delayed_req(rte_mbuf_t* mbuf) {
+    assert(mbuf);
+
+    // Setup mbuf common
+    mbuf->data_len = pkt_size();
+    mbuf->pkt_len = pkt_size();
+
+    // Setup Ethernet header
+    ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
+    rte_eth_macaddr_get(0, &eth_hdr->s_addr);
+    eth_hdr->ether_type = htons(PTP_PROTOCOL);
+
+    /* Set multicast address 01-1B-19-00-00-00. */
+    ether_addr_copy(&ether_multicast, &eth_hdr->d_addr);
+
+    // Setup PTP message
+    ptp_message* ptp_msg = rte_pktmbuf_mtod_offset(mbuf, ptp_message*, sizeof(ether_hdr));
+
+    // Setup PTP header
+    ptp_header* ptp_hdr = &(ptp_msg->delay_req.hdr);
+
+    prepare_header(ptp_hdr, PTP::message_type::DELAY_REQ, 0);
+    set_port_id(&(ptp_hdr->source_port_id), eth_hdr);
+
+    /* Enable flag for hardware timestamping. */
+    mbuf->ol_flags |= PKT_TX_IEEE1588_TMST;
+
+    // Setup PTP delayed request
+    // As we do not support PTP_ONE_WAY currently, this is set to 0
+    ptp_msg->delay_req.origin_tstamp.sec_msb = 0;
+    ptp_msg->delay_req.origin_tstamp.sec_lsb = 0;
+    ptp_msg->delay_req.origin_tstamp.ns = 0;
+
     return true;
 }
 
-bool PTPEngine::prepare_delayed_resp(rte_mbuf_t* mbuf) {
+bool PTPEngine::prepare_delayed_resp(rte_mbuf_t* mbuf, struct tstamp* t) {
+    assert(mbuf);
+
+    // Setup mbuf common
+    mbuf->data_len = pkt_size();
+    mbuf->pkt_len = pkt_size();
+
+    // Setup Ethernet header
+    ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
+    rte_eth_macaddr_get(0, &eth_hdr->s_addr);
+    eth_hdr->ether_type = htons(PTP_PROTOCOL);
+
+    /* Set multicast address 01-1B-19-00-00-00. */
+    ether_addr_copy(&ether_multicast, &eth_hdr->d_addr);
+
+    // Setup PTP message
+    ptp_message* ptp_msg = rte_pktmbuf_mtod_offset(mbuf, ptp_message*, sizeof(ether_hdr));
+
+    // Setup PTP header
+    ptp_header* ptp_hdr = &(ptp_msg->delay_resp.hdr);
+
+    prepare_header(ptp_hdr, PTP::message_type::DELAY_RESP, 0);
+    set_port_id(&(ptp_hdr->source_port_id), eth_hdr);
+
+    /* Enable flag for hardware timestamping. */
+    mbuf->ol_flags |= PKT_TX_IEEE1588_TMST;
+
+    // Setup PTP delayed response
+    set_port_id(&(ptp_msg->delay_resp.req_port_id), eth_hdr);
+
+    ptp_msg->delay_resp.rx_tstamp.sec_msb = htons(t->sec_msb);
+    ptp_msg->delay_resp.rx_tstamp.sec_lsb = htonl(t->sec_lsb);
+    ptp_msg->delay_resp.rx_tstamp.ns = htonl(t->ns);
+
     return true;
 }
 
