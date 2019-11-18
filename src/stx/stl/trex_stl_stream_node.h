@@ -735,23 +735,35 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
     /* cache line 1 */
     /* this cache line would better be readonly but is not */
-    double m_ptp_t1;
-    double m_ptp_t2;
-    double m_ptp_t3;
-    double m_ptp_t4;
+    //double m_ptp_t1;
+    //double m_ptp_t2;
+    //double m_ptp_t3;
+    //double m_ptp_t4;
+    timespec m_ptp_t1;
+    timespec m_ptp_t2;
+    timespec m_ptp_t3;
+    timespec m_ptp_t4;
     TrexStream *m_ref_stream_info;
     uint8_t m_port_id;
     uint32_t m_profile_id;
     rte_mbuf_t* m;
     PTP::PTPEngine* engine;
-    uint64_t m_pad_1[8];
+    uint64_t m_pad_1[4];
 
   public:
+    inline void cleanup() {
+        m_ptp_t1 = {0 , 0};
+        m_ptp_t2 = {0 , 0};
+        m_ptp_t3 = {0 , 0};
+        m_ptp_t4 = {0 , 0};
+    }
+
     inline void init() {
-        engine = new PTP::PTPEngine();
+        engine = new PTP::PTPEngine(m_port_id);
         set_slow_path(true);
         set_send_immediately(true);
         m_ptp_state = PTP_WAIT;
+        cleanup();
     }
 
     inline void handle(CFlowGenListPerThread *thread) {
@@ -765,6 +777,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 break;
 
             case PTP_SYNC:
+                cleanup();
                 thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
                 // probably need to implement read_timesync(tx/rx) in CVirtualIF
 
@@ -774,6 +787,12 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 // with hardware timestamping we will wait using read_tx_timestamp 
                 // till get timestamp of sending to process to next step
                 // see: https://github.com/DPDK/dpdk/blob/master/examples/ptpclient/ptpclient.c#L476-L481
+
+                if(clock_gettime(CLOCK_REALTIME, &m_ptp_t1) != 0) {
+                    m_ptp_state = PTP_INVALID;
+                    break;
+                }
+
                 m_ptp_state = PTP_FOLLOW_UP_T1;
                 break;
 
@@ -792,6 +811,11 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 // t3 = rte_eth_timesync_read_tx_timestamp() or
                 // t3 = thread->m_node_gen.m_v_if->read_tx_timestamp()
                 // see comment in PTP_SYNC
+
+                if(clock_gettime(CLOCK_REALTIME, &m_ptp_t3) != 0) {
+                    m_ptp_state = PTP_INVALID;
+                    break;
+                }
                 m_ptp_state = PTP_FOLLOW_UP_T3;
 
                 // wait for delayed_request will be achived in RXCore
@@ -814,6 +838,12 @@ struct CGenNodeTimesync : public CGenNodeBase {
         }
     }
 
+    inline void tspec_to_tstamp(const timespec& ts, PTP::tstamp& tstamp){
+        tstamp.sec_msb = 0;
+        tstamp.sec_lsb = ts.tv_sec;
+        tstamp.ns = ts.tv_nsec;
+    }
+
     /**
      * get the current packet as MBUF
      */
@@ -824,13 +854,15 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 engine->prepare_sync(m);
                 break;
 
-            case PTP_FOLLOW_UP_T1:
+            case PTP_FOLLOW_UP_T1:{
+                PTP::tstamp stmp;
+                tspec_to_tstamp(m_ptp_t1, stmp);
+                engine->prepare_follow_up(m, &stmp);
+            }break;
+
             case PTP_FOLLOW_UP_T3:{
                 PTP::tstamp stmp;
-
-                stmp.sec_msb = 0xDEAD;
-                stmp.sec_lsb = 0xCCCCCCCC;
-                stmp.ns = 0xCAFEBABE;
+                tspec_to_tstamp(m_ptp_t3, stmp);
                 engine->prepare_follow_up(m, &stmp);
             }break;
 
@@ -840,10 +872,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
             case PTP_DELAYED_RESP:{
                 PTP::tstamp stmp;
-
-                stmp.sec_msb = 0xDEAD;
-                stmp.sec_lsb = 0xCCCCCCCC;
-                stmp.ns = 0xCAFEBABE;
+                tspec_to_tstamp(m_ptp_t4, stmp);
                 engine->prepare_delayed_resp(m, &stmp);
             }break;
 

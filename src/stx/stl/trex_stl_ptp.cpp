@@ -39,7 +39,7 @@ void PTPEngine::set_port_id(PTP::port_id* port_id, ether_hdr* eth_hdr) {
     port_id->clock_id.id[6] = eth_hdr->s_addr.addr_bytes[4];
     port_id->clock_id.id[7] = eth_hdr->s_addr.addr_bytes[5];
 
-    port_id->port_number = 0;
+    port_id->port_number = tx_port_id;
 }
 
 void PTPEngine::prepare_header(ptp_header* header, PTP::message_type type, uint16_t seq_number) {
@@ -71,7 +71,7 @@ bool PTPEngine::prepare_sync(rte_mbuf_t* mbuf) {
 
     // Setup Ethernet header
     ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
-    rte_eth_macaddr_get(0, &eth_hdr->s_addr);
+    rte_eth_macaddr_get(tx_port_id, &eth_hdr->s_addr);
     eth_hdr->ether_type = htons(PTP_PROTOCOL);
 
     /* Set multicast address 01-1B-19-00-00-00. */
@@ -108,7 +108,7 @@ bool PTPEngine::prepare_follow_up(rte_mbuf_t* mbuf, struct tstamp* t) {
 
     // Setup Ethernet header
     ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
-    rte_eth_macaddr_get(0, &eth_hdr->s_addr);
+    rte_eth_macaddr_get(tx_port_id, &eth_hdr->s_addr);
     eth_hdr->ether_type = htons(PTP_PROTOCOL);
 
     /* Set multicast address 01-1B-19-00-00-00. */
@@ -143,7 +143,7 @@ bool PTPEngine::prepare_delayed_req(rte_mbuf_t* mbuf) {
 
     // Setup Ethernet header
     ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
-    rte_eth_macaddr_get(0, &eth_hdr->s_addr);
+    rte_eth_macaddr_get(tx_port_id, &eth_hdr->s_addr);
     eth_hdr->ether_type = htons(PTP_PROTOCOL);
 
     /* Set multicast address 01-1B-19-00-00-00. */
@@ -179,7 +179,7 @@ bool PTPEngine::prepare_delayed_resp(rte_mbuf_t* mbuf, struct tstamp* t) {
 
     // Setup Ethernet header
     ether_hdr* eth_hdr = rte_pktmbuf_mtod(mbuf, ether_hdr *);
-    rte_eth_macaddr_get(0, &eth_hdr->s_addr);
+    rte_eth_macaddr_get(tx_port_id, &eth_hdr->s_addr);
     eth_hdr->ether_type = htons(PTP_PROTOCOL);
 
     /* Set multicast address 01-1B-19-00-00-00. */

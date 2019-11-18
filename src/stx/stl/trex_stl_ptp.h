@@ -59,7 +59,7 @@ enum flag_field : uint16_t {
     PTP_NONE = 0
 };
 
-inline flag_field operator|(flag_field a, flag_field b) {
+inline flag_field operator | (flag_field a, flag_field b) {
     return static_cast<flag_field>(static_cast<uint16_t>(a) | static_cast<uint16_t>(b));
 }
 
@@ -169,6 +169,14 @@ private:
     uint64_t timespec64_to_ns(const timespec& ts);
 
     timeval ns_to_timeval(int64_t nsec);
+
+    uint8_t tx_port_id;
+
+public:
+    PTPEngine(uint8_t _port_id) : tx_port_id(_port_id) {};
+    PTPEngine(const PTPEngine&) = default;
+    PTPEngine& operator=(const PTPEngine& other) = default;
+    virtual ~PTPEngine() = default;
 };
 
 }
