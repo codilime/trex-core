@@ -443,6 +443,7 @@ main_src = SrcGroup(dir='src',
              'bp_sim_tcp.cpp',
              'astf/astf_template_db.cpp',
              'stt_cp.cpp',
+             'trex_timesync.cpp',
              'trex_global.cpp',
              'trex_modes.cpp',
              'bp_sim.cpp',
@@ -585,7 +586,7 @@ stx_src = SrcGroup(dir='src/stx/common/',
         'trex_rx_rpc_tunnel.cpp',
         'trex_stack_linux_based.cpp',
         'trex_stx.cpp',
-        'trex_timesync.cpp',
+        'trex_rx_timesync.cpp',
     ])
 
 

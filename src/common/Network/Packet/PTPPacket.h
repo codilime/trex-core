@@ -43,7 +43,8 @@ struct PTPPacket {
     uint16_t originSecondsMsb;
     uint32_t originSecondsLsb;
     uint32_t originNanoseconds;
-};
+} __attribute__((packed));
+
 static_assert(std::is_standard_layout<PTPPacket>::value, "PTPPacket must be a simple linear data structure.");
 
 struct PTPPacketSync : PTPPacket {};
@@ -77,7 +78,8 @@ struct PTPPacketDelayedResp {
     uint32_t originNanoseconds;
     uint64_t reqClockIdentity;
     uint16_t reqSourcePortId;
-};
+} __attribute__((packed));
+
 static_assert(std::is_standard_layout<PTPPacketDelayedResp>::value,
               "PTPPacketDelayedResp must be a simple linear data structure.");
 
