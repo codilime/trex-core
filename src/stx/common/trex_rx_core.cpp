@@ -466,7 +466,8 @@ CRxCore::enable_latency() {
         // This is a sending part for time synchronisation.  Enable it only if `timesync-method`
         // is set and `timesync-interval` equals 0.
         if (CGlobalInfo::m_options.is_timesync_rx_enabled()) {
-            mngr_pair.second->enable_timesync(CGlobalInfo::m_options.m_timesync_method);
+            mngr_pair.second->enable_timesync(CGlobalInfo::get_timesync_engine());
+            assert(mngr_pair.second->m_timesync);
         }
     }
     

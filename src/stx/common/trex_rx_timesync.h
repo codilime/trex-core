@@ -1,11 +1,14 @@
-#ifndef __TREX_TIMESYNC_H__
-#define __TREX_TIMESYNC_H__
+#ifndef __TREX_RX_TIMESYNC_H__
+#define __TREX_RX_TIMESYNC_H__
 
 #include "stl/trex_stl_fs.h"
+
+#include <trex_timesync.h>
 
 #include <common/Network/Packet/EthernetHeader.h>
 #include <common/Network/Packet/PTPHeader.h>
 #include <common/Network/Packet/PTPPacket.h>
+
 
 typedef enum TimesyncPacketParser_err {
     TIMESYNC_PARSER_E_OK = 0,
@@ -22,12 +25,16 @@ typedef enum TimesyncPacketParser_err {
     // TIMESYNC_PARSER_E_VLAN_NEEDED,
 } TimesyncPacketParser_err_t;
 
+
 /**************************************
  * RXTimesync
  *************************************/
 class RXTimesync {
   public:
-    RXTimesync(uint8_t timesync_method) { m_timesync_method = timesync_method; };
+    RXTimesync(CTimesyncEngine *engine) {
+        m_timesync_engine = engine;
+        m_timesync_method = engine->getTimesyncMethod();
+    };
 
     void handle_pkt(const rte_mbuf_t *m, int port);
 
@@ -38,7 +45,8 @@ class RXTimesync {
     void hexdump(const unsigned char *msg, uint16_t len); // TODO remove
 
   private:
-    uint8_t m_timesync_method;
+    CTimesyncEngine *m_timesync_engine;
+    TimesyncMethod m_timesync_method;
 
     uint8_t *m_start;
     uint16_t m_len;

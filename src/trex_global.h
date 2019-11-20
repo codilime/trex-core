@@ -31,6 +31,7 @@ limitations under the License.
 #include "pal_utl.h"
 #include "trex_platform.h"
 #include "trex_modes.h"
+#include "trex_timesync.h"
 #include "hot_section.h"
 
 
@@ -510,11 +511,6 @@ public:
         // use clock_gettime(CLOCK_REALTIME,) - a slower but uses synchronisable time
     };
 
-    enum trex_timesync_method {
-        TIMESYNC_NONE = 0,
-        TIMESYNC_PTP = 1
-    };
-
 public:
 
     void reset() {
@@ -569,7 +565,7 @@ public:
         m_reta_mask=0;
         m_hdrh = false;
         m_latency_measurement = 0;
-        m_timesync_method = 0;
+        m_timesync_method = TimesyncMethod::NONE;
         m_timesync_interval = 0;
     }
 
@@ -634,7 +630,7 @@ public:
     uint8_t         m_latency_measurement;
     uint64_t        (*m_get_latency_timestamp)();
     double          (*m_timestamp_diff_to_dsec)(uint64_t);
-    uint8_t         m_timesync_method;
+    TimesyncMethod  m_timesync_method;
     uint32_t        m_timesync_interval;
 
 
@@ -716,7 +712,7 @@ public:
 
 
     inline bool is_timesync_enabled() {
-        return m_timesync_method != CParserOption::TIMESYNC_NONE;
+        return m_timesync_method != TimesyncMethod::NONE;
     }
 
     inline bool is_timesync_tx_enabled() {
@@ -725,6 +721,17 @@ public:
 
     inline bool is_timesync_rx_enabled() {
         return is_timesync_enabled() && (m_timesync_interval == 0);
+    }
+
+    inline const char *timesync_method_desc() {
+        switch (m_timesync_method) {
+        case TimesyncMethod::NONE:
+            return (const char *)"none";
+        case TimesyncMethod::PTP:
+            return (const char *)"PTP";
+        default:
+            return (const char *)"undefined";
+        }
     }
 
     inline uint8_t get_l_pkt_mode(){
@@ -976,6 +983,18 @@ public:
         rte_mempool_put(m_mem_pool[0].m_mbuf_global_nodes, p);
     }
 
+    static inline void timesync_engine_setup() {
+        m_timesync_engine.setTimesyncMethod(m_options.m_timesync_method);
+    }
+
+    static inline void timesync_engine_teardown() {
+        m_timesync_engine.setTimesyncMethod(TimesyncMethod::NONE);
+    }
+
+    static inline CTimesyncEngine *get_timesync_engine() {
+        return &m_timesync_engine;
+    }
+
 
     static void dump_pool_as_json(Json::Value &json);
 
@@ -988,6 +1007,7 @@ public:
     static CGlobalMemory         m_memory_cfg;
     static CPlatformSocketInfo   m_socket;
     static CDpdkMode             m_dpdk_mode;
+    static CTimesyncEngine       m_timesync_engine;
 };
 
 static inline CDpdkModeBase * get_dpdk_mode(){

@@ -106,6 +106,8 @@ extern "C" {
 #include "utl_offloads.h"
 #include "trex_defs.h"
 
+#include "trex_timesync.h"
+
 #define MAX_PKT_BURST   32
 #define BP_MAX_CORES 48
 #define BP_MASTER_AND_LATENCY 2
@@ -931,10 +933,10 @@ COLD_FUNC static int parse_options(int argc, char *argv[], bool first_time ) {
                 break;
             case OPT_TIME_SYNC_METHOD:
                 sscanf(args.OptionArg(), "%d", &tmp_data);
-                if (! po->is_valid_opt_val(tmp_data, CParserOption::TIMESYNC_NONE, CParserOption::TIMESYNC_PTP, "--timesync-method")) {
+                if (!po->is_valid_opt_val(tmp_data, (uint8_t)TimesyncMethod::NONE, (uint8_t)TimesyncMethod::PTP, "--timesync-method")) {
                     exit(-1);
                 }
-                CGlobalInfo::m_options.m_timesync_method = (uint8_t)tmp_data;
+                CGlobalInfo::m_options.m_timesync_method = (TimesyncMethod)tmp_data;
                 break;
             case OPT_TIME_SYNC_PERIOD:
                 sscanf(args.OptionArg(), "%d", &CGlobalInfo::m_options.m_timesync_interval);
@@ -3720,6 +3722,9 @@ COLD_FUNC bool CGlobalTRex::Create(){
         assert(0);
     }
 
+    if (CGlobalInfo::m_options.is_timesync_enabled()) {
+        CGlobalInfo::timesync_engine_setup();
+    }
     
     return (true);
 
@@ -5116,6 +5121,10 @@ COLD_FUNC int CGlobalTRex::stop_master(){
         printf("ERROR: there are not enogth clients for this rate, try to add more clients to the pool ! \n");
     }
 
+    if (CGlobalInfo::m_options.is_timesync_enabled()) {
+        CGlobalInfo::timesync_engine_teardown();
+    }
+
     return (0);
 }
 
@@ -6007,7 +6016,7 @@ COLD_FUNC int update_global_info_from_platform_file(){
     if (cg->m_timesync_method.length()) {
         if ((cg->m_timesync_method.compare("PTP") == 0) ||
             (cg->m_timesync_method.compare("1") == 0)) {
-            g_opts->m_timesync_method = CParserOption::TIMESYNC_PTP;
+            g_opts->m_timesync_method = TimesyncMethod::PTP;
         }
     }
 
@@ -6456,12 +6465,11 @@ COLD_FUNC int main_test(int argc , char * argv[]){
 
     check_pdev_vdev_dummy();
 
-    if (CGlobalInfo::m_options.m_timesync_method == CParserOption::TIMESYNC_PTP) {
-        if (CGlobalInfo::m_options.m_timesync_interval == 0) {
-            printf("Enabled PTP time synchronisation (as slave).\n");
-        } else {
-            printf("Enabled PTP time synchronisation every %d seconds (as master).\n", CGlobalInfo::m_options.m_timesync_interval);
-        }
+    if (CGlobalInfo::m_options.is_timesync_rx_enabled()) {
+        printf("Enabled %s time synchronisation (as slave).\n", CGlobalInfo::m_options.timesync_method_desc());
+    } else if (CGlobalInfo::m_options.is_timesync_tx_enabled()) {
+        printf("Enabled %s time synchronisation (as master) every %d seconds.\n",
+               CGlobalInfo::m_options.timesync_method_desc(), CGlobalInfo::m_options.m_timesync_interval);
     } else {
         printf("Time synchronisation disabled.\n");
     }

@@ -747,8 +747,9 @@ struct CGenNodeTimesync : public CGenNodeBase {
     uint8_t m_port_id;
     uint32_t m_profile_id;
     rte_mbuf_t* m;
-    PTP::PTPEngine* engine;
-    uint64_t m_pad_1[4];
+    PTP::PTPEngine* engine;  // TODO: remove PTPEngine and move to CTimesyncEngine
+    CTimesyncEngine *m_timesync_engine;
+    uint64_t m_pad_1[3];
 
   public:
     inline void cleanup() {
@@ -760,10 +761,16 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
     inline void init() {
         engine = new PTP::PTPEngine(m_port_id);
+        m_timesync_engine = CGlobalInfo::get_timesync_engine();
+        assert(m_timesync_engine);
         set_slow_path(true);
         set_send_immediately(true);
         m_ptp_state = PTP_WAIT;
         cleanup();
+    }
+
+    inline void teardown() {
+        m_timesync_engine = nullptr;
     }
 
     inline void handle(CFlowGenListPerThread *thread) {

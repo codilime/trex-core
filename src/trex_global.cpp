@@ -30,6 +30,7 @@ CParserOption       CGlobalInfo::m_options;
 CGlobalMemory       CGlobalInfo::m_memory_cfg;
 CPlatformSocketInfo CGlobalInfo::m_socket;
 CDpdkMode           CGlobalInfo::m_dpdk_mode;
+CTimesyncEngine     CGlobalInfo::m_timesync_engine;
 
 
 void CGlobalMemory::Dump(FILE *fd){
