@@ -628,8 +628,8 @@ public:
     uint32_t        x710_fdir_reset_threshold;
 
     uint8_t         m_latency_measurement;
-    uint64_t        (*m_get_latency_timestamp)();
-    double          (*m_timestamp_diff_to_dsec)(uint64_t);
+    uint64_t        (*get_latency_timestamp)();
+    double          (*timestamp_diff_to_dsec)(uint64_t);
     TimesyncMethod  m_timesync_method;
     uint32_t        m_timesync_interval;
 

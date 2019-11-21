@@ -40,15 +40,24 @@ class CTimesyncEngine {
     CTimesyncEngine() { m_timesync_method = TimesyncMethod::NONE; }
 
     inline void setTimesyncMethod(TimesyncMethod method) { m_timesync_method = method; }
+
     inline TimesyncMethod getTimesyncMethod() { return m_timesync_method; }
 
     inline void setPortState(int port, TimesyncState state) { m_timesync_states[port] = state; }
-    inline TimesyncState getPortState(int port);
+
+    inline TimesyncState getPortState(int port) {
+        auto state = m_timesync_states.find(port);
+        if (state != m_timesync_states.end()) {
+            return state->second;
+        } else {
+            return TimesyncState::UNKNOWN;
+        }
+    }
 
     void sentAdvertisement(int port);
     void sentPTPSync(int port);
     void sentPTPFollowUp(int port);
-    void sentPTPDelayReq(int port);
+    void sentPTPDelayReq(int port, uint64_t sent_timestamp);
     void sentPTPDelayResp(int port);
 
     void receivedAdvertisement(int port);
@@ -56,17 +65,15 @@ class CTimesyncEngine {
     void receivedPTPFollowUp(int port, timespec t1);
     void receivedPTPDelayReq(int port);
     void receivedPTPDelayResp(int port, timespec t4);
-    // TODO mateusz: write method that will preceed real PTP communication (a.k.a. advertisement, announcement) for PTP
-    //               slave to let know PTP master of its MAC/IP.
-
-    // TODO mateusz: write methods that are called upon receiving specific packages (i.e. PTP SYNC, PTP, FOLLOW UP etc.)
 
   public:
     const char *descTimesyncState(int port);
 
   private:
+    timespec timestampToTimespec(uint64_t timestamp);
+
+  private:
     TimesyncMethod m_timesync_method;
-    // TimesyncState m_timesync_state;
     std::unordered_map<int, TimesyncState> m_timesync_states;
     timespec m_ptp_t1;
     timespec m_ptp_t2;

@@ -5020,8 +5020,8 @@ class latency_stats: public trexStlTest {
 
     static void SetUpTestCase() {
         CParserOption * po = &CGlobalInfo::m_options;
-        po->m_get_latency_timestamp = &os_get_hr_tick_64;
-        po->m_timestamp_diff_to_dsec = &ptime_convert_hr_dsec;
+        po->get_latency_timestamp = &os_get_hr_tick_64;
+        po->timestamp_diff_to_dsec = &ptime_convert_hr_dsec;
     }
 };
 

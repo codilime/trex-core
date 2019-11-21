@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <bitset>
 #include <mbuf.h>
-#include <rte_ether.h>
+// #include <rte_ether.h>
 
 #include <common/Network/Packet/EthernetHeader.h>
 

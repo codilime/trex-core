@@ -21,19 +21,12 @@ limitations under the License.
 
 #include "trex_timesync.h"
 
-TimesyncState CTimesyncEngine::getPortState(int port) {
-    auto state = m_timesync_states.find(port);
-    if (state != m_timesync_states.end()) {
-        return state->second;
-    } else {
-        return TimesyncState::UNKNOWN;
-    }
-}
+#include "trex_global.h"
 
 void CTimesyncEngine::sentAdvertisement(int port) {
     printf("MATEUSZ CTimesyncEngine::sentAdvertisement\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-    setPortState(port, TimesyncState::INIT);
     // TODO: S has just sent the advertisement message
+    setPortState(port, TimesyncState::WAIT);
 }
 
 void CTimesyncEngine::sentPTPSync(int port) {
@@ -49,11 +42,13 @@ void CTimesyncEngine::sentPTPFollowUp(int port) {
     // TODO: M has just sent the follow up message
 }
 
-void CTimesyncEngine::sentPTPDelayReq(int port) {
+void CTimesyncEngine::sentPTPDelayReq(int port, uint64_t sent_timestamp) {
     if (getPortState(port) != TimesyncState::WORK)
         return;
     printf("MATEUSZ CTimesyncEngine::sentPTPDelayReq\tport=%d\tstate=%s\n", port, descTimesyncState(port));
+    m_ptp_t3 = timestampToTimespec(sent_timestamp);
     // TODO: S has just sent the delayed request message
+    setPortState(port, TimesyncState::WAIT);
 }
 
 void CTimesyncEngine::sentPTPDelayResp(int port) {
@@ -81,8 +76,11 @@ void CTimesyncEngine::receivedPTPSync(int port) {
 }
 
 void CTimesyncEngine::receivedPTPFollowUp(int port, timespec t1) {
-    if (getPortState(port) != TimesyncState::WORK)
+    m_ptp_t2 = timestampToTimespec(CGlobalInfo::m_options.get_latency_timestamp());
+    if (getPortState(port) != TimesyncState::WORK) {
+        m_ptp_t2 = {0, 0};
         return;
+    }
     printf("MATEUSZ CTimesyncEngine::receivedPTPFollowUp\tport=%d\tstate=%s\tt1=%ld.%ld\n", port,
            descTimesyncState(port), t1.tv_sec, t1.tv_nsec);
     // TODO: S got the follow up message with master's t1
@@ -119,3 +117,8 @@ const char *CTimesyncEngine::descTimesyncState(int port) {
     }
     return "NONE";
 }
+
+timespec CTimesyncEngine::timestampToTimespec(uint64_t timestamp) {
+    return {(uint32_t)(timestamp / (1000 * 1000 * 1000)), (uint32_t)(timestamp % (1000 * 1000 * 1000))};
+};
+
