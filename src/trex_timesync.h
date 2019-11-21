@@ -25,9 +25,11 @@ limitations under the License.
 #include <stdint.h>
 #include <stdlib.h>
 
+#include <unordered_map>
+
 enum struct TimesyncMethod : uint8_t { NONE = 0, PTP = 1 };
 
-enum struct TimesyncState : uint8_t { INIT = 0x31, WORK, WAIT, TERMINATE };
+enum struct TimesyncState : uint8_t { INIT = 0x31, WORK, WAIT, TERMINATE, UNKNOWN };
 
 /**
  * Time synchronization engine
@@ -35,22 +37,37 @@ enum struct TimesyncState : uint8_t { INIT = 0x31, WORK, WAIT, TERMINATE };
 class CTimesyncEngine {
 
   public:
-    CTimesyncEngine() {
-        m_timesync_method = TimesyncMethod::NONE;
-        m_timesync_state = TimesyncState::INIT;
-    }
+    CTimesyncEngine() { m_timesync_method = TimesyncMethod::NONE; }
 
     inline void setTimesyncMethod(TimesyncMethod method) { m_timesync_method = method; }
     inline TimesyncMethod getTimesyncMethod() { return m_timesync_method; }
 
+    inline void setPortState(int port, TimesyncState state) { m_timesync_states[port] = state; }
+    inline TimesyncState getPortState(int port);
+
+    void sentAdvertisement(int port);
+    void sentPTPSync(int port);
+    void sentPTPFollowUp(int port);
+    void sentPTPDelayReq(int port);
+    void sentPTPDelayResp(int port);
+
+    void receivedAdvertisement(int port);
+    void receivedPTPSync(int port);
+    void receivedPTPFollowUp(int port, timespec t1);
+    void receivedPTPDelayReq(int port);
+    void receivedPTPDelayResp(int port, timespec t4);
     // TODO mateusz: write method that will preceed real PTP communication (a.k.a. advertisement, announcement) for PTP
     //               slave to let know PTP master of its MAC/IP.
 
     // TODO mateusz: write methods that are called upon receiving specific packages (i.e. PTP SYNC, PTP, FOLLOW UP etc.)
 
+  public:
+    const char *descTimesyncState(int port);
+
   private:
     TimesyncMethod m_timesync_method;
-    TimesyncState m_timesync_state;
+    // TimesyncState m_timesync_state;
+    std::unordered_map<int, TimesyncState> m_timesync_states;
     timespec m_ptp_t1;
     timespec m_ptp_t2;
     timespec m_ptp_t3;

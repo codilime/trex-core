@@ -32,9 +32,7 @@ struct PTPPacket {
     inline uint16_t getOriginSecondsMsb() { return PKT_NTOHS(originSecondsMsb); }
     inline uint32_t getOriginSecondsLsb() { return PKT_NTOHL(originSecondsLsb); }
     inline uint32_t getOriginNanoseconds() { return PKT_NTOHL(originNanoseconds); }
-    inline double getOriginTimestamp() {
-        return (double)((uint64_t)(getOriginSecondsMsb()) << 32) + (double)getOriginSecondsLsb() +
-               (double)(getOriginNanoseconds()) / 1000.0 / 1000.0 / 1000.0;
+    inline timespec getOriginTimestamp() { return {getOriginSecondsLsb(), getOriginNanoseconds()};
     }
 
     void dump(FILE *fd);
@@ -63,10 +61,7 @@ struct PTPPacketDelayedResp {
     inline uint16_t getOriginSecondsMsb() { return PKT_NTOHS(originSecondsMsb); }
     inline uint32_t getOriginSecondsLsb() { return PKT_NTOHL(originSecondsLsb); }
     inline uint32_t getOriginNanoseconds() { return PKT_NTOHL(originNanoseconds); }
-    inline double getOriginTimestamp() {
-        return (double)((uint64_t)(getOriginSecondsMsb()) << 32) + (double)getOriginSecondsLsb() +
-               (double)(getOriginNanoseconds()) / 1000.0 / 1000.0 / 1000.0;
-    }
+    inline timespec getOriginTimestamp() { return {getOriginSecondsLsb(), getOriginNanoseconds()}; }
     inline uint64_t getReqClockIdentity() { return PKT_NTOHLL(reqClockIdentity); }
     inline uint16_t getReqSourcePortId() { return PKT_NTOHS(reqSourcePortId); }
 

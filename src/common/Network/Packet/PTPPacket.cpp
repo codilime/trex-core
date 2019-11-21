@@ -21,7 +21,7 @@ void PTPPacket::dump(FILE *fd) {
     fprintf(fd, "\nSeconds (msb) 0x%.4X (%u), Seconds (lsb) (0x%.8X (%lu)), Nanoseconds (0x%.8X (%lu))",
             getOriginSecondsMsb(), getOriginSecondsMsb(), getOriginSecondsLsb(), getOriginSecondsLsb(),
             getOriginNanoseconds(), getOriginNanoseconds());
-    fprintf(fd, "\nTimestamp %g", getOriginTimestamp());
+    fprintf(fd, "\nTimestamp %ld.%ld", getOriginTimestamp().tv_sec, getOriginTimestamp().tv_nsec);
     fprintf(fd, "\n");
 }
 
@@ -30,7 +30,7 @@ void PTPPacketDelayedResp::dump(FILE *fd) {
     fprintf(fd, "\nSeconds (msb) 0x%.4X (%u), Seconds (lsb) (0x%.8X (%lu)), Nanoseconds (0x%.8X (%lu))",
             getOriginSecondsMsb(), getOriginSecondsMsb(), getOriginSecondsLsb(), getOriginSecondsLsb(),
             getOriginNanoseconds(), getOriginNanoseconds());
-    fprintf(fd, "\nTimestamp %g", getOriginTimestamp());
+    fprintf(fd, "\nTimestamp %ld.%ld", getOriginTimestamp().tv_sec, getOriginTimestamp().tv_nsec);
     fprintf(fd, "\nRequesting ClockIdentity 0x%.16lX, Requesting SourcePortId %d", getReqClockIdentity(),
             getReqSourcePortId());
     fprintf(fd, "\n");
