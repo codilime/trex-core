@@ -152,7 +152,7 @@ void RXLatency::handle_pkt(const rte_mbuf_t *m, int port) {
           struct flow_stat_payload_header *fsp_head =
               (flow_stat_payload_header *)utl_rte_pktmbuf_get_last_bytes(
                   m, sizeof(struct flow_stat_payload_header), tmp_buf);
-          hr_time_t hr_time_now = CGlobalInfo::m_options.m_get_latency_timestamp();
+          hr_time_t hr_time_now = CGlobalInfo::m_options.get_latency_timestamp();
           update_stats_for_pkt(fsp_head, m->pkt_len, hr_time_now);
         } else {
           uint16_t hw_id = get_hw_id((uint16_t)ip_id);
@@ -228,7 +228,7 @@ RXLatency::handle_correct_flow(
     m_rx_pg_stat_payload[hw_id].add_pkts(1);
     m_rx_pg_stat_payload[hw_id].add_bytes(pkt_len + 4); // +4 for ethernet CRC
     uint64_t d = (hr_time_now - fsp_head->time_stamp );
-    dsec_t ctime = CGlobalInfo::m_options.m_timestamp_diff_to_dsec(d);
+    dsec_t ctime = CGlobalInfo::m_options.timestamp_diff_to_dsec(d);
     curr_rfc2544->add_sample(ctime);
 }
 

@@ -1,6 +1,6 @@
 #include "trex_rx_timesync.h"
 
-#include "trex_global.h"
+#include <trex_global.h>
 
 /**************************************
  * RXTimesync
@@ -9,7 +9,6 @@
 
 void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
     if (m_timesync_method == TimesyncMethod::PTP) {
-        printf("Syncing time with PTP method (slave side)\tengine=%p.\n", m_timesync_engine);
 #ifdef _DEBUG
         printf("PTP time synchronisation is currently not supported (but we are working on that).\n");
 #endif
@@ -19,12 +18,11 @@ void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
 }
 
 TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len, int port) {
-    PTP::Header* header;
+    PTP::Header *header;
 
     if (pkt == NULL) {
         return TIMESYNC_PARSER_E_NO_DATA;
     }
-    hexdump(pkt, len);
 
     // TODO what about vxlan support (a.k.a. CFlowStatParser.m_flags |= FSTAT_PARSER_VXLAN_SKIP)
 
@@ -37,6 +35,7 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
     if (next_hdr != EthernetHeader::Protocol::PTP) {
         return TIMESYNC_PARSER_E_UNKNOWN_HDR;
     }
+    hexdump(pkt, len);
     uint16_t pkt_offset = ether_hdr->getSize();
     if (len < pkt_offset + PTP_HDR_LEN)
         return TIMESYNC_PARSER_E_SHORT_PTP_HEADER;
@@ -50,26 +49,26 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
     hexdump(pkt + pkt_offset, len - pkt_offset);
 
     switch (header->trn_and_msg.msg_type()) {
-    case PTP::Field::message_type::SYNC:{
-        PTP::SyncPacket* sync = reinterpret_cast<PTP::SyncPacket *>(pkt + pkt_offset);
+    case PTP::Field::message_type::SYNC: {
+        PTP::SyncPacket *sync = reinterpret_cast<PTP::SyncPacket *>(pkt + pkt_offset);
         m_timesync_engine->receivedPTPSync(port);
         sync->dump(stdout);
-    }break;
-    case PTP::Field::message_type::FOLLOW_UP:{
-        PTP::FollowUpPacket* followup = reinterpret_cast<PTP::FollowUpPacket *>(pkt + pkt_offset);
+    } break;
+    case PTP::Field::message_type::FOLLOW_UP: {
+        PTP::FollowUpPacket *followup = reinterpret_cast<PTP::FollowUpPacket *>(pkt + pkt_offset);
         m_timesync_engine->receivedPTPFollowUp(port, followup->origin_timestamp.get_timestamp());
         followup->dump(stdout);
-    }break;
-    case PTP::Field::message_type::DELAY_REQ:{
-        PTP::DelayedReqPacket* delay_req = reinterpret_cast<PTP::DelayedReqPacket *>(pkt + pkt_offset);
+    } break;
+    case PTP::Field::message_type::DELAY_REQ: {
+        PTP::DelayedReqPacket *delay_req = reinterpret_cast<PTP::DelayedReqPacket *>(pkt + pkt_offset);
         m_timesync_engine->receivedPTPDelayReq(port);
         delay_req->dump(stdout);
-    }break;
-    case PTP::Field::message_type::DELAY_RESP:{
-        PTP::DelayedRespPacket* delay_resp = reinterpret_cast<PTP::DelayedRespPacket *>(pkt + pkt_offset);
+    } break;
+    case PTP::Field::message_type::DELAY_RESP: {
+        PTP::DelayedRespPacket *delay_resp = reinterpret_cast<PTP::DelayedRespPacket *>(pkt + pkt_offset);
         m_timesync_engine->receivedPTPDelayResp(port, delay_resp->origin_timestamp.get_timestamp());
         delay_resp->dump(stdout);
-    }break;
+    } break;
     default:
         return TIMESYNC_PARSER_E_UNKNOWN_MSG;
     }
@@ -78,9 +77,23 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
     return TIMESYNC_PARSER_E_OK;
 }
 
-void RXTimesync::advertize(int port) {
-    // TODO send an advertisement to future PTP Master (TRex RX)
+void RXTimesync::advertise(int port) {
+    if (m_timesync_engine->getPortState(port) == TimesyncState::INIT)
+        return;
+    m_timesync_engine->setPortState(port, TimesyncState::INIT);
+    // TODO mateusz prepare "PTP" advertisement packet
+    // TODO mateusz send the packet using RxPortManager or CRxCore tx_pkt() method
     m_timesync_engine->sentAdvertisement(port);
+}
+
+void RXTimesync::sendPTPDelayReq(int port) {
+    uint64_t timestamp = CGlobalInfo::m_options.get_latency_timestamp();
+    if (m_timesync_engine->getPortState(port) == TimesyncState::WORK)
+        return;
+    m_timesync_engine->setPortState(port, TimesyncState::WORK);
+    // TODO mateusz prepare PTP delayed request packet
+    // TODO mateusz send the packet using RxPortManager or CRxCore tx_pkt() method
+    m_timesync_engine->sentPTPDelayReq(port, timestamp);
 }
 
 void RXTimesync::hexdump(const unsigned char *msg, uint16_t len) {

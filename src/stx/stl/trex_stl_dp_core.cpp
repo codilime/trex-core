@@ -1459,7 +1459,10 @@ TrexStatelessDpCore::add_timesync_node(PerPortProfile *profile,
     node->m_next_time_offset = 1.0 / stream->get_pps();  // these are latency stream's PPS, could be not frequent enough
     node->init();
 
-    rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), node->engine->pkt_size());
+    // rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), node->engine->pkt_size());
+    // TODO mateusz think of different method for calculating pkt_size, actually we know PTP itself it is never larger
+    // than 54 bytes (sometimes 44 bytes)
+    rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), stream->m_pkt.len);
     assert(m);
 
     node->m = m;

@@ -1961,7 +1961,7 @@ HOT_FUNC int CCoreEthIFStateless::send_node_flow_stat(rte_mbuf *m, CGenNodeState
     lp_s->add_bytes(mi->pkt_len + 4); // We add 4 because of ethernet CRC
 
     if (hw_id >= MAX_FLOW_STATS) {
-        fsp_head->time_stamp = CGlobalInfo::m_options.m_get_latency_timestamp();
+        fsp_head->time_stamp = CGlobalInfo::m_options.get_latency_timestamp();
 
         send_pkt_lat(lp_port, mi, lp_stats);
     } else {
@@ -6479,12 +6479,12 @@ COLD_FUNC int main_test(int argc , char * argv[]){
     // to functions and compare the performance;  there are four more CPU cycles associated with using
     // std::function so, for the time being, we will stick to the function pointers
     if (CGlobalInfo::m_options.m_latency_measurement == CParserOption::LATENCY_METHOD_NANOS) {
-        CGlobalInfo::m_options.m_get_latency_timestamp = &get_time_epoch_nanoseconds;
-        CGlobalInfo::m_options.m_timestamp_diff_to_dsec = &ptime_convert_ns_dsec;
+        CGlobalInfo::m_options.get_latency_timestamp = &get_time_epoch_nanoseconds;
+        CGlobalInfo::m_options.timestamp_diff_to_dsec = &ptime_convert_ns_dsec;
         printf("Using realtime (nanoseconds) timestamps in latency stream.\n");
     } else {
-        CGlobalInfo::m_options.m_get_latency_timestamp = &os_get_hr_tick_64;
-        CGlobalInfo::m_options.m_timestamp_diff_to_dsec = &ptime_convert_hr_dsec;
+        CGlobalInfo::m_options.get_latency_timestamp = &os_get_hr_tick_64;
+        CGlobalInfo::m_options.timestamp_diff_to_dsec = &ptime_convert_hr_dsec;
         printf("Using cpu ticks timestamps in latency stream.\n");
     }
 
