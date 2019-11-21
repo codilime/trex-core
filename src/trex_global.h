@@ -726,7 +726,7 @@ public:
     inline const char *timesync_method_desc() {
         switch (m_timesync_method) {
         case TimesyncMethod::NONE:
-            return (const char *)"none";
+            return (const char *)"NONE";
         case TimesyncMethod::PTP:
             return (const char *)"PTP";
         default:

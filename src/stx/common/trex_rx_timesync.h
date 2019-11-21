@@ -9,7 +9,6 @@
 #include <common/Network/Packet/PTPHeader.h>
 #include <common/Network/Packet/PTPPacket.h>
 
-
 typedef enum TimesyncPacketParser_err {
     TIMESYNC_PARSER_E_OK = 0,
     TIMESYNC_PARSER_E_NO_DATA,
@@ -25,7 +24,6 @@ typedef enum TimesyncPacketParser_err {
     // TIMESYNC_PARSER_E_VLAN_NEEDED,
 } TimesyncPacketParser_err_t;
 
-
 /**************************************
  * RXTimesync
  *************************************/
@@ -38,10 +36,12 @@ class RXTimesync {
 
     void handle_pkt(const rte_mbuf_t *m, int port);
 
+    void advertize(int port);
+
     Json::Value to_json() const;
 
   private:
-    TimesyncPacketParser_err_t parse_ptp_pkt(uint8_t *pkt, uint16_t len);
+    TimesyncPacketParser_err_t parse_ptp_pkt(uint8_t *pkt, uint16_t len, int port);
     void hexdump(const unsigned char *msg, uint16_t len); // TODO remove
 
   private:

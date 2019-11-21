@@ -310,6 +310,7 @@ public:
     /* timesync */
     void enable_timesync(CTimesyncEngine *timesync_engine) {
         m_timesync = new RXTimesync(timesync_engine);
+        m_timesync->advertize(m_port_id);  // send time synchronization advertisement
         set_feature(TIMESYNC);
     }
 
