@@ -6,7 +6,6 @@
 #include <trex_timesync.h>
 
 #include <common/Network/Packet/EthernetHeader.h>
-#include <common/Network/Packet/PTPHeader.h>
 #include <common/Network/Packet/PTPPacket.h>
 
 typedef enum TimesyncPacketParser_err {
@@ -50,13 +49,6 @@ class RXTimesync {
 
     uint8_t *m_start;
     uint16_t m_len;
-    PTPHeader *m_ptp_hdr;
-    union {
-        PTPPacketSync *m_ptp_packet_sync;
-        PTPPacketFollowUp *m_ptp_packet_fwup;
-        PTPPacketDelayedReq *m_ptp_packet_dreq;
-        PTPPacketDelayedResp *m_ptp_packet_drsp;
-    };
     uint8_t m_vlan_offset;
 };
 

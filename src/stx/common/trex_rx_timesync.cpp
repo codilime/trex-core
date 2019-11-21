@@ -19,10 +19,12 @@ void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
 }
 
 TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len, int port) {
+    PTP::Header* header;
+
     if (pkt == NULL) {
         return TIMESYNC_PARSER_E_NO_DATA;
     }
-    // hexdump(pkt, len);
+    hexdump(pkt, len);
 
     // TODO what about vxlan support (a.k.a. CFlowStatParser.m_flags |= FSTAT_PARSER_VXLAN_SKIP)
 
@@ -39,33 +41,35 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
     if (len < pkt_offset + PTP_HDR_LEN)
         return TIMESYNC_PARSER_E_SHORT_PTP_HEADER;
 
-    m_ptp_hdr = (PTPHeader *)(pkt + pkt_offset);
-    // m_ptp_hdr->dump(stdout);
+    header = (PTP::Header *)(pkt + pkt_offset);
+    header->dump(stdout);
+
     pkt_offset += PTP_HDR_LEN;
 
-    // hexdump(pkt + pkt_offset, len - pkt_offset);
+    printf("Hex dump:");
+    hexdump(pkt + pkt_offset, len - pkt_offset);
 
-    switch (m_ptp_hdr->getMessageId()) {
-    case PTPHeader::MessageType::SYNC:
-        m_ptp_packet_sync = (PTPPacketSync *)(pkt + pkt_offset);
+    switch (header->trn_and_msg.msg_type()) {
+    case PTP::Field::message_type::SYNC:{
+        PTP::SyncPacket* sync = reinterpret_cast<PTP::SyncPacket *>(pkt + pkt_offset);
         m_timesync_engine->receivedPTPSync(port);
-        // m_ptp_packet_sync->dump(stdout);
-        break;
-    case PTPHeader::MessageType::FOLLOW_UP:
-        m_ptp_packet_fwup = (PTPPacketFollowUp *)(pkt + pkt_offset);
-        m_timesync_engine->receivedPTPFollowUp(port, m_ptp_packet_fwup->getOriginTimestamp());
-        // m_ptp_packet_fwup->dump(stdout);
-        break;
-    case PTPHeader::MessageType::DELAY_REQ:
-        m_ptp_packet_dreq = (PTPPacketDelayedReq *)(pkt + pkt_offset);
+        sync->dump(stdout);
+    }break;
+    case PTP::Field::message_type::FOLLOW_UP:{
+        PTP::FollowUpPacket* followup = reinterpret_cast<PTP::FollowUpPacket *>(pkt + pkt_offset);
+        m_timesync_engine->receivedPTPFollowUp(port, followup->origin_timestamp.get_timestamp());
+        followup->dump(stdout);
+    }break;
+    case PTP::Field::message_type::DELAY_REQ:{
+        PTP::DelayedReqPacket* delay_req = reinterpret_cast<PTP::DelayedReqPacket *>(pkt + pkt_offset);
         m_timesync_engine->receivedPTPDelayReq(port);
-        // m_ptp_packet_dreq->dump(stdout);
-        break;
-    case PTPHeader::MessageType::DELAY_RESP:
-        m_ptp_packet_drsp = (PTPPacketDelayedResp *)(pkt + pkt_offset);
-        m_timesync_engine->receivedPTPDelayResp(port, m_ptp_packet_drsp->getOriginTimestamp());
-        // m_ptp_packet_drsp->dump(stdout);
-        break;
+        delay_req->dump(stdout);
+    }break;
+    case PTP::Field::message_type::DELAY_RESP:{
+        PTP::DelayedRespPacket* delay_resp = reinterpret_cast<PTP::DelayedRespPacket *>(pkt + pkt_offset);
+        m_timesync_engine->receivedPTPDelayResp(port, delay_resp->origin_timestamp.get_timestamp());
+        delay_resp->dump(stdout);
+    }break;
     default:
         return TIMESYNC_PARSER_E_UNKNOWN_MSG;
     }
