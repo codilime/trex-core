@@ -24,61 +24,66 @@ limitations under the License.
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <unordered_map>
 
-enum struct TimesyncMethod : uint8_t { NONE = 0, PTP = 1 };
+enum struct TimesyncMethod : uint8_t {
+    NONE = 0,
+    PTP = 1,
+};
 
-enum struct TimesyncState : uint8_t { INIT = 0x31, WORK, WAIT, TERMINATE, UNKNOWN };
+// A struct defining a single PTP synchronization sequence data
+typedef struct {
+    timespec t1;
+    timespec t2;
+    timespec t3;
+    timespec t4;
+    timespec created_at;
+} CTimesyncPTPData_t;
+
+// A type definition of map of sequence_id to CTimesyncPTPData_t
+typedef std::unordered_map<uint16_t, CTimesyncPTPData_t> CTimesyncSequences_t;
 
 /**
- * Time synchronization engine
+ * Time synchronization engine [WIP]
+ * 
+ * TODO Slave should "advertise" itself
  */
 class CTimesyncEngine {
 
   public:
     CTimesyncEngine() { m_timesync_method = TimesyncMethod::NONE; }
 
-    inline void setTimesyncMethod(TimesyncMethod method) { m_timesync_method = method; }
+    void setTimesyncMethod(TimesyncMethod method) { m_timesync_method = method; }
 
-    inline TimesyncMethod getTimesyncMethod() { return m_timesync_method; }
+    TimesyncMethod getTimesyncMethod() { return m_timesync_method; }
 
-    inline void setPortState(int port, TimesyncState state) { m_timesync_states[port] = state; }
+    void setTimesyncMaster(bool is_master) { m_is_master = is_master; }
 
-    inline TimesyncState getPortState(int port) {
-        auto state = m_timesync_states.find(port);
-        if (state != m_timesync_states.end()) {
-            return state->second;
-        } else {
-            return TimesyncState::UNKNOWN;
-        }
-    }
+    bool isTimesyncMaster() { return m_is_master; }
 
-    void sentAdvertisement(int port);
-    void sentPTPSync(int port);
-    void sentPTPFollowUp(int port);
-    void sentPTPDelayReq(int port, uint64_t sent_timestamp);
-    void sentPTPDelayResp(int port);
+    // void sentAdvertisement(int port);
+    // void sentPTPSync(int port);
+    // void sentPTPFollowUp(int port);
+    // void sentPTPDelayReq(int port, uint64_t sent_timestamp);
+    // void sentPTPDelayResp(int port);
 
-    void receivedAdvertisement(int port);
-    void receivedPTPSync(int port);
-    void receivedPTPFollowUp(int port, timespec t1);
-    void receivedPTPDelayReq(int port);
-    void receivedPTPDelayResp(int port, timespec t4);
-
-  public:
-    const char *descTimesyncState(int port);
-
-  private:
-    timespec timestampToTimespec(uint64_t timestamp);
+    // void receivedAdvertisement(int port);
+    void receivedPTPSync(int port, uint16_t sequence_id, timespec t2);
+    void receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t1);
+    // void receivedPTPDelayReq(int port);
+    void receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t4);
 
   private:
     TimesyncMethod m_timesync_method;
-    std::unordered_map<int, TimesyncState> m_timesync_states;
-    timespec m_ptp_t1;
-    timespec m_ptp_t2;
-    timespec m_ptp_t3;
-    timespec m_ptp_t4;
+    bool m_is_master;
+    std::unordered_map<int, CTimesyncSequences_t> m_sequences_per_port;
+
+  private:
+    CTimesyncSequences_t getOrCreateSequences(int port);
+    CTimesyncPTPData_t getOrCreateData(CTimesyncSequences_t sequences, uint16_t sequence_id);
+    CTimesyncPTPData_t getOrCreateData(int port, uint16_t sequence_id);
 };
 
 #endif /* __TREX_TIMESYNC_H__ */

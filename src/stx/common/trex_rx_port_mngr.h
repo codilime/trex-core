@@ -309,7 +309,7 @@ public:
 
     /* timesync */
     void enable_timesync(CTimesyncEngine *timesync_engine) {
-        m_timesync = new RXTimesync(timesync_engine);
+        m_timesync = new RXTimesync(timesync_engine, m_port_id);
         if (CGlobalInfo::m_options.is_timesync_rx_enabled()) {
             m_timesync->advertise(m_port_id);  // send time synchronization advertisement
         }

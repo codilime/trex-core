@@ -23,102 +23,144 @@ limitations under the License.
 
 #include "trex_global.h"
 
-void CTimesyncEngine::sentAdvertisement(int port) {
-    printf("MATEUSZ CTimesyncEngine::sentAdvertisement\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-    // TODO: S has just sent the advertisement message
-    setPortState(port, TimesyncState::WAIT);
+void dumpTimesyncPTPData(FILE *fd, CTimesyncPTPData_t data) {
+    fprintf(fd, "MATEUSZ dumpTimesyncPTPData\tt1=%ld.%ld\tt2=%ld.%ld\tt3=%ld.%ld\tt4=%ld.%ld\n", data.t1.tv_sec,
+            data.t1.tv_nsec, data.t2.tv_sec, data.t2.tv_nsec, data.t3.tv_sec, data.t3.tv_nsec, data.t4.tv_sec,
+            data.t4.tv_nsec);
 }
 
-void CTimesyncEngine::sentPTPSync(int port) {
-    printf("MATEUSZ CTimesyncEngine::sentPTPSync\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-    setPortState(port, TimesyncState::WORK);
-    // TODO: M has just sent the sync message
+/**
+ * CTimesyncEngine
+ */
+
+//////////////////////////////////////////////////////////////////
+
+// void CTimesyncEngine::sentAdvertisement(int port) {
+//     printf("MATEUSZ CTimesyncEngine::sentAdvertisement\tport=%d\tstate=%s\n", port, descTimesyncState(port));
+//     // TODO: S has just sent the advertisement message
+//     setPortState(port, TimesyncState::WAIT);
+// }
+
+// void CTimesyncEngine::sentPTPSync(int port) {
+//     printf("MATEUSZ CTimesyncEngine::sentPTPSync\tport=%d\tstate=%s\n", port, descTimesyncState(port));
+//     setPortState(port, TimesyncState::WORK);
+//     // TODO: M has just sent the sync message
+// }
+
+// void CTimesyncEngine::sentPTPFollowUp(int port) {
+//     if (getPortState(port) != TimesyncState::WORK)
+//         return;
+//     printf("MATEUSZ CTimesyncEngine::sentPTPFollowUp\tport=%d\tstate=%s\n", port, descTimesyncState(port));
+//     // TODO: M has just sent the follow up message
+// }
+
+// void CTimesyncEngine::sentPTPDelayReq(int port, uint64_t sent_timestamp) {
+//     if (getPortState(port) != TimesyncState::WORK)
+//         return;
+//     printf("MATEUSZ CTimesyncEngine::sentPTPDelayReq\tport=%d\tstate=%s\n", port, descTimesyncState(port));
+//     m_ptp_t3 = timestampToTimespec(sent_timestamp);
+//     // TODO: S has just sent the delayed request message
+//     setPortState(port, TimesyncState::WAIT);
+// }
+
+// void CTimesyncEngine::sentPTPDelayResp(int port) {
+//     if (getPortState(port) != TimesyncState::WORK)
+//         return;
+//     printf("MATEUSZ CTimesyncEngine::sentPTPDelayResp\tport=%d\tstate=%s\n", port, descTimesyncState(port));
+//     // TODO: M has just sent the delayed response message
+//     setPortState(port, TimesyncState::WAIT);
+// }
+
+// void CTimesyncEngine::receivedAdvertisement(int port) {
+//     if (getPortState(port) == TimesyncState::INIT)
+//         return;
+//     printf("MATEUSZ CTimesyncEngine::receivedAdvertisement\tport=%d\tstate=%s\n", port, descTimesyncState(port));
+//     setPortState(port, TimesyncState::INIT);
+//     // TODO: M has just got the advertisement message
+// }
+
+void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t2) {
+    printf("MATEUSZ CTimesyncEngine::receivedPTPSync\tport=%d\tsequence_id=%d\tt2=%ld.%ld\n", port, sequence_id,
+           t2.tv_sec, t2.tv_nsec);
+    CTimesyncPTPData_t data = getOrCreateData(port, sequence_id);
+    data.t2 = t2;
+    m_sequences_per_port[port][sequence_id] = data;
 }
 
-void CTimesyncEngine::sentPTPFollowUp(int port) {
-    if (getPortState(port) != TimesyncState::WORK)
-        return;
-    printf("MATEUSZ CTimesyncEngine::sentPTPFollowUp\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-    // TODO: M has just sent the follow up message
+void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t1) {
+    printf("MATEUSZ CTimesyncEngine::receivedPTPFollowUp\tport=%d\tsequence_id=%d\tt1=%ld.%ld\n", port, sequence_id,
+           t1.tv_sec, t1.tv_nsec);
+    CTimesyncPTPData_t data = getOrCreateData(port, sequence_id);
+    data.t1 = t1;
+    m_sequences_per_port[port][sequence_id] = data;
+
+    // TODO mateusz prepare data for the sending queue
 }
 
-void CTimesyncEngine::sentPTPDelayReq(int port, uint64_t sent_timestamp) {
-    if (getPortState(port) != TimesyncState::WORK)
-        return;
-    printf("MATEUSZ CTimesyncEngine::sentPTPDelayReq\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-    m_ptp_t3 = timestampToTimespec(sent_timestamp);
-    // TODO: S has just sent the delayed request message
-    setPortState(port, TimesyncState::WAIT);
-}
+// void CTimesyncEngine::receivedPTPDelayReq(int port) {
+//     if (getPortState(port) != TimesyncState::WORK)
+//         return;
+//     printf("MATEUSZ CTimesyncEngine::receivedPTPDelayReq\tport=%d\tstate=%s\n", port, descTimesyncState(port));
+//     // TODO: M got delayed request message (from slave)
+// }
 
-void CTimesyncEngine::sentPTPDelayResp(int port) {
-    if (getPortState(port) != TimesyncState::WORK)
-        return;
-    printf("MATEUSZ CTimesyncEngine::sentPTPDelayResp\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-    // TODO: M has just sent the delayed response message
-    setPortState(port, TimesyncState::WAIT);
+void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t4) {
+    printf("MATEUSZ CTimesyncEngine::receivedPTPDelayResp\tport=%d\tsequence_id=%d\tt4=%ld.%ld\n", port, sequence_id,
+           t4.tv_sec, t4.tv_nsec);
+    CTimesyncPTPData_t data = getOrCreateData(port, sequence_id);
+    data.t4 = t4;
+    m_sequences_per_port[port][sequence_id] = data;
+    dumpTimesyncPTPData(stdout, data);
 }
+// void CTimesyncEngine::receivedPTPDelayResp(int port, timespec t4) {
+//     CTimesyncSlaveEngine *slave_engine = getSlaveEngine(port);
+//     if (slave_engine->isValidTransition(TimesyncSlaveSyncState::FOLLOWUP_RECEIVED)) {
+//         printf("MATEUSZ CTimesyncEngine::receivedPTPDelayResp\tport=%d\tVALID STATE\n", port);
+//         slave_engine->setSyncState(TimesyncSlaveSyncState::FOLLOWUP_RECEIVED);
+//     } else {
+//         printf("MATEUSZ CTimesyncEngine::receivedPTPDelayResp\tport=%d\tINVALID STATE\n", port);
+//     }
+//     // TODO: S just got the dealayed response message with master's t4
+// }
 
-void CTimesyncEngine::receivedAdvertisement(int port) {
-    if (getPortState(port) == TimesyncState::INIT)
-        return;
-    printf("MATEUSZ CTimesyncEngine::receivedAdvertisement\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-    setPortState(port, TimesyncState::INIT);
-    // TODO: M has just got the advertisement message
-}
+// const char *CTimesyncEngine::descTimesyncState(int port) {
+//     switch (getPortState(port)) {
+//     case TimesyncState::INIT:
+//         return "INIT";
+//     case TimesyncState::WORK:
+//         return "WORK";
+//     case TimesyncState::WAIT:
+//         return "WAIT";
+//     case TimesyncState::TERMINATE:
+//         return "TERMINATE";
+//     case TimesyncState::UNKNOWN:
+//         return "UNKNOWN";
+//     }
+//     return "NONE";
+// }
 
-void CTimesyncEngine::receivedPTPSync(int port) {
-    if (getPortState(port) == TimesyncState::WORK)
-        return;
-    printf("MATEUSZ CTimesyncEngine::receivedPTPSync\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-    setPortState(port, TimesyncState::WORK);
-    // TODO: S just got the first sync message
-}
-
-void CTimesyncEngine::receivedPTPFollowUp(int port, timespec t1) {
-    m_ptp_t2 = timestampToTimespec(CGlobalInfo::m_options.get_latency_timestamp());
-    if (getPortState(port) != TimesyncState::WORK) {
-        m_ptp_t2 = {0, 0};
-        return;
+CTimesyncSequences_t CTimesyncEngine::getOrCreateSequences(int port) {
+    CTimesyncSequences_t sequences;
+    try {
+        sequences = m_sequences_per_port.at(port);
+    } catch (const std::out_of_range &e) {
+        sequences = CTimesyncSequences_t();
+        m_sequences_per_port.insert({port, sequences});
     }
-    printf("MATEUSZ CTimesyncEngine::receivedPTPFollowUp\tport=%d\tstate=%s\tt1=%ld.%ld\n", port,
-           descTimesyncState(port), t1.tv_sec, t1.tv_nsec);
-    // TODO: S got the follow up message with master's t1
+    return sequences;
 }
 
-void CTimesyncEngine::receivedPTPDelayReq(int port) {
-    if (getPortState(port) != TimesyncState::WORK)
-        return;
-    printf("MATEUSZ CTimesyncEngine::receivedPTPDelayReq\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-    // TODO: M got delayed request message (from slave)
-}
-
-void CTimesyncEngine::receivedPTPDelayResp(int port, timespec t4) {
-    if (getPortState(port) != TimesyncState::WORK)
-        return;
-    printf("MATEUSZ CTimesyncEngine::receivedPTPDelayResp\tport=%d\tstate=%s\tt4=%ld.%ld\n", port,
-           descTimesyncState(port), t4.tv_sec, t4.tv_nsec);
-    // TODO: S just got the dealayed response message with master's t4
-    setPortState(port, TimesyncState::WAIT);
-}
-
-const char *CTimesyncEngine::descTimesyncState(int port) {
-    switch (getPortState(port)) {
-    case TimesyncState::INIT:
-        return "INIT";
-    case TimesyncState::WORK:
-        return "WORK";
-    case TimesyncState::WAIT:
-        return "WAIT";
-    case TimesyncState::TERMINATE:
-        return "TERMINATE";
-    case TimesyncState::UNKNOWN:
-        return "UNKNOWN";
+CTimesyncPTPData_t CTimesyncEngine::getOrCreateData(CTimesyncSequences_t sequences, uint16_t sequence_id) {
+    CTimesyncPTPData_t ptp_data;
+    try {
+        ptp_data = sequences.at(sequence_id);
+    } catch (const std::out_of_range &e) {
+        ptp_data = CTimesyncPTPData_t();
+        sequences.insert({sequence_id, ptp_data});
     }
-    return "NONE";
+    return ptp_data;
 }
 
-timespec CTimesyncEngine::timestampToTimespec(uint64_t timestamp) {
-    return {(uint32_t)(timestamp / (1000 * 1000 * 1000)), (uint32_t)(timestamp % (1000 * 1000 * 1000))};
-};
-
+CTimesyncPTPData_t CTimesyncEngine::getOrCreateData(int port, uint16_t sequence_id) {
+    return getOrCreateData(getOrCreateSequences(port), sequence_id);
+}
