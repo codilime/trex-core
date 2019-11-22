@@ -28,9 +28,10 @@ typedef enum TimesyncPacketParser_err {
  *************************************/
 class RXTimesync {
   public:
-    RXTimesync(CTimesyncEngine *engine) {
+    RXTimesync(CTimesyncEngine *engine, int port) {
         m_timesync_engine = engine;
-        m_timesync_method = engine->getTimesyncMethod();
+        // m_timesync_engine->setSyncState(TimesyncSlaveSyncState::WAIT);
+        m_port = port;
     };
 
     void handle_pkt(const rte_mbuf_t *m, int port);
@@ -46,12 +47,8 @@ class RXTimesync {
     void hexdump(const unsigned char *msg, uint16_t len); // TODO remove
 
   private:
+    int m_port;
     CTimesyncEngine *m_timesync_engine;
-    TimesyncMethod m_timesync_method;
-
-    uint8_t *m_start;
-    uint16_t m_len;
-    uint8_t m_vlan_offset;
 };
 
 #endif

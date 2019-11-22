@@ -984,6 +984,7 @@ public:
     }
 
     static inline void timesync_engine_setup() {
+        m_timesync_engine.setTimesyncMaster(m_options.is_timesync_tx_enabled());
         m_timesync_engine.setTimesyncMethod(m_options.m_timesync_method);
     }
 

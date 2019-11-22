@@ -1289,7 +1289,7 @@ TrexStatelessDpCore::add_stream(PerPortProfile * profile,
     }
 
     // create and add CGenNodeTimesync (moved from start_scheduler)
-    if (node->is_latency_stream() && CGlobalInfo::m_options.is_timesync_tx_enabled()) {
+    if (node->is_latency_stream() && CGlobalInfo::m_options.is_timesync_enabled()) {
         add_timesync_node(profile, profile_id, stream, start_at_ts);
     }
 }
@@ -1517,7 +1517,7 @@ TrexStatelessDpCore::start_traffic(TrexStreamsCompiledObj *obj,
         /* all commands should be for the same port */
         assert(obj->get_port_id() == single_stream.m_stream->m_port_id);
         add_stream(profile,profile_id,single_stream.m_stream,obj,start_at_ts);
-        if ((CGlobalInfo::m_options.is_timesync_tx_enabled()) && (single_stream.m_stream->is_latency_stream())) {
+        if ((CGlobalInfo::m_options.is_timesync_enabled()) && (single_stream.m_stream->is_latency_stream())) {
             number_of_latency_streams++;
         }
     }
@@ -1848,7 +1848,3 @@ void CGenNodePCAP::destroy() {
 
     m_state = PCAP_INVALID;
 }
-
-
-
-
