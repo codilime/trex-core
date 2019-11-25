@@ -35,6 +35,7 @@ enum struct TimesyncMethod : uint8_t {
 
 // A struct defining a single PTP synchronization sequence data
 typedef struct {
+    int64_t delta;
     timespec t1;
     timespec t2;
     timespec t3;
@@ -69,11 +70,16 @@ class CTimesyncEngine {
     // void sentPTPDelayReq(int port, uint64_t sent_timestamp);
     // void sentPTPDelayResp(int port);
 
-    // void receivedAdvertisement(int port);
-    void receivedPTPSync(int port, uint16_t sequence_id, timespec t2);
-    void receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t1);
-    // void receivedPTPDelayReq(int port);
-    void receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t4);
+    void receivedAdvertisement(int port);
+    void receivedPTPSync(int port, uint16_t seqID, timespec t);
+    void receivedPTPFollowUp(int port, uint16_t seqID, timespec t);
+    void receivedPTPDelayReq(int port, uint16_t seqID, timespec t);
+    void receivedPTPDelayResp(int port, uint16_t seqID, timespec t);
+    void printClockInfo(int port, uint16_t sequence_id);
+    void delta_eval(int port, uint16_t sequence_id);
+
+  public:
+    const char *descTimesyncState(int port);
 
   private:
     TimesyncMethod m_timesync_method;
