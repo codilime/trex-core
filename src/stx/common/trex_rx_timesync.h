@@ -41,9 +41,15 @@ class RXTimesync {
 
     Json::Value to_json() const;
 
+    struct ptpv2_data_slave_ordinary ptp_data;
+
   private:
-    TimesyncPacketParser_err_t parse_ptp_pkt(uint8_t *pkt, uint16_t len, int port);
+    TimesyncPacketParser_err_t parse_ptp_pkt(const rte_mbuf_t *m, int port);
     void hexdump(const unsigned char *msg, uint16_t len); // TODO remove
+    void parse_sync(PTP::Header *header, uint16_t rx_tstamp_idx);
+    void parse_fup(PTP::Header *header);
+    void parse_delay_req(PTP::Header *header);
+    void parse_delay_response(PTP::Header *header);
 
   private:
     CTimesyncEngine *m_timesync_engine;

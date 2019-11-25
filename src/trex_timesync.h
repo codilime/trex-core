@@ -24,12 +24,31 @@ limitations under the License.
 
 #include <stdint.h>
 #include <stdlib.h>
+#include "stl/trex_stl_ptp.h"
 
 #include <unordered_map>
 
 enum struct TimesyncMethod : uint8_t { NONE = 0, PTP = 1 };
 
 enum struct TimesyncState : uint8_t { INIT = 0x31, WORK, WAIT, TERMINATE, UNKNOWN };
+
+struct ptpv2_data_slave_ordinary {
+    const struct rte_mbuf *m;
+    struct timespec tstamp1;
+    struct timespec tstamp2;
+    struct timespec tstamp3;
+    struct timespec tstamp4;
+    struct PTP::clock_id client_clock_id;
+    struct PTP::clock_id master_clock_id;
+    struct timeval new_adj;
+    int64_t delta;
+    uint16_t portid;
+    uint16_t seqID_SYNC;
+    uint16_t seqID_FOLLOWUP;
+    uint8_t ptpset;
+    uint8_t kernel_time_set;
+    uint16_t current_ptp_port;
+};
 
 /**
  * Time synchronization engine
@@ -65,6 +84,9 @@ class CTimesyncEngine {
     void receivedPTPFollowUp(int port, timespec t1);
     void receivedPTPDelayReq(int port);
     void receivedPTPDelayResp(int port, timespec t4);
+    void printClockInfo(struct ptpv2_data_slave_ordinary *ptp_data);
+    int64_t delta_eval(struct ptpv2_data_slave_ordinary *ptp_data);
+    uint64_t timespec64_to_ns(const struct timespec *ts);
 
   public:
     const char *descTimesyncState(int port);

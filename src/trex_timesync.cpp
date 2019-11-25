@@ -102,6 +102,48 @@ void CTimesyncEngine::receivedPTPDelayResp(int port, timespec t4) {
     setPortState(port, TimesyncState::WAIT);
 }
 
+void CTimesyncEngine::printClockInfo(struct ptpv2_data_slave_ordinary *ptp_data) {
+    printf("\nT2 - Slave  Clock.  %lds %ldns",
+            (ptp_data->tstamp2.tv_sec),
+            (ptp_data->tstamp2.tv_nsec));
+
+    printf("\nT1 - Master Clock.  %lds %ldns ",
+            ptp_data->tstamp1.tv_sec,
+            (ptp_data->tstamp1.tv_nsec));
+
+    printf("\nT3 - Slave  Clock.  %lds %ldns",
+            ptp_data->tstamp3.tv_sec,
+            (ptp_data->tstamp3.tv_nsec));
+
+    printf("\nT4 - Master Clock.  %lds %ldns ",
+            ptp_data->tstamp4.tv_sec,
+            (ptp_data->tstamp4.tv_nsec));
+
+    printf("\nDelta between master and slave clocks:%"PRId64"ns\n",
+        ptp_data->delta);
+}
+
+int64_t CTimesyncEngine::delta_eval(struct ptpv2_data_slave_ordinary *ptp_data) {
+    int64_t delta;
+    uint64_t t1 = 0;
+    uint64_t t2 = 0;
+    uint64_t t3 = 0;
+    uint64_t t4 = 0;
+
+    t1 = timespec64_to_ns(&ptp_data->tstamp1);
+    t2 = timespec64_to_ns(&ptp_data->tstamp2);
+    t3 = timespec64_to_ns(&ptp_data->tstamp3);
+    t4 = timespec64_to_ns(&ptp_data->tstamp4);
+
+    delta = -((int64_t)((t2 - t1) - (t4 - t3))) / 2;
+
+    return delta;
+}
+
+uint64_t CTimesyncEngine::timespec64_to_ns(const struct timespec *ts){
+    return ((uint64_t) ts->tv_sec * NSEC_PER_SEC) + ts->tv_nsec;
+}
+
 const char *CTimesyncEngine::descTimesyncState(int port) {
     switch (getPortState(port)) {
     case TimesyncState::INIT:
