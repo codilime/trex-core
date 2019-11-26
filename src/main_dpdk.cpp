@@ -4982,9 +4982,9 @@ COLD_FUNC void CGlobalTRex::shutdown() {
     TrexWatchDog::getInstance().stop();
 
     /* interactive shutdown */
-    m_stx->shutdown();
-
+    m_stx->shutdown(false);
     wait_for_all_cores();
+    m_stx->shutdown(true);
 
     /* shutdown drivers */
     for (int i = 0; i < m_max_ports; i++) {
