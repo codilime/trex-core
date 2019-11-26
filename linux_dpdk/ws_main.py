@@ -608,10 +608,7 @@ stateless_src = SrcGroup(dir='src/stx/stl/',
 
                                     'trex_stl_messaging.cpp',
 
-                                    'trex_stl_rpc_cmds.cpp',
-
-                                    'trex_stl_ptp.cpp'
-
+                                    'trex_stl_rpc_cmds.cpp'
                                     ])
 
 
