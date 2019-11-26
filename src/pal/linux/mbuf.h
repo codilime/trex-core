@@ -93,6 +93,7 @@ struct rte_mbuf {
         uint32_t rss;     /**< RSS hash result if RSS enabled */
     } hash;                   /**< hash information */
 
+    uint16_t timesync;
 } ;
 
 #ifdef TREX_MBUF_SIM_LOCAL
