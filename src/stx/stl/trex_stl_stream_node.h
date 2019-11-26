@@ -25,6 +25,9 @@ limitations under the License.
 
 #include <stdio.h>
 
+#include <common/Network/Packet/PTPPacket.h>
+#include <common/Network/Packet/EthernetHeader.h>
+
 #include "bp_sim.h"
 #include "trex_stl_stream.h"
 
@@ -703,8 +706,6 @@ private:
 
 static_assert(sizeof(CGenNodePCAP) == sizeof(CGenNode), "sizeof(CGenNodePCAP) != sizeof(CGenNode)" );
 
-#include "trex_stl_ptp.h"
-
 /* this is a event for time synchronization. */
 struct CGenNodeTimesync : public CGenNodeBase {
     friend class TrexStatelessDpCore;
@@ -719,6 +720,16 @@ struct CGenNodeTimesync : public CGenNodeBase {
         PTP_DELAYED_REQ,
         PTP_DELAYED_RESP,
         PTP_MARKED_FOR_FREE
+    };
+    
+    union mac_addr_t {
+        uint8_t b[6];
+        uint64_t l;
+    };
+
+    struct both_mac_t {
+        mac_addr_t src_mac_addr;
+        mac_addr_t dst_mac_addr;
     };
 
     /* cache line 0 */
@@ -745,11 +756,12 @@ struct CGenNodeTimesync : public CGenNodeBase {
     timespec m_ptp_t4;
     TrexStream *m_ref_stream_info;
     uint8_t m_port_id;
+    pkt_dir_t m_pkt_dir;
+    both_mac_t m_mac_addr;
     uint32_t m_profile_id;
     rte_mbuf_t* m;
-    PTP::PTPEngine* engine;  // TODO: remove PTPEngine and move to CTimesyncEngine
     CTimesyncEngine *m_timesync_engine;
-    uint64_t m_pad_1[3];
+    uint64_t m_pad_1[1];
 
   public:
     inline void cleanup() {
@@ -760,11 +772,12 @@ struct CGenNodeTimesync : public CGenNodeBase {
     }
 
     inline void init() {
-        engine = new PTP::PTPEngine(m_port_id);
         m_timesync_engine = CGlobalInfo::get_timesync_engine();
         assert(m_timesync_engine);
+        
         set_slow_path(true);
         set_send_immediately(true);
+
         m_ptp_state = PTP_WAIT;
         cleanup();
     }
@@ -772,6 +785,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
     inline void teardown() {
         m_timesync_engine = nullptr;
     }
+
 
     inline void handle(CFlowGenListPerThread *thread) {
 
@@ -785,6 +799,11 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
             case PTP_SYNC:
                 cleanup();
+                m_pkt_dir = thread->m_node_gen.m_v_if->port_id_to_dir(m_port_id);
+
+                // Get dest and src MAC
+                thread->m_node_gen.m_v_if->update_mac_addr_from_global_cfg(m_pkt_dir, reinterpret_cast<uint8_t*>(&m_mac_addr));
+
                 thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
                 // probably need to implement read_timesync(tx/rx) in CVirtualIF
 
@@ -845,10 +864,90 @@ struct CGenNodeTimesync : public CGenNodeBase {
         }
     }
 
-    inline void tspec_to_tstamp(const timespec& ts, PTP::tstamp& tstamp){
-        tstamp.sec_msb = 0;
-        tstamp.sec_lsb = ts.tv_sec;
-        tstamp.ns = ts.tv_nsec;
+    // inline void tspec_to_tstamp(const timespec& ts, PTP::Field::tstamp& tstamp){
+    //     tstamp.sec_msb = 0;
+    //     tstamp.sec_lsb = ts.tv_sec;
+    //     tstamp.ns = ts.tv_nsec;
+    // }
+
+    inline EthernetHeader* prepare_header(rte_mbuf_t* mbuf, const size_t& size){
+            // Setup mbuf common
+            m->data_len = (ETH_HDR_LEN + size);
+            m->pkt_len = (ETH_HDR_LEN + size);
+
+            // Setup Ethernet header
+            EthernetHeader* eth_hdr = rte_pktmbuf_mtod(m, EthernetHeader*);
+            eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
+            eth_hdr->myDestination = MacAddress(m_mac_addr.dst_mac_addr.b);
+            eth_hdr->mySource = MacAddress(m_mac_addr.src_mac_addr.b);
+
+            return eth_hdr;
+    }
+
+    inline PTP::Header* prepare_ptp_header(uint8_t* data, const size_t& offset, const PTP::Field::message_type& type){
+            // Get Eth header
+            EthernetHeader* eth_hdr = reinterpret_cast<EthernetHeader*>(data);
+            
+            // Setup PTP message
+            PTP::Header* ptp_hdr = reinterpret_cast<PTP::Header*>(data + offset);
+
+            ptp_hdr->trn_and_msg = PTP::Field::transport_specific::DEFAULT;
+            ptp_hdr->trn_and_msg = type;
+
+            ptp_hdr->ver = PTP::Field::version::PTPv2;
+            switch(type){
+                case PTP::Field::message_type::SYNC:
+                    ptp_hdr->message_len = PTP_SYNC_LEN;
+                    ptp_hdr->flag_field = PTP::Field::flags::PTP_TWO_STEP | PTP::Field::flags::PTP_UNICAST;
+                    ptp_hdr->control = PTP::Field::control::CTL_SYNC;
+                    break;
+
+                case PTP::Field::message_type::FOLLOW_UP:
+                    ptp_hdr->message_len = PTP_FOLLOWUP_LEN;
+                    ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
+                    ptp_hdr->control = PTP::Field::control::CTL_FOLLOW_UP;
+                    break;
+
+                case PTP::Field::message_type::DELAY_REQ:
+                    ptp_hdr->message_len = PTP_MSG_DELAYREQ_LEN;
+                    ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
+                    ptp_hdr->control = PTP::Field::control::CTL_DELAY_REQ;
+                    break;
+
+                case PTP::Field::message_type::DELAY_RESP:
+                    ptp_hdr->message_len = PTP_DELAYRESP_LEN;
+                    ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
+                    ptp_hdr->control = PTP::Field::control::CTL_DELAY_RESP;
+                    break;
+                default:
+                    ptp_hdr->message_len = PTP_HDR_LEN + PTP_MSG_BASE_LEN;
+                    ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
+                    ptp_hdr->control = PTP::Field::control::CTL_OTHER;
+                    break;
+            }
+
+            ptp_hdr->domain_number = 0;
+            //ptp_hdr->reserved1;
+            ptp_hdr->correction = 0;
+            //ptp_hdr->reserved2;
+
+            ptp_hdr->source_port_id._clock_id.b[0] = eth_hdr->mySource.data[0];
+            ptp_hdr->source_port_id._clock_id.b[1] = eth_hdr->mySource.data[1];
+            ptp_hdr->source_port_id._clock_id.b[2] = eth_hdr->mySource.data[2];
+            ptp_hdr->source_port_id._clock_id.b[3] = 0xFF;
+            ptp_hdr->source_port_id._clock_id.b[4] = 0xFE;
+            ptp_hdr->source_port_id._clock_id.b[5] = eth_hdr->mySource.data[3];
+            ptp_hdr->source_port_id._clock_id.b[6] = eth_hdr->mySource.data[4];
+            ptp_hdr->source_port_id._clock_id.b[7] = eth_hdr->mySource.data[5];
+
+            ptp_hdr->source_port_id._port_number = m_port_id;
+
+            ptp_hdr->seq_id = 0;
+            ptp_hdr->log_message_interval = 127;
+
+            ptp_hdr->dump(stdout);
+
+            return ptp_hdr;
     }
 
     /**
@@ -857,31 +956,115 @@ struct CGenNodeTimesync : public CGenNodeBase {
     inline rte_mbuf_t *get_pkt() {
         switch (m_ptp_state) {
 
-            case PTP_SYNC:
-                engine->prepare_sync(m);
-                break;
+            case PTP_SYNC:{
+                uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
+
+                // Setup Eth Header
+                //EthernetHeader* eth_hdr = 
+                prepare_header(m, PTP_SYNC_LEN);
+
+                // Setup PTP message
+                //PTP::Header* ptp_hdr = 
+                prepare_ptp_header(data, ETH_HDR_LEN, PTP::Field::message_type::SYNC);
+
+                // Enable flag for hardware timestamping.
+                //m->ol_flags |= PKT_TX_IEEE1588_TMST;
+
+                // Setup PTP sync
+                PTP::SyncPacket* ptp_msg = reinterpret_cast<PTP::SyncPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
+                // As we do not support PTP_ONE_WAY currently, this is set to 0
+                ptp_msg->origin_timestamp.sec_msb = 0;
+                ptp_msg->origin_timestamp.sec_lsb = 0;
+                ptp_msg->origin_timestamp.ns = 0;
+            } break;
 
             case PTP_FOLLOW_UP_T1:{
-                PTP::tstamp stmp;
-                tspec_to_tstamp(m_ptp_t1, stmp);
-                engine->prepare_follow_up(m, &stmp);
-            }break;
+                uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
+
+                // Setup Eth Header
+                //EthernetHeader* eth_hdr = 
+                prepare_header(m, PTP_FOLLOWUP_LEN);
+
+                // Setup PTP message
+                //PTP::Header* ptp_hdr = 
+                prepare_ptp_header(data, ETH_HDR_LEN, PTP::Field::message_type::FOLLOW_UP);
+
+                // Enable flag for hardware timestamping.
+                //m->ol_flags |= PKT_TX_IEEE1588_TMST;
+
+                // Setup PTP sync
+                PTP::FollowUpPacket* ptp_msg = reinterpret_cast<PTP::FollowUpPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
+                // As we do not support PTP_ONE_WAY currently, this is set to 0
+                ptp_msg->origin_timestamp.sec_msb = 0;
+                ptp_msg->origin_timestamp.sec_lsb = 0;
+                ptp_msg->origin_timestamp.ns = 0;
+            } break;
 
             case PTP_FOLLOW_UP_T3:{
-                PTP::tstamp stmp;
-                tspec_to_tstamp(m_ptp_t3, stmp);
-                engine->prepare_follow_up(m, &stmp);
-            }break;
+                uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
 
-            case PTP_DELAYED_REQ:
-                engine->prepare_delayed_req(m);
-                break;
+                // Setup Eth Header
+                //EthernetHeader* eth_hdr = 
+                prepare_header(m, PTP_FOLLOWUP_LEN);
+
+                // Setup PTP message
+                //PTP::Header* ptp_hdr = 
+                prepare_ptp_header(data, ETH_HDR_LEN, PTP::Field::message_type::FOLLOW_UP);
+
+                // Enable flag for hardware timestamping.
+                //m->ol_flags |= PKT_TX_IEEE1588_TMST;
+
+                // Setup PTP sync
+                PTP::FollowUpPacket* ptp_msg = reinterpret_cast<PTP::FollowUpPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
+                // As we do not support PTP_ONE_WAY currently, this is set to 0
+                ptp_msg->origin_timestamp.sec_msb = 0;
+                ptp_msg->origin_timestamp.sec_lsb = 0;
+                ptp_msg->origin_timestamp.ns = 0;
+            } break;
+
+            case PTP_DELAYED_REQ:{
+                uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
+
+                // Setup Eth Header
+                //EthernetHeader* eth_hdr = 
+                prepare_header(m, PTP_DELAYREQ_LEN);
+
+                // Setup PTP message
+                //PTP::Header* ptp_hdr = 
+                prepare_ptp_header(data, ETH_HDR_LEN, PTP::Field::message_type::DELAY_REQ);
+
+                // Enable flag for hardware timestamping.
+                //m->ol_flags |= PKT_TX_IEEE1588_TMST;
+
+                // Setup PTP sync
+                PTP::DelayedReqPacket* ptp_msg = reinterpret_cast<PTP::DelayedReqPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
+                // As we do not support PTP_ONE_WAY currently, this is set to 0
+                ptp_msg->origin_timestamp.sec_msb = 0;
+                ptp_msg->origin_timestamp.sec_lsb = 0;
+                ptp_msg->origin_timestamp.ns = 0;
+            } break;
 
             case PTP_DELAYED_RESP:{
-                PTP::tstamp stmp;
-                tspec_to_tstamp(m_ptp_t4, stmp);
-                engine->prepare_delayed_resp(m, &stmp);
-            }break;
+                uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
+
+                // Setup Eth Header
+                //EthernetHeader* eth_hdr = 
+                prepare_header(m, PTP_DELAYRESP_LEN);
+
+                // Setup PTP message
+                //PTP::Header* ptp_hdr = 
+                prepare_ptp_header(data, ETH_HDR_LEN, PTP::Field::message_type::DELAY_RESP);
+
+                // Enable flag for hardware timestamping.
+                //m->ol_flags |= PKT_TX_IEEE1588_TMST;
+
+                // Setup PTP sync
+                PTP::DelayedRespPacket* ptp_msg = reinterpret_cast<PTP::DelayedRespPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
+                // As we do not support PTP_ONE_WAY currently, this is set to 0
+                ptp_msg->origin_timestamp.sec_msb = 0;
+                ptp_msg->origin_timestamp.sec_lsb = 0;
+                ptp_msg->origin_timestamp.ns = 0;
+            } break;
 
             case PTP_MARKED_FOR_FREE:
             case PTP_WAIT:

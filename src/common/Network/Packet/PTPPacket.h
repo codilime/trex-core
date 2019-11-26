@@ -29,6 +29,11 @@ limitations under the License.
 #define PTP_MSG_DELAYREQ_LEN PTP_MSG_BASE_LEN
 #define PTP_MSG_DELAYRESP_LEN (PTP_MSG_BASE_LEN + 10)
 
+#define PTP_SYNC_LEN (PTP_HDR_LEN + PTP_MSG_SYNC_LEN)
+#define PTP_FOLLOWUP_LEN (PTP_HDR_LEN + PTP_MSG_FOLLOWUP_LEN)
+#define PTP_DELAYREQ_LEN (PTP_HDR_LEN + PTP_MSG_DELAYREQ_LEN)
+#define PTP_DELAYRESP_LEN (PTP_HDR_LEN + PTP_MSG_DELAYRESP_LEN)
+
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)
 
@@ -172,23 +177,23 @@ typedef net_field8_t domain_number_field;
 
 enum flags : uint16_t {
     PTP_NONE                = 0,
-    PTP_LI_61               = 1 << 8,
-    PTP_LI_59               = 1 << 9,
-    PTP_UTC_REASONABLE      = 1 << 10,
-    PTP_TIMESCALE           = 1 << 11,
-    TIME_TRACEABLE          = 1 << 12,
-    FREQUENCY_TRACEABLE     = 1 << 13,
-    PTP_RESERVERD7          = 1 << 14,
-    PTP_RESERVERD8          = 1 << 15,
+    PTP_LI_61               = 1 << 0,
+    PTP_LI_59               = 1 << 1,
+    PTP_UTC_REASONABLE      = 1 << 2,
+    PTP_TIMESCALE           = 1 << 3,
+    TIME_TRACEABLE          = 1 << 4,
+    FREQUENCY_TRACEABLE     = 1 << 5,
+    PTP_RESERVERD7          = 1 << 6,
+    PTP_RESERVERD8          = 1 << 7,
 
-    PTP_ALTERNATE_MASTER    = 1 << 0,
-    PTP_TWO_STEP            = 1 << 1,
-    PTP_UNICAST             = 1 << 2,
-    PTP_RESERVERD13         = 1 << 3,
-    PTP_RESERVERD14         = 1 << 4,
-    PTP_PROF_SPEC1          = 1 << 5,
-    PTP_PROF_SPEC2          = 1 << 6,
-    PTP_SECURITY            = 1 << 7,
+    PTP_ALTERNATE_MASTER    = 1 << 8,
+    PTP_TWO_STEP            = 1 << 9,
+    PTP_UNICAST             = 1 << 10,
+    PTP_RESERVERD13         = 1 << 11,
+    PTP_RESERVERD14         = 1 << 12,
+    PTP_PROF_SPEC1          = 1 << 13,
+    PTP_PROF_SPEC2          = 1 << 14,
+    PTP_SECURITY            = 1 << 15,
 };
 
 inline flags operator | (const flags& a, const flags& b) {
