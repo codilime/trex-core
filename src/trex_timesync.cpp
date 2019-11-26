@@ -23,113 +23,154 @@ limitations under the License.
 
 #include "trex_global.h"
 
-void dumpTimesyncPTPData(FILE *fd, CTimesyncPTPData_t data) {
-    fprintf(fd, "MATEUSZ dumpTimesyncPTPData\tt1=%ld.%ld\tt2=%ld.%ld\tt3=%ld.%ld\tt4=%ld.%ld\n", data.t1.tv_sec,
-            data.t1.tv_nsec, data.t2.tv_sec, data.t2.tv_nsec, data.t3.tv_sec, data.t3.tv_nsec, data.t4.tv_sec,
-            data.t4.tv_nsec);
-}
-
-timespec timestampToTimespec(uint64_t timestamp) {
+inline timespec timestampToTimespec(uint64_t timestamp) {
     return {(uint32_t)(timestamp / (1000 * 1000 * 1000)), (uint32_t)(timestamp % (1000 * 1000 * 1000))};
 };
 
-uint64_t timespecToTimestamp(const timespec *ts){
-    return ((uint64_t) ts->tv_sec * (1000 * 1000 * 1000)) + ts->tv_nsec;
+inline uint64_t timespecToTimestamp(timespec ts){
+    return ((uint64_t) ts.tv_sec * (1000 * 1000 * 1000)) + ts.tv_nsec;
 }
 
 /**
  * CTimesyncEngine
  */
 
-//////////////////////////////////////////////////////////////////
-
-// void CTimesyncEngine::sentAdvertisement(int port) {
-//     printf("MATEUSZ CTimesyncEngine::sentAdvertisement\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-//     // TODO: S has just sent the advertisement message
-//     setPortState(port, TimesyncState::WAIT);
-// }
-
-// void CTimesyncEngine::sentPTPSync(int port) {
-//     printf("MATEUSZ CTimesyncEngine::sentPTPSync\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-//     setPortState(port, TimesyncState::WORK);
-//     // TODO: M has just sent the sync message
-// }
-
-// void CTimesyncEngine::sentPTPFollowUp(int port) {
-//     if (getPortState(port) != TimesyncState::WORK)
-//         return;
-//     printf("MATEUSZ CTimesyncEngine::sentPTPFollowUp\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-//     // TODO: M has just sent the follow up message
-// }
-
-// void CTimesyncEngine::sentPTPDelayReq(int port, uint64_t sent_timestamp) {
-//     if (getPortState(port) != TimesyncState::WORK)
-//         return;
-//     printf("MATEUSZ CTimesyncEngine::sentPTPDelayReq\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-//     m_ptp_t3 = timestampToTimespec(sent_timestamp);
-//     // TODO: S has just sent the delayed request message
-//     setPortState(port, TimesyncState::WAIT);
-// }
-
-// void CTimesyncEngine::sentPTPDelayResp(int port) {
-//     if (getPortState(port) != TimesyncState::WORK)
-//         return;
-//     printf("MATEUSZ CTimesyncEngine::sentPTPDelayResp\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-//     // TODO: M has just sent the delayed response message
-//     setPortState(port, TimesyncState::WAIT);
-// }
-
-// void CTimesyncEngine::receivedAdvertisement(int port) {
-//     if (getPortState(port) == TimesyncState::INIT)
-//         return;
-//     printf("MATEUSZ CTimesyncEngine::receivedAdvertisement\tport=%d\tstate=%s\n", port, descTimesyncState(port));
-//     setPortState(port, TimesyncState::INIT);
-//     // TODO: M has just got the advertisement message
-// }
-
-void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t2) {
-    CTimesyncPTPData_t data = getOrCreateData(port, sequence_id);
-    data.t2 = t2;
-    m_sequences_per_port[port][sequence_id] = data;
+CTimesyncEngine::CTimesyncEngine() {
+    m_timesync_method = TimesyncMethod::NONE;
 }
 
-void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t1) {
-    CTimesyncPTPData_t data = getOrCreateData(port, sequence_id);
-    data.t1 = t1;
-    m_sequences_per_port[port][sequence_id] = data;
+// PTP Slave's code //////////////////////////////////////////////
+
+// slave "advertisement": let master know of my MAC/IP
+
+void CTimesyncEngine::sentAdvertisement(int port) {
+    // TODO
+}
+
+// slave flow: receive SYNC, receive FOLLOW_UP, send DELAY_REQ, receive DELAY_RESP
+
+void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t) {
+    if (m_is_master)
+        return;
+    CTimesyncPTPData_t *data = getOrCreateData(port, sequence_id);
+    data->t2 = t;
+}
+
+void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t) {
+    if (m_is_master)
+        return;
+    CTimesyncPTPData_t *data = getData(port, sequence_id);
+    if (data == nullptr)
+        return;
+    data->t1 = t;
     // TODO send delay request with with sequence ID = sequence_id
 }
 
-void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t4) {
-    //TODO send delay response with timestamp = t4, sequence ID = sequence_id
+void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t) {
+    if (m_is_master)
+        return;
+    CTimesyncPTPData_t *data = getData(port, sequence_id);
+    if (data == nullptr)
+        return;
+    data->t3 = t;
 }
 
-void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t4) {
-    CTimesyncPTPData_t data = getOrCreateData(port, sequence_id);
-    data.t4 = t4;
-    m_sequences_per_port[port][sequence_id] = data;
-    dumpTimesyncPTPData(stdout, data);
-    delta_eval(port, sequence_id);
-    printClockInfo(port, sequence_id);
+void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t) {
+    if (m_is_master)
+        return;
+    CTimesyncPTPData_t *data = getData(port, sequence_id);
+    if (data == nullptr)
+        return;
+    data->t4 = t;
+    evalDelta(port, sequence_id);
 }
 
-// const char *CTimesyncEngine::descTimesyncState(int port) {
-//     switch (getPortState(port)) {
-//     case TimesyncState::INIT:
-//         return "INIT";
-//     case TimesyncState::WORK:
-//         return "WORK";
-//     case TimesyncState::WAIT:
-//         return "WAIT";
-//     case TimesyncState::TERMINATE:
-//         return "TERMINATE";
-//     case TimesyncState::UNKNOWN:
-//         return "UNKNOWN";
-//     }
-//     return "NONE";
-// }
+// PTP Master's code /////////////////////////////////////////////
 
-CTimesyncSequences_t CTimesyncEngine::getOrCreateSequences(int port) {
+// slave "advertisement": let master know of slave's MAC/IP
+
+void CTimesyncEngine::receivedAdvertisement(int port, std::array<uint8_t, 6> mac_addr) {
+    // TODO: Master has just got the advertisement message
+}
+
+// master flow: send SYNC, send FOLLOW_UP, receive DELAY_REQ, send DELAY_RESP
+
+void CTimesyncEngine::sentPTPSync(int port, uint16_t sequence_id, timespec t) {
+    // TODO: Master has just sent the sync message
+}
+
+void CTimesyncEngine::sentPTPFollowUp(int port, uint16_t sequence_id, timespec t) {
+    // TODO: Master has just sent the follow up message
+}
+
+void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t) {
+    // TODO put delay_resp details on the queue
+}
+
+
+void CTimesyncEngine::sentPTPDelayResp(int port, uint16_t sequence_id, timespec t) {
+    // TODO: Master has just sent the delayed response message
+}
+
+
+// Delta calculations and handling ///////////////////////////////
+
+void CTimesyncEngine::cleanupSequencesBefore(int port, timespec ts) {
+    if (timespecToTimestamp(ts) <= 0)
+        return;
+    uint64_t timestamp = timespecToTimestamp(ts);
+    CTimesyncSequences_t sequences = m_sequences_per_port[port];
+    for (auto kv : sequences) {
+        if (timespecToTimestamp(kv.second.t2) <= timestamp) {
+            m_sequences_per_port[port].erase(kv.first);
+        }
+    }
+}
+
+bool CTimesyncEngine::isDataValid(CTimesyncPTPData_t *data) {
+    return ((data->t1.tv_sec > 0) || (data->t1.tv_nsec > 0)) && ((data->t2.tv_sec > 0) || (data->t2.tv_nsec > 0)) &&
+           ((data->t3.tv_sec > 0) || (data->t3.tv_nsec > 0)) && ((data->t4.tv_sec > 0) || (data->t4.tv_nsec > 0));
+}
+
+int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
+    CTimesyncPTPData_t *data = getData(port, sequence_id);
+    if ((data == nullptr) || (!isDataValid(data)))
+        return 0;
+    
+    int64_t delta = -((int64_t)((timespecToTimestamp(data->t2) - timespecToTimestamp(data->t1)) -
+                                (timespecToTimestamp(data->t4) - timespecToTimestamp(data->t3)))) / 2;
+    setDelta(port, delta);
+    cleanupSequencesBefore(port, data->t2);
+    return delta;
+}
+
+void CTimesyncEngine::setDelta(int port, int64_t delta) {
+    auto iter = m_deltas.find(port);
+    if (iter != m_deltas.end()) {
+        m_deltas[port] = delta;
+    } else {
+        m_deltas.insert({port, delta});
+    }
+}
+
+int64_t CTimesyncEngine::getDelta(int port) {
+    try {
+        return m_deltas.at(port);
+    } catch (const std::out_of_range &e) {
+        return 0;
+    }
+}
+
+// Helper methods ////////////////////////////////////////////////
+
+CTimesyncSequences_t *CTimesyncEngine::getSequences(int port) {
+    auto iter = m_sequences_per_port.find(port);
+    if (iter != m_sequences_per_port.end()) 
+        return &m_sequences_per_port[port];
+    return nullptr;
+}
+
+CTimesyncSequences_t *CTimesyncEngine::getOrCreateSequences(int port) {
     CTimesyncSequences_t sequences;
     try {
         sequences = m_sequences_per_port.at(port);
@@ -137,60 +178,27 @@ CTimesyncSequences_t CTimesyncEngine::getOrCreateSequences(int port) {
         sequences = CTimesyncSequences_t();
         m_sequences_per_port.insert({port, sequences});
     }
-    return sequences;
+    return &m_sequences_per_port[port];
 }
 
-CTimesyncPTPData_t CTimesyncEngine::getOrCreateData(CTimesyncSequences_t sequences, uint16_t sequence_id) {
+CTimesyncPTPData_t *CTimesyncEngine::getData(int port, uint16_t sequence_id) {
+    CTimesyncSequences_t *sequences = getSequences(port);
+    if (sequences == nullptr)
+        return nullptr;
+    auto iter = sequences->find(sequence_id);
+    if (iter != sequences->end())
+        return &(*sequences)[sequence_id];
+    return nullptr;
+}
+
+CTimesyncPTPData_t *CTimesyncEngine::getOrCreateData(int port, uint16_t sequence_id) {
+    CTimesyncSequences_t *sequences = getOrCreateSequences(port);
     CTimesyncPTPData_t ptp_data;
     try {
-        ptp_data = sequences.at(sequence_id);
+        ptp_data = sequences->at(sequence_id);
     } catch (const std::out_of_range &e) {
         ptp_data = CTimesyncPTPData_t();
-        sequences.insert({sequence_id, ptp_data});
+        sequences->insert({sequence_id, ptp_data});
     }
-    return ptp_data;
-}
-
-CTimesyncPTPData_t CTimesyncEngine::getOrCreateData(int port, uint16_t sequence_id) {
-    return getOrCreateData(getOrCreateSequences(port), sequence_id);
-}
-
-void CTimesyncEngine::printClockInfo(int port, uint16_t sequence_id) {
-    CTimesyncPTPData_t data = getOrCreateData(port, sequence_id);
-
-    printf("\nT1 - Master Clock.  %lds %ldns ",
-            data.t1.tv_sec,
-            (data.t1.tv_nsec));
-
-    printf("\nT2 - Slave  Clock.  %lds %ldns",
-            (data.t2.tv_sec),
-            (data.t2.tv_nsec));
-
-    printf("\nT3 - Slave  Clock.  %lds %ldns",
-            data.t3.tv_sec,
-            (data.t3.tv_nsec));
-
-    printf("\nT4 - Master Clock.  %lds %ldns ",
-            data.t4.tv_sec,
-            (data.t4.tv_nsec));
-
-    printf("\nDelta between master and slave clocks:%ldns\n",
-        data.delta);
-}
-
-void CTimesyncEngine::delta_eval(int port, uint16_t sequence_id) {
-    CTimesyncPTPData_t data = getOrCreateData(port, sequence_id);
-    uint64_t t1 = 0;
-    uint64_t t2 = 0;
-    uint64_t t3 = 0;
-    uint64_t t4 = 0;
-
-    t1 = timespecToTimestamp(&data.t1);
-    t2 = timespecToTimestamp(&data.t2);
-    t3 = timespecToTimestamp(&data.t3);
-    t4 = timespecToTimestamp(&data.t4);
-
-    data.delta = -((int64_t)((t2 - t1) - (t4 - t3))) / 2;
-
-    m_sequences_per_port[port][sequence_id] = data;
+    return &(*sequences)[sequence_id];
 }

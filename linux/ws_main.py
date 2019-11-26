@@ -199,7 +199,8 @@ bp_sim_gtest = SrcGroup(dir='src',
              'gtest/tuple_gen_test.cpp',
              'gtest/client_cfg_test.cpp',
              'gtest/nat_test.cpp',
-             'gtest/trex_stateless_gtest.cpp'
+             'gtest/trex_stateless_gtest.cpp',
+             'gtest/trex_timesync_gtest.cpp',
              ])
 
 main_src = SrcGroup(dir='src',

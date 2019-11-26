@@ -35,12 +35,10 @@ enum struct TimesyncMethod : uint8_t {
 
 // A struct defining a single PTP synchronization sequence data
 typedef struct {
-    int64_t delta;
     timespec t1;
     timespec t2;
     timespec t3;
     timespec t4;
-    timespec created_at;
 } CTimesyncPTPData_t;
 
 // A type definition of map of sequence_id to CTimesyncPTPData_t
@@ -48,48 +46,50 @@ typedef std::unordered_map<uint16_t, CTimesyncPTPData_t> CTimesyncSequences_t;
 
 /**
  * Time synchronization engine [WIP]
- * 
+ *
  * TODO Slave should "advertise" itself
  */
 class CTimesyncEngine {
 
   public:
-    CTimesyncEngine() { m_timesync_method = TimesyncMethod::NONE; }
+    CTimesyncEngine();
 
     void setTimesyncMethod(TimesyncMethod method) { m_timesync_method = method; }
-
     TimesyncMethod getTimesyncMethod() { return m_timesync_method; }
 
     void setTimesyncMaster(bool is_master) { m_is_master = is_master; }
-
     bool isTimesyncMaster() { return m_is_master; }
 
-    // void sentAdvertisement(int port);
-    // void sentPTPSync(int port);
-    // void sentPTPFollowUp(int port);
-    // void sentPTPDelayReq(int port, uint64_t sent_timestamp);
-    // void sentPTPDelayResp(int port);
+    void sentAdvertisement(int port);                                  // slave
+    void sentPTPSync(int port, uint16_t sequence_id, timespec t);      // master
+    void sentPTPFollowUp(int port, uint16_t sequence_id, timespec t);  // master
+    void sentPTPDelayReq(int port, uint16_t sequence_id, timespec t);  // slave
+    void sentPTPDelayResp(int port, uint16_t sequence_id, timespec t); // master
 
-    void receivedAdvertisement(int port);
-    void receivedPTPSync(int port, uint16_t seqID, timespec t);
-    void receivedPTPFollowUp(int port, uint16_t seqID, timespec t);
-    void receivedPTPDelayReq(int port, uint16_t seqID, timespec t);
-    void receivedPTPDelayResp(int port, uint16_t seqID, timespec t);
-    void printClockInfo(int port, uint16_t sequence_id);
-    void delta_eval(int port, uint16_t sequence_id);
+    void receivedAdvertisement(int port, std::array<uint8_t, 6> mac_addr);      // master
+    void receivedPTPSync(int port, uint16_t sequence_id, timespec t);           // slave
+    void receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t);       // slave
+    void receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t);       // master
+    void receivedPTPDelayResp(int port, uint16_t seqsequence_idID, timespec t); // slave
 
-  public:
-    const char *descTimesyncState(int port);
+    int64_t evalDelta(int port, uint16_t sequence_id);
+    void setDelta(int port, int64_t delta);
+    int64_t getDelta(int port);
+
+  private:
+    CTimesyncSequences_t *getSequences(int port);
+    CTimesyncSequences_t *getOrCreateSequences(int port);
+    CTimesyncPTPData_t *getData(int port, uint16_t sequence_id);
+    CTimesyncPTPData_t *getOrCreateData(int port, uint16_t sequence_id);
+
+    bool isDataValid(CTimesyncPTPData_t *data);
+    void cleanupSequencesBefore(int port, timespec t);
 
   private:
     TimesyncMethod m_timesync_method;
     bool m_is_master;
     std::unordered_map<int, CTimesyncSequences_t> m_sequences_per_port;
-
-  private:
-    CTimesyncSequences_t getOrCreateSequences(int port);
-    CTimesyncPTPData_t getOrCreateData(CTimesyncSequences_t sequences, uint16_t sequence_id);
-    CTimesyncPTPData_t getOrCreateData(int port, uint16_t sequence_id);
+    std::unordered_map<int, int64_t> m_deltas;
 };
 
 #endif /* __TREX_TIMESYNC_H__ */
