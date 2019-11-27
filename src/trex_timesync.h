@@ -27,6 +27,7 @@ limitations under the License.
 #include <string.h>
 
 #include <unordered_map>
+#include <queue>
 
 enum struct TimesyncMethod : uint8_t {
     NONE = 0,
@@ -44,6 +45,19 @@ typedef struct {
 // A type definition of map of sequence_id to CTimesyncPTPData_t
 typedef std::unordered_map<uint16_t, CTimesyncPTPData_t> CTimesyncSequences_t;
 
+enum struct TimesyncPacketType : uint8_t {
+    PTP_SYNC,
+    PTP_FOLLOWUP,
+    PTP_DELAYREQ,
+    PTP_DELAYRESP
+};
+
+struct NextMessage {
+    TimesyncPacketType type;
+    uint16_t  seq_id;
+    timespec  time_to_send;
+};
+
 /**
  * Time synchronization engine [WIP]
  *
@@ -53,7 +67,6 @@ class CTimesyncEngine {
 
   public:
     CTimesyncEngine();
-
     void setTimesyncMethod(TimesyncMethod method) { m_timesync_method = method; }
     TimesyncMethod getTimesyncMethod() { return m_timesync_method; }
 
@@ -76,6 +89,24 @@ class CTimesyncEngine {
     void setDelta(int port, int64_t delta);
     int64_t getDelta(int port);
 
+    uint16_t nextSeqID(uint8_t port_id){
+      return (last_seq_id += 1);
+    }
+
+    bool isNextMessage(uint8_t port_id) {
+      return !(m_per_port_send_queue[port_id].empty());
+    }
+
+    NextMessage getNextMessage(uint8_t port_id){
+      NextMessage& next_message = m_per_port_send_queue[port_id].front();
+      m_per_port_send_queue[port_id].pop();
+      return next_message;
+    }
+
+    void pushNextMessage(uint8_t port_id, const TimesyncPacketType& type, const uint16_t& seq_id, const timespec& time = {0, 0}){
+      m_per_port_send_queue[port_id].emplace(NextMessage{type, seq_id, time});
+    }
+
   private:
     CTimesyncSequences_t *getSequences(int port);
     CTimesyncSequences_t *getOrCreateSequences(int port);
@@ -88,8 +119,10 @@ class CTimesyncEngine {
   private:
     TimesyncMethod m_timesync_method;
     bool m_is_master;
+    uint16_t last_seq_id;
     std::unordered_map<int, CTimesyncSequences_t> m_sequences_per_port;
     std::unordered_map<int, int64_t> m_deltas;
+    std::unordered_map<int, std::queue<NextMessage>> m_per_port_send_queue;
 };
 
 #endif /* __TREX_TIMESYNC_H__ */
