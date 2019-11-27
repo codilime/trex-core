@@ -41,12 +41,6 @@ CTimesyncEngine::CTimesyncEngine() {
 
 // PTP Slave's code //////////////////////////////////////////////
 
-// slave "advertisement": let master know of my MAC/IP
-
-void CTimesyncEngine::sentAdvertisement(int port) {
-    // TODO
-}
-
 // slave flow: receive SYNC, receive FOLLOW_UP, send DELAY_REQ, receive DELAY_RESP
 
 void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t) {
@@ -86,12 +80,6 @@ void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, times
 }
 
 // PTP Master's code /////////////////////////////////////////////
-
-// slave "advertisement": let master know of slave's MAC/IP
-
-void CTimesyncEngine::receivedAdvertisement(int port, std::array<uint8_t, 6> mac_addr) {
-    // TODO: Master has just got the advertisement message
-}
 
 // master flow: send SYNC, send FOLLOW_UP, receive DELAY_REQ, send DELAY_RESP
 
@@ -161,6 +149,31 @@ int64_t CTimesyncEngine::getDelta(int port) {
     }
 }
 
+
+// Message queue /////////////////////////////////////////////////
+
+void CTimesyncEngine::pushNextMessage(int port, uint16_t sequence_id, TimesyncPacketType type, timespec ts) {
+    CTimesyncPTPPacketQueue_t *packet_queue = getOrCreatePacketQueue(port);
+    packet_queue->push({sequence_id, type, ts});
+}
+
+CTimesyncPTPPacketData_t CTimesyncEngine::popNextMessage(int port) {
+    CTimesyncPTPPacketQueue_t *packet_queue = getPacketQueue(port);
+    if (packet_queue == nullptr)
+        return {0, TimesyncPacketType::UNKNOWN, {0, 0}};
+    CTimesyncPTPPacketData_t next_message = packet_queue->front();
+    packet_queue->pop();
+    return next_message;
+}
+
+bool CTimesyncEngine::hasNextMessage(int port) {
+    CTimesyncPTPPacketQueue_t *packet_queue = getPacketQueue(port);
+    if (packet_queue == nullptr)
+        return false;
+    return !(packet_queue->empty());
+}
+
+
 // Helper methods ////////////////////////////////////////////////
 
 CTimesyncSequences_t *CTimesyncEngine::getSequences(int port) {
@@ -202,3 +215,22 @@ CTimesyncPTPData_t *CTimesyncEngine::getOrCreateData(int port, uint16_t sequence
     }
     return &(*sequences)[sequence_id];
 }
+
+CTimesyncPTPPacketQueue_t *CTimesyncEngine::getPacketQueue(int port) {
+    auto iter = m_send_queue_per_port.find(port);
+    if (iter != m_send_queue_per_port.end()) 
+        return &m_send_queue_per_port[port];
+    return nullptr;
+}
+
+CTimesyncPTPPacketQueue_t *CTimesyncEngine::getOrCreatePacketQueue(int port) {
+    CTimesyncPTPPacketQueue_t packet_queue;
+    try {
+        packet_queue = m_send_queue_per_port.at(port);
+    } catch (const std::out_of_range &e) {
+        packet_queue = CTimesyncPTPPacketQueue_t();
+        m_send_queue_per_port.insert({port, packet_queue});
+    }
+    return &m_send_queue_per_port[port];
+}
+

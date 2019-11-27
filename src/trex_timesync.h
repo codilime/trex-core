@@ -27,10 +27,19 @@ limitations under the License.
 #include <string.h>
 
 #include <unordered_map>
+#include <queue>
 
 enum struct TimesyncMethod : uint8_t {
     NONE = 0,
     PTP = 1,
+};
+
+enum struct TimesyncPacketType : uint8_t {
+    PTP_SYNC = 0x00,
+    PTP_FOLLOWUP = 0x08,
+    PTP_DELAYREQ = 0x01,
+    PTP_DELAYRESP = 0x09,
+    UNKNOWN = 0x0F,
 };
 
 // A struct defining a single PTP synchronization sequence data
@@ -44,10 +53,21 @@ typedef struct {
 // A type definition of map of sequence_id to CTimesyncPTPData_t
 typedef std::unordered_map<uint16_t, CTimesyncPTPData_t> CTimesyncSequences_t;
 
+// struct NextMessage {
+//     TimesyncPacketType type;
+//     uint16_t  seq_id;
+//     timespec  time_to_send;
+// };
+typedef struct {
+    uint16_t sequence_id;
+    TimesyncPacketType type;
+    timespec time_to_send;
+} CTimesyncPTPPacketData_t;
+
+typedef std::queue<CTimesyncPTPPacketData_t> CTimesyncPTPPacketQueue_t;
+
 /**
  * Time synchronization engine [WIP]
- *
- * TODO Slave should "advertise" itself
  */
 class CTimesyncEngine {
 
@@ -60,13 +80,29 @@ class CTimesyncEngine {
     void setTimesyncMaster(bool is_master) { m_is_master = is_master; }
     bool isTimesyncMaster() { return m_is_master; }
 
-    void sentAdvertisement(int port);                                  // slave
+    void setSequenceId(uint16_t sequence_id) {
+        if (m_is_master)
+            m_sequence_id = sequence_id;
+    }
+    uint16_t getSequenceId() {
+        if (m_is_master)
+            return m_sequence_id;
+        else
+            return 0;
+    }
+    uint16_t nextSequenceId() {
+        if (m_is_master)
+            return ++m_sequence_id;
+        else
+            return 0;
+    }
+
+
     void sentPTPSync(int port, uint16_t sequence_id, timespec t);      // master
     void sentPTPFollowUp(int port, uint16_t sequence_id, timespec t);  // master
     void sentPTPDelayReq(int port, uint16_t sequence_id, timespec t);  // slave
     void sentPTPDelayResp(int port, uint16_t sequence_id, timespec t); // master
 
-    void receivedAdvertisement(int port, std::array<uint8_t, 6> mac_addr);      // master
     void receivedPTPSync(int port, uint16_t sequence_id, timespec t);           // slave
     void receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t);       // slave
     void receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t);       // master
@@ -76,11 +112,33 @@ class CTimesyncEngine {
     void setDelta(int port, int64_t delta);
     int64_t getDelta(int port);
 
+    void pushNextMessage(int port, uint16_t sequence_id, TimesyncPacketType type, timespec time);
+    CTimesyncPTPPacketData_t popNextMessage(int port);
+    bool hasNextMessage(int port);
+
+/*
+    bool isNextMessage(uint8_t port_id) {
+      return !(m_per_port_send_queue[port_id].empty());
+    }
+
+    NextMessage getNextMessage(uint8_t port_id){
+      NextMessage& next_message = m_per_port_send_queue[port_id].front();
+      m_per_port_send_queue[port_id].pop();
+      return next_message;
+    }
+
+    void pushNextMessage(uint8_t port_id, const TimesyncPacketType& type, const timespec& time = {0, 0}){
+      m_per_port_send_queue[port_id].emplace(type, ++last_seq_id, time);
+    }
+    */
+
   private:
     CTimesyncSequences_t *getSequences(int port);
     CTimesyncSequences_t *getOrCreateSequences(int port);
     CTimesyncPTPData_t *getData(int port, uint16_t sequence_id);
     CTimesyncPTPData_t *getOrCreateData(int port, uint16_t sequence_id);
+    CTimesyncPTPPacketQueue_t *getPacketQueue(int port);
+    CTimesyncPTPPacketQueue_t *getOrCreatePacketQueue(int port);
 
     bool isDataValid(CTimesyncPTPData_t *data);
     void cleanupSequencesBefore(int port, timespec t);
@@ -88,7 +146,9 @@ class CTimesyncEngine {
   private:
     TimesyncMethod m_timesync_method;
     bool m_is_master;
+    uint16_t m_sequence_id;
     std::unordered_map<int, CTimesyncSequences_t> m_sequences_per_port;
+    std::unordered_map<int, CTimesyncPTPPacketQueue_t> m_send_queue_per_port;
     std::unordered_map<int, int64_t> m_deltas;
 };
 
