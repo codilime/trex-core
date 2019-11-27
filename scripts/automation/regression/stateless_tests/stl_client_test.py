@@ -194,11 +194,8 @@ class STLClient_Test(CStlGeneral_Test):
         for tx_port, rx_port in CTRexScenario.ports_map['map'].items():
             self.c.reset(ports = [tx_port, rx_port])
 
-        port_info = self.c.get_port_info(ports = self.rx_port)[0]
-
-        drv_name = port_info['driver']
-
-        self.drv_name = drv_name
+        self.port_info = self.c.get_port_info(ports = self.rx_port)[0]
+        self.drv_name = self.port_info['driver']
 
         # due to defect trex-325 
         #if  self.drv_name == 'net_mlx5':
@@ -1051,11 +1048,16 @@ class STLClient_Test(CStlGeneral_Test):
             self.cleanup()
 
 
-    def _test_random_dynamic_add_remove (self):
+    def test_random_dynamic_add_remove (self):
 
         if self.drv_name in ['net_e1000_em']:
-            # this test is sensetive and does not work good on E1000
+            # this test is sensitive and does not work good on E1000
             return;
+        if CTRexScenario.setup_name in ('trex21', 'trex22'):
+            # sensitive to this test, there are a few drops that are valid due to the virtual nature of the interfaces that make noise 
+            # better not to test it
+            return;
+
 
         if not self.is_loopback:
            self.skip('skipping profile tests for non loopback')
@@ -1070,5 +1072,33 @@ class STLClient_Test(CStlGeneral_Test):
         test = DynamicProfileTest(self.c, self.tx_port, self.rx_port, 100,1,50,1,2,120,rate);
 
         test.run_test()
+
+
+    def test_resolve_vlans(self):
+        ''' Was written to check correction of stripping VLAN by AF_PACKET '''
+        if not self.is_loopback:
+            self.skip('Skipping not in loopback')
+
+        driver_params = self.get_per_driver_params()[self.drv_name]
+        if 'no_vlan' in driver_params or 'no_vlan_even_in_software_mode' in driver_params:
+            self.skip('Driver does not support VLANs')
+
+        if not self.c.get_port(self.rx_port).is_l3_mode():
+            self.skip('RX port must have IP for this test')
+        if not self.c.get_port(self.tx_port).is_l3_mode():
+            self.skip('TX port must have IP for this test')
+
+        rx_port_vlans_orig = self.c.get_port(self.rx_port).get_vlan_cfg()
+        port_pair = [self.tx_port, self.rx_port]
+        self.c.set_service_mode(port_pair, True)
+        try:
+            for vlan in ([], [20], [20, 40]):
+                print('Checking with %s VLAN layer(s)' % len(vlan))
+                self.c.set_vlan(self.rx_port, vlan)
+                self.c.resolve(self.tx_port, retries = 5, vlan = vlan)
+        finally:
+            self.c.set_vlan(self.rx_port, rx_port_vlans_orig)
+            self.c.reset(ports = port_pair)
+
 
 

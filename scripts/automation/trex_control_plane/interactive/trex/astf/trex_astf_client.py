@@ -228,7 +228,10 @@ class ASTFClient(TRexClient):
                 raise TRexError("Cannot have %s as a profile value for start command" % ALL_PROFILE_ID)
             else:
                 self.sync()
-                return list(self.astf_profile_state.keys())
+                # return profiles can be operational only for the requests.
+                # STATE_IDLE is operational for 'profile_clear.'
+                return [pid for pid, state in self.astf_profile_state.items()
+                                if state is not self.STATE_ASTF_DELETE]
 
         for profile_id in profile_list:
             if profile_id not in list(self.astf_profile_state.keys()):
@@ -282,6 +285,7 @@ class ASTFClient(TRexClient):
             state = self._get_profile_state(profile_id) if profile_id else self.state
             if state not in self.transient_states:
                 break
+
             if (time.time() - time_begin) > 0.1:
                 self.sync()
                 time_begin = time.time()
@@ -321,16 +325,16 @@ class ASTFClient(TRexClient):
 
         self.sync_waiting = True
         try:
-            # to prevent from checking with wrong state (e.g. 'start')
-            if ready_state and self._get_profile_state(profile_id) != ready_state:
-                self.wait_for_profile_state(profile_id, ready_state)
-            if bad_states and self._get_profile_state(profile_id) in bad_states:
-                self._set_profile_state(profile_id, self.transient_states[0])
+            if ready_state:
+                assert ready_state not in self.transient_states
+                if self._get_profile_state(profile_id) != ready_state:
+                    self.wait_for_profile_state(profile_id, ready_state)
+            else:
+                self.wait_for_steady(profile_id)
 
             rc = self._transmit(rpc_func, **k)
             if not rc:
                 return rc
-            self.wait_for_steady(profile_id)
 
             time_begin = time.time()
             while True:
@@ -338,9 +342,14 @@ class ASTFClient(TRexClient):
                 if state in ok_states:
                     return RC_OK()
 
-                if self.last_profile_error.get(profile_id) or (bad_states and state in bad_states):
+                # check transient state transition first to avoid wrong decision (e.g. 'start')
+                if ready_state and state in self.transient_states:
+                    ready_state = None
+
+                if self.last_profile_error.get(profile_id) or (not ready_state and bad_states and state in bad_states):
                     error = self.last_profile_error.pop(profile_id, None)
-                    return RC_ERR(error or 'Unknown error, state: {} {}'.format(state,profile_id))
+                    general_error = 'Unknown error, state: {}, profile: {}'.format(state, profile_id)
+                    return RC_ERR(error or general_error)
 
                 if (time.time() - time_begin) > 0.2:
                     self.sync() # in case state change lost in async(SUB/PUB) channel
@@ -396,6 +405,8 @@ class ASTFClient(TRexClient):
                 self.check_states(ok_states=[self.STATE_ASTF_LOADED, self.STATE_IDLE])
                 self.stop_latency()
                 self.clear_stats(ports, pid_input = ALL_PROFILE_ID)
+                self.traffic_stats.reset()
+                self.latency_stats.reset()
                 self.clear_profile(False, pid_input=ALL_PROFILE_ID)
                 self.check_states(ok_states=[self.STATE_IDLE])
                 self.set_port_attr(ports,
@@ -592,7 +603,8 @@ class ASTFClient(TRexClient):
         valid_pids = self.validate_profile_id_input(pid_input)
 
         for profile_id in valid_pids:
-            if self.astf_profile_state.get(profile_id) in ok_states:
+            profile_state = self.astf_profile_state.get(profile_id)
+            if profile_state in ok_states:
                 params = {
                     'handler': self.handler,
                     'profile_id': profile_id
@@ -695,21 +707,35 @@ class ASTFClient(TRexClient):
         valid_pids = self.validate_profile_id_input(pid_input)
 
         for profile_id in valid_pids:
-            params = {
-                'handler': self.handler,
-                'profile_id': profile_id
-                }
-            self.ctx.logger.pre_cmd('Stopping traffic.')
-            if block or is_remove:
-                rc = self._transmit_async('stop', params = params, ok_states = [self.STATE_IDLE, self.STATE_ASTF_LOADED])
-            else:
-                rc = self._transmit('stop', params = params)
-            self.ctx.logger.post_cmd(rc)
+            profile_state = self.astf_profile_state.get(profile_id)
 
-            if not rc:
-                raise TRexError(rc.err())
+            # 'stop' will be silently ignored in server-side PARSE/BUILD state.
+            # So, TX state should be forced to avoid unexpected hanging situation.
+            if profile_state in {self.STATE_ASTF_PARSE, self.STATE_ASTF_BUILD}:
+                self.wait_for_profile_state(profile_id, self.STATE_TX)
+                profile_state = self.astf_profile_state.get(profile_id)
+
+            if profile_state is self.STATE_TX:
+                params = {
+                    'handler': self.handler,
+                    'profile_id': profile_id
+                    }
+                self.ctx.logger.pre_cmd('Stopping traffic.')
+                if block or is_remove:
+                    rc = self._transmit_async('stop', params = params, ok_states = [self.STATE_IDLE, self.STATE_ASTF_LOADED])
+                else:
+                    rc = self._transmit('stop', params = params)
+                self.ctx.logger.post_cmd(rc)
+
+                if not rc:
+                    raise TRexError(rc.err())
+
+                profile_state = self.astf_profile_state.get(profile_id)
 
             if is_remove:
+                if profile_state is self.STATE_ASTF_CLEANUP:
+                    self.wait_for_profile_state(profile_id, self.STATE_ASTF_LOADED)
+
                 self.clear_profile(block = block, pid_input = profile_id)
 
 
@@ -838,6 +864,7 @@ class ASTFClient(TRexClient):
         for profile_id in valid_pids:
             if clear_traffic:
                self.clear_traffic_stats(profile_id)
+        self.clear_traffic_stats(is_sum = True)
 
         return self._clear_stats_common(ports, clear_global, clear_xstats)
 
@@ -913,7 +940,7 @@ class ASTFClient(TRexClient):
 
 
     @client_api('getter', True)
-    def clear_traffic_stats(self, pid_input = DEFAULT_PROFILE_ID):
+    def clear_traffic_stats(self, pid_input = DEFAULT_PROFILE_ID, is_sum = False):
         """
             Clears traffic statistics.
 
@@ -922,7 +949,7 @@ class ASTFClient(TRexClient):
                     Input profile ID
 
         """
-        return self.traffic_stats.clear_stats(pid_input)
+        return self.traffic_stats.clear_stats(pid_input, is_sum)
 
 
     @client_api('getter', True)
@@ -1355,6 +1382,21 @@ class ASTFClient(TRexClient):
             raise TRexError('Unhandled command %s' % opts.command)
 
         return True
+
+
+    @console_api('clear', 'common', False)
+    def clear_stats_line (self, line):
+        '''Clear cached local statistics\n'''
+        # define a parser
+        parser = parsing_opts.gen_parser(self,
+                                         "clear",
+                                         self.clear_stats_line.__doc__,
+                                         parsing_opts.PORT_LIST_WITH_ALL)
+
+        opts = parser.parse_args(line.split())
+        self.clear_stats(opts.ports, pid_input = ALL_PROFILE_ID)
+
+        return RC_OK()
 
 
     @console_api('stats', 'common', True)
