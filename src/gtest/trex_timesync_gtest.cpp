@@ -19,12 +19,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// #include <algorithm>
-// #include <iostream>
-// #include <vector>
-// #include <inttypes.h>
-// #include <tuple>
-
 #include <common/gtest.h>
 
 #include "bp_gtest.h"
@@ -34,8 +28,6 @@ limitations under the License.
 #define PORT_ID 0
 #define SEQUENCE_ID 1
 #define MAX_SEC 2147483647
-
-// uint64_t timespec_to_timestamp(timespec ts) { return (uint64_t)ts.tv_sec * 1000 * 1000 * 1000 + (uint64_t)ts.tv_nsec; }
 
 class timesync_engine_test : public trexStlTest {
   protected:
