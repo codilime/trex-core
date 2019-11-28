@@ -91,25 +91,6 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
     return TIMESYNC_PARSER_E_OK;
 }
 
-void RXTimesync::advertise(int port) {
-    // if (m_timesync_engine->getPortState(port) == TimesyncState::INIT)
-    //     return;
-    // m_timesync_engine->setPortState(port, TimesyncState::INIT);
-    // TODO mateusz prepare "PTP" advertisement packet
-    // TODO mateusz send the packet using RxPortManager or CRxCore tx_pkt() method
-    // m_timesync_engine->sentAdvertisement(port);
-}
-
-void RXTimesync::sendPTPDelayReq(int port) {
-    // uint64_t timestamp = CGlobalInfo::m_options.get_latency_timestamp();
-    // if (m_timesync_engine->getPortState(port) == TimesyncState::WORK)
-    //     return;
-    // m_timesync_engine->setPortState(port, TimesyncState::WORK);
-    // // TODO mateusz prepare PTP delayed request packet
-    // // TODO mateusz send the packet using RxPortManager or CRxCore tx_pkt() method
-    // m_timesync_engine->sentPTPDelayReq(port, timestamp);
-}
-
 void RXTimesync::hexdump(const unsigned char *msg, uint16_t len) {
     // https://stackoverflow.com/questions/7775991/how-to-get-hexdump-of-a-structure-data
     int i;

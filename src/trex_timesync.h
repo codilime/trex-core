@@ -143,6 +143,8 @@ class CTimesyncEngine {
     bool isDataValid(CTimesyncPTPData_t *data);
     void cleanupSequencesBefore(int port, timespec t);
 
+    bool isPacketTypeAllowed(TimesyncPacketType type);
+
   private:
     TimesyncMethod m_timesync_method;
     bool m_is_master;
