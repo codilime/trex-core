@@ -711,23 +711,12 @@ struct CGenNodeTimesync : public CGenNodeBase {
     friend class TrexStatelessDpCore;
 
   public:
-    union mac_addr_t {
-        uint8_t b[6];
-        uint64_t l;
-    };
-
-    struct both_mac_t {
-        mac_addr_t src_mac_addr;
-        mac_addr_t dst_mac_addr;
-    };
-
     /* cache line 0 */
     /* important stuff here */
     dsec_t timesync_last;
-    dsec_t m_next_time_offset;
 
   private:
-    uint32_t m_action_counter;
+    uint8_t m_mac_addr[12];
     uint16_t m_stat_hw_id; // hw id used to count rx and tx stats
     uint16_t m_cache_array_cnt;
 
@@ -735,6 +724,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
     CGenNodeStateless::stream_state_t m_state;
     uint8_t m_stream_type; // see TrexStream::STREAM_TYPE, stream_type_t
+    pkt_dir_t m_pkt_dir;
     uint32_t m_ptp_slave_ip;
     uint64_t m_pad_0[2];
 
@@ -748,13 +738,14 @@ struct CGenNodeTimesync : public CGenNodeBase {
     uint8_t m_port_id;
     uint32_t m_profile_id;
 
-    pkt_dir_t m_pkt_dir;
-    both_mac_t m_mac_addr;
-
     TimesyncPacketType m_last_sent_ptp_packet_type;
     uint16_t m_last_sent_sequence_id;
 
-    uint64_t m_pad_2[5];
+  public:
+    dsec_t m_next_time_offset;
+
+  private:
+    uint64_t m_pad_2[7];
 
   public:
     uint8_t get_port_id() { return (m_port_id); }
@@ -778,10 +769,10 @@ struct CGenNodeTimesync : public CGenNodeBase {
             m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
                                                TimesyncPacketType::PTP_SYNC, {0, 0});
 
-            // Get dest and src MAC
-            m_pkt_dir = thread->m_node_gen.m_v_if->port_id_to_dir(m_port_id);
-            thread->m_node_gen.m_v_if->update_mac_addr_from_global_cfg(m_pkt_dir, reinterpret_cast<uint8_t*>(&m_mac_addr));
-
+            // Get dest and src MAC -- not required since it is set in TrexStatelessDpCore::add_timesync_node
+            // m_pkt_dir = thread->m_node_gen.m_v_if->port_id_to_dir(m_port_id);
+            // thread->m_node_gen.m_v_if->update_mac_addr_from_global_cfg(m_pkt_dir, reinterpret_cast<uint8_t*>(&m_mac_addr));
+            
             timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
         }
 
@@ -827,8 +818,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
         // Setup Ethernet header
         EthernetHeader* eth_hdr = rte_pktmbuf_mtod(m, EthernetHeader*);
         eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
-        eth_hdr->myDestination = MacAddress(m_mac_addr.dst_mac_addr.b);
-        eth_hdr->mySource = MacAddress(m_mac_addr.src_mac_addr.b);
+        eth_hdr->myDestination = MacAddress(m_mac_addr[0], m_mac_addr[1], m_mac_addr[2], m_mac_addr[3], m_mac_addr[4], m_mac_addr[5]);
+        eth_hdr->mySource = MacAddress(m_mac_addr[6], m_mac_addr[7], m_mac_addr[8], m_mac_addr[9], m_mac_addr[10], m_mac_addr[11]);
 
         return eth_hdr;
     }
@@ -837,7 +828,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
                                            const uint16_t& seq_id, const PTP::Field::message_type& type){
         // Get Eth header
         EthernetHeader* eth_hdr = reinterpret_cast<EthernetHeader*>(data);
-        
+
         // Setup PTP message
         PTP::Header* ptp_hdr = reinterpret_cast<PTP::Header*>(data + offset);
 
