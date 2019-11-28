@@ -13,9 +13,8 @@ void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
         printf("PTP time synchronisation is currently not supported (but we are working on that).\n");
 #endif
         uint16_t rx_tstamp_idx = 0;
-        //TODO add support for hardware timestamping
-        bool hardware_timestamping_enalbed = false;
-        if (hardware_timestamping_enalbed) {
+
+        if (hardware_timestamping_enabled) {
             rx_tstamp_idx = m->timesync;
         }
         // uint8_t ret = parse_ptp_pkt(rte_pktmbuf_mtod(m, uint8_t *), m->pkt_len);
@@ -58,7 +57,7 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
     case PTP::Field::message_type::SYNC: {
         PTP::SyncPacket *sync = reinterpret_cast<PTP::SyncPacket *>(pkt + pkt_offset);
         timespec t;
-        parse_sync(rx_tstamp_idx, &t);
+        parse_sync(rx_tstamp_idx, &t, port);
         m_timesync_engine->receivedPTPSync(port, header->seq_id.value, t);
         sync->dump(stdout);     
     } break;
@@ -73,7 +72,7 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
     case PTP::Field::message_type::DELAY_REQ: {
         PTP::DelayedReqPacket *delay_req = reinterpret_cast<PTP::DelayedReqPacket *>(pkt + pkt_offset);
         timespec t;
-        parse_delay_request(rx_tstamp_idx, &t);
+        parse_delay_request(rx_tstamp_idx, &t, port);
         m_timesync_engine->receivedPTPDelayReq(port, header->seq_id.value, t);
         delay_req->dump(stdout);
     } break;
@@ -137,22 +136,26 @@ void RXTimesync::hexdump(const unsigned char *msg, uint16_t len) {
 
 Json::Value RXTimesync::to_json() const { return Json::objectValue; }
 
-void RXTimesync::parse_sync(uint16_t rx_tstamp_idx, timespec *t) {
-    // TODO add support for reading hardware timestamping
-    //rte_eth_timesync_read_rx_timestamp(ptp_data.portid,
-    //        &m_ptp_t2, rx_tstamp_idx);
-    clock_gettime(CLOCK_REALTIME, t);
+void RXTimesync::parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port) {
+    if (hardware_timestamping_enabled) {
+        rte_eth_timesync_read_rx_timestamp(port,
+            t, rx_tstamp_idx); 
+    } else {
+        clock_gettime(CLOCK_REALTIME, t);
+    }
 }
 
 void RXTimesync::parse_fup(PTP::FollowUpPacket *followup, timespec *t) {
     *t = followup->origin_timestamp.get_timestamp();
 }
 
-void RXTimesync::parse_delay_request(uint16_t rx_tstamp_idx, timespec *t) {
-    // TODO add support for reading hardware timestamping
-    //rte_eth_timesync_read_rx_timestamp(ptp_data.portid,
-    //        &m_ptp_t2, rx_tstamp_idx);
-    clock_gettime(CLOCK_REALTIME, t);
+void RXTimesync::parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int port) {
+    if (hardware_timestamping_enabled) {
+        rte_eth_timesync_read_rx_timestamp(port,
+            t, rx_tstamp_idx);
+    } else {
+        clock_gettime(CLOCK_REALTIME, t);
+    }
 }
 
 void RXTimesync::parse_delay_response(PTP::DelayedRespPacket *delay_resp, timespec *t) {

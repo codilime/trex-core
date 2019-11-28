@@ -32,6 +32,8 @@ class RXTimesync {
         m_timesync_engine = engine;
         // m_timesync_engine->setSyncState(TimesyncSlaveSyncState::WAIT);
         m_port = port;
+        TrexPlatformApi &api = get_platform_api();
+        hardware_timestamping_enabled = api.getPortAttrObj(port)->is_hardware_timesync_enabled();
     };
 
     void handle_pkt(const rte_mbuf_t *m, int port);
@@ -42,12 +44,14 @@ class RXTimesync {
 
     Json::Value to_json() const;
 
+    bool hardware_timestamping_enabled;
+
   private:
     TimesyncPacketParser_err_t parse_ptp_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port);
     void hexdump(const unsigned char *msg, uint16_t len); // TODO remove
-    void parse_sync(uint16_t rx_tstamp_idx, timespec *t);
+    void parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port);
     void parse_fup(PTP::FollowUpPacket *followup, timespec *t);
-    void parse_delay_request(uint16_t rx_tstamp_idx, timespec *t);
+    void parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int port);
     void parse_delay_response(PTP::DelayedRespPacket *delay_resp, timespec *t);
 
   private:

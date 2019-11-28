@@ -3568,6 +3568,9 @@ COLD_FUNC int  CGlobalTRex::device_start(void){
             _if->get_port_attr()->set_promiscuous(true);
             _if->get_port_attr()->set_multicast(true);
         }
+        if (CGlobalInfo::m_options.m_timesync_method == TimesyncMethod::PTP) {
+            _if->get_port_attr()->set_hardware_timesync(true);
+        }
 
         _if->configure_rx_duplicate_rules();
 

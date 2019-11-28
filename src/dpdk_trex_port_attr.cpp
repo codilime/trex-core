@@ -222,6 +222,27 @@ int DpdkTRexPortAttr::set_multicast(bool enable){
     return 0;
 }
 
+int DpdkTRexPortAttr::set_hardware_timesync(bool enable){
+    int ret;
+    if (enable) {
+        ret = rte_eth_timesync_enable(m_repid);
+        if (ret < 0) {
+            hardware_timesync_enabled = false;
+            printf("Hardware timesync enable failed: %d\n", ret);
+        } else {
+            hardware_timesync_enabled = true;
+        }
+    } else {
+        ret = rte_eth_timesync_disable(m_repid);
+        if (ret < 0) {
+            printf("Hardware timesync disable failed: %d\n", ret);
+        } else {
+            hardware_timesync_enabled = false;
+        }
+    }
+    return ret;
+}
+
 int DpdkTRexPortAttr::set_link_up(bool up){
     if (up) {
         return rte_eth_dev_set_link_up(m_repid);
@@ -287,5 +308,9 @@ bool DpdkTRexPortAttr::get_multicast(){
 
 void DpdkTRexPortAttr::get_hw_src_mac(struct ether_addr *mac_addr){
     rte_eth_macaddr_get(m_repid, mac_addr);
+}
+
+bool DpdkTRexPortAttr::is_hardware_timesync_enabled(){
+    return hardware_timesync_enabled;
 }
 

@@ -46,6 +46,7 @@ public:
 /*    GETTERS    */
     virtual bool get_promiscuous() = 0;
     virtual bool get_multicast() = 0;
+    virtual bool is_hardware_timesync_enabled() = 0;
     virtual void get_hw_src_mac(struct ether_addr *mac_addr) = 0;
     virtual uint32_t get_link_speed() { return m_link.link_speed < ETH_SPEED_NUM_100G? m_link.link_speed: ETH_SPEED_NUM_100G; } // L1 Mbps
     virtual bool is_link_duplex() { return (m_link.link_duplex ? true : false); }
@@ -83,9 +84,10 @@ public:
     virtual int set_led(bool on) = 0;
     virtual int set_rx_filter_mode(rx_filter_mode_e mode) = 0;
     virtual int set_vxlan_fs(vxlan_fs_ports_t &vxlan_fs_ports) = 0;
+    virtual int set_hardware_timesync(bool enabled) = 0;
 
-    
-    
+
+
     /* DUMPS */
     virtual void dump_link(FILE *fd) = 0;
 
@@ -108,6 +110,8 @@ protected:
     struct rte_pci_device     m_pci_dev;
 
     rx_filter_mode_e m_rx_filter_mode;
+
+    bool hardware_timesync_enabled;
 
     bool       flag_has_pci;
     bool       flag_is_virtual;
@@ -146,6 +150,7 @@ public:
     virtual int get_flow_ctrl(int &mode);
     virtual void get_supported_speeds(supp_speeds_t &supp_speeds);
     virtual bool is_loopback() const;
+    virtual bool is_hardware_timesync_enabled();
 
 /*    SETTERS    */
     virtual int set_promiscuous(bool enabled);
@@ -154,6 +159,7 @@ public:
     virtual int set_link_up(bool up);
     virtual int set_flow_ctrl(int mode);
     virtual int set_led(bool on);
+    virtual int set_hardware_timesync(bool enabled);
 
     virtual int set_rx_filter_mode(rx_filter_mode_e mode);
     virtual int set_vxlan_fs(vxlan_fs_ports_t &vxlan_fs_ports);
@@ -208,6 +214,7 @@ public:
     void reset_xstats() {}
     bool get_promiscuous() { return false; }
     bool get_multicast() { return false; }
+    bool is_hardware_timesync_enabled() { return false; }
     void get_hw_src_mac(struct ether_addr *mac_addr) {}
     int get_xstats_values(xstats_values_t &xstats_values) { return -ENOTSUP; }
     int get_xstats_names(xstats_names_t &xstats_names) { return -ENOTSUP; }
@@ -215,6 +222,7 @@ public:
     void get_supported_speeds(supp_speeds_t &supp_speeds) {}
     int set_promiscuous(bool enabled) { return -ENOTSUP; }
     int set_multicast(bool enabled) { return -ENOTSUP; }
+    int set_hardware_timesync(bool enabled) { return -ENOTSUP; }
     int add_mac(char * mac) { return -ENOTSUP; }
     int set_link_up(bool up) { return -ENOTSUP; }
     int set_flow_ctrl(int mode) { return -ENOTSUP; }
