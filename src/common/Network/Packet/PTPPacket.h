@@ -268,18 +268,7 @@ struct src_port_id_field {
     }
 } __attribute__((packed));
 
-struct sequence_id_field {
-    uint16_t value;
-
-    sequence_id_field& operator=(const uint16_t& val){
-        value = PKT_HTONS(val);
-        return *this;
-    }
-
-    uint16_t operator*(){
-        return PKT_NTOHLL(value);
-    }
-} __attribute__((packed));
+typedef net_field16_t sequence_id_field;
 
 enum struct control : uint8_t {
     CTL_SYNC = 0,

@@ -31,10 +31,6 @@ class RXTimesync {
 
     void handle_pkt(const rte_mbuf_t *m, int port);
 
-    void advertise(int port);
-
-    void sendPTPDelayReq(int port);
-
     Json::Value to_json() const;
 
     bool hardware_timestamping_enabled;

@@ -727,119 +727,90 @@ struct CGenNodeTimesync : public CGenNodeBase {
     dsec_t m_next_time_offset;
 
   private:
+    uint32_t m_action_counter;
+    uint16_t m_stat_hw_id; // hw id used to count rx and tx stats
+    uint16_t m_cache_array_cnt;
+
+    uint8_t m_null_stream;
+
     CGenNodeStateless::stream_state_t m_state;
     uint8_t m_stream_type; // see TrexStream::STREAM_TYPE, stream_type_t
     uint32_t m_ptp_slave_ip;
-    uint64_t m_pad_0[3];
+    uint64_t m_pad_0[2];
 
     /* cache line 1 */
     /* this cache line would better be readonly but is not */
     TrexStream *m_ref_stream_info;
-    uint8_t m_port_id;
-    pkt_dir_t m_pkt_dir;
-    both_mac_t m_mac_addr;
-    uint32_t m_profile_id;
     rte_mbuf_t *m;
     CTimesyncEngine *m_timesync_engine;
-    uint64_t m_pad_1[9];
+    uint64_t m_pad_1[3];
+
+    uint8_t m_port_id;
+    uint32_t m_profile_id;
+
+    pkt_dir_t m_pkt_dir;
+    both_mac_t m_mac_addr;
+
+    TimesyncPacketType m_last_sent_ptp_packet_type;
+    uint16_t m_last_sent_sequence_id;
+
+    uint64_t m_pad_2[5];
 
   public:
+    uint8_t get_port_id() { return (m_port_id); }
+
     inline void init() {
         m_timesync_engine = CGlobalInfo::get_timesync_engine();
         assert(m_timesync_engine);
 
         set_slow_path(true);
         set_send_immediately(true);
+
     }
 
-    inline void teardown() { m_timesync_engine = nullptr; }
+    inline void teardown() {
+        m_timesync_engine = nullptr;
+    }
 
     inline void handle(CFlowGenListPerThread *thread) {
 
         if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
             m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
                                                TimesyncPacketType::PTP_SYNC, {0, 0});
-            timesync_last = now_sec();
+
+            // Get dest and src MAC
+            m_pkt_dir = thread->m_node_gen.m_v_if->port_id_to_dir(m_port_id);
+            thread->m_node_gen.m_v_if->update_mac_addr_from_global_cfg(m_pkt_dir, reinterpret_cast<uint8_t*>(&m_mac_addr));
+
+            timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
         }
 
         if (m_timesync_engine->hasNextMessage(m_port_id)) {
             thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
+
+            // this is the moment TRex has just sent this node, get the timestamp immediately
+            dsec_t sent_time = now_sec();  // not the ideal solution timespec -> double -> timespec...
+            timespec ts = {(long int) floor(sent_time), (long int)((sent_time - floor(sent_time)) * 1000 * 1000 * 1000)};
+            
+            switch (m_last_sent_ptp_packet_type)
+            {
+            case TimesyncPacketType::PTP_SYNC:
+                m_timesync_engine->sentPTPSync(m_port_id, m_last_sent_sequence_id, ts);
+                break;
+            case TimesyncPacketType::PTP_FOLLOWUP:
+                m_timesync_engine->sentPTPFollowUp(m_port_id, m_last_sent_sequence_id, ts);
+                break;
+            case TimesyncPacketType::PTP_DELAYREQ:
+                m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts);
+                break;
+            case TimesyncPacketType::PTP_DELAYRESP:
+                m_timesync_engine->sentPTPDelayResp(m_port_id, m_last_sent_sequence_id, ts);
+                break;
+            
+            default:
+                break;
+            }
         }
-
-        // switch (m_ptp_state) {
-        //     case PTP_WAIT:
-        //         m_ptp_state = PTP_SYNC;
-        //         break;
-
-        //     case PTP_MARKED_FOR_FREE:
-        //         break;
-
-        //     case PTP_SYNC:
-        //         cleanup();
-        //         m_pkt_dir = thread->m_node_gen.m_v_if->port_id_to_dir(m_port_id);
-
-        //         // Get dest and src MAC
-        //         thread->m_node_gen.m_v_if->update_mac_addr_from_global_cfg(m_pkt_dir,
-        //         reinterpret_cast<uint8_t*>(&m_mac_addr));
-
-        //         thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-        //         // probably need to implement read_timesync(tx/rx) in CVirtualIF
-
-        //         // t1 = rte_eth_timesync_read_tx_timestamp() or
-        //         // t1 = thread->m_node_gen.m_v_if->read_tx_timestamp()
-
-        //         // with hardware timestamping we will wait using read_tx_timestamp
-        //         // till get timestamp of sending to process to next step
-        //         // see: https://github.com/DPDK/dpdk/blob/master/examples/ptpclient/ptpclient.c#L476-L481
-
-        //         if(clock_gettime(CLOCK_REALTIME, &m_ptp_t1) != 0) {
-        //             m_ptp_state = PTP_INVALID;
-        //             break;
-        //         }
-
-        //         m_ptp_state = PTP_FOLLOW_UP_T1;
-        //         break;
-
-        //     case PTP_FOLLOW_UP_T1:
-        //     case PTP_FOLLOW_UP_T3:
-        //         // send node with t1/t3 (prepare packet for get_pkt)
-        //         thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-        //         if (m_ptp_state == PTP_FOLLOW_UP_T1)
-        //             m_ptp_state = PTP_DELAYED_REQ;
-        //         else
-        //             m_ptp_state = PTP_DELAYED_RESP;
-        //         break;
-
-        //     case PTP_DELAYED_REQ:
-        //         thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-        //         // t3 = rte_eth_timesync_read_tx_timestamp() or
-        //         // t3 = thread->m_node_gen.m_v_if->read_tx_timestamp()
-        //         // see comment in PTP_SYNC
-
-        //         if(clock_gettime(CLOCK_REALTIME, &m_ptp_t3) != 0) {
-        //             m_ptp_state = PTP_INVALID;
-        //             break;
-        //         }
-        //         m_ptp_state = PTP_FOLLOW_UP_T3;
-
-        //         // wait for delayed_request will be achived in RXCore
-        //         // if delayed_request
-        //         // t4 = rte_eth_timesync_read_rx_timestamp() or
-        //         // t4 = thread->m_node_gen.m_v_if->read_rx_timestamp()
-        //         // next this value need to be passed to this node to
-        //         break;
-
-        //     case PTP_DELAYED_RESP:
-        //         // send node with t4 (prepare packet for get_pkt)
-        //         thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-        //         timesync_last = now_sec();
-        //         m_ptp_state = PTP_WAIT;
-        //         break;
-
-        //     case PTP_INVALID:
-        //     default:
-        //         assert(0);
-        // }
     }
 
     // inline void tspec_to_tstamp(const timespec& ts, PTP::Field::tstamp& tstamp){
@@ -938,9 +909,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         switch (next_message.type) {
 
-        case TimesyncPacketType::UNKNOWN:
-            break;
-
         case TimesyncPacketType::PTP_SYNC: {
             uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
 
@@ -961,6 +929,9 @@ struct CGenNodeTimesync : public CGenNodeBase {
             ptp_msg->origin_timestamp.sec_msb = 0;
             ptp_msg->origin_timestamp.sec_lsb = 0;
             ptp_msg->origin_timestamp.ns = 0;
+
+            m_last_sent_ptp_packet_type = next_message.type;
+            m_last_sent_sequence_id = next_message.sequence_id;
             } break;
 
         case TimesyncPacketType::PTP_FOLLOWUP: {
@@ -977,12 +948,14 @@ struct CGenNodeTimesync : public CGenNodeBase {
             // Enable flag for hardware timestamping.
             //m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
-            // Setup PTP sync
+            // Setup PTP follow up
             PTP::FollowUpPacket* ptp_msg = reinterpret_cast<PTP::FollowUpPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
-            // As we do not support PTP_ONE_WAY currently, this is set to 0
             ptp_msg->origin_timestamp.sec_msb = 0;
-            ptp_msg->origin_timestamp.sec_lsb = 0;
-            ptp_msg->origin_timestamp.ns = 0;
+            ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;  // network-to-machine ...
+            ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;      // ... or machine-to-network?
+
+            m_last_sent_ptp_packet_type = next_message.type;
+            m_last_sent_sequence_id = next_message.sequence_id;
             } break;
 
         case TimesyncPacketType::PTP_DELAYREQ: {
@@ -999,12 +972,15 @@ struct CGenNodeTimesync : public CGenNodeBase {
             // Enable flag for hardware timestamping.
             //m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
-            // Setup PTP sync
+            // Setup PTP delay req
             PTP::DelayedReqPacket* ptp_msg = reinterpret_cast<PTP::DelayedReqPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
             // As we do not support PTP_ONE_WAY currently, this is set to 0
             ptp_msg->origin_timestamp.sec_msb = 0;
             ptp_msg->origin_timestamp.sec_lsb = 0;
             ptp_msg->origin_timestamp.ns = 0;
+
+            m_last_sent_ptp_packet_type = next_message.type;
+            m_last_sent_sequence_id = next_message.sequence_id;
             } break;
 
         case TimesyncPacketType::PTP_DELAYRESP: {
@@ -1021,13 +997,19 @@ struct CGenNodeTimesync : public CGenNodeBase {
             // Enable flag for hardware timestamping.
             //m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
-            // Setup PTP sync
+            // Setup PTP delay resp
             PTP::DelayedRespPacket* ptp_msg = reinterpret_cast<PTP::DelayedRespPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
             // As we do not support PTP_ONE_WAY currently, this is set to 0
             ptp_msg->origin_timestamp.sec_msb = 0;
-            ptp_msg->origin_timestamp.sec_lsb = 0;
-            ptp_msg->origin_timestamp.ns = 0;
+            ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;  // network-to-machine ...
+            ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;      // ... or machine-to-network?
+
+            m_last_sent_ptp_packet_type = next_message.type;
+            m_last_sent_sequence_id = next_message.sequence_id;
             } break;
+
+        default:
+            break;
         }
 
         return (m);

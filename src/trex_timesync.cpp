@@ -27,17 +27,13 @@ inline timespec timestampToTimespec(uint64_t timestamp) {
     return {(uint32_t)(timestamp / (1000 * 1000 * 1000)), (uint32_t)(timestamp % (1000 * 1000 * 1000))};
 };
 
-inline uint64_t timespecToTimestamp(timespec ts){
-    return ((uint64_t) ts.tv_sec * (1000 * 1000 * 1000)) + ts.tv_nsec;
-}
+inline uint64_t timespecToTimestamp(timespec ts) { return ((uint64_t)ts.tv_sec * (1000 * 1000 * 1000)) + ts.tv_nsec; }
 
 /**
  * CTimesyncEngine
  */
 
-CTimesyncEngine::CTimesyncEngine() {
-    m_timesync_method = TimesyncMethod::NONE;
-}
+CTimesyncEngine::CTimesyncEngine() { m_timesync_method = TimesyncMethod::NONE; }
 
 // PTP Slave's code //////////////////////////////////////////////
 
@@ -57,7 +53,7 @@ void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timesp
     if (data == nullptr)
         return;
     data->t1 = t;
-    // TODO send delay request with with sequence ID = sequence_id
+    pushNextMessage(port, sequence_id, TimesyncPacketType::PTP_DELAYREQ, {0, 0});
 }
 
 void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t) {
@@ -84,22 +80,28 @@ void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, times
 // master flow: send SYNC, send FOLLOW_UP, receive DELAY_REQ, send DELAY_RESP
 
 void CTimesyncEngine::sentPTPSync(int port, uint16_t sequence_id, timespec t) {
-    // TODO: Master has just sent the sync message
+    if (!m_is_master)
+        return;
+    pushNextMessage(port, sequence_id, TimesyncPacketType::PTP_FOLLOWUP, t);
 }
 
 void CTimesyncEngine::sentPTPFollowUp(int port, uint16_t sequence_id, timespec t) {
-    // TODO: Master has just sent the follow up message
+    if (!m_is_master)
+        return;
+    // wait for the Delay Resp packet
 }
 
 void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t) {
-    // TODO put delay_resp details on the queue
+    if (!m_is_master)
+        return;
+    pushNextMessage(port, sequence_id, TimesyncPacketType::PTP_DELAYRESP, t);
 }
-
 
 void CTimesyncEngine::sentPTPDelayResp(int port, uint16_t sequence_id, timespec t) {
-    // TODO: Master has just sent the delayed response message
+    if (!m_is_master)
+        return;
+    // be done
 }
-
 
 // Delta calculations and handling ///////////////////////////////
 
@@ -124,9 +126,10 @@ int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
     CTimesyncPTPData_t *data = getData(port, sequence_id);
     if ((data == nullptr) || (!isDataValid(data)))
         return 0;
-    
+
     int64_t delta = -((int64_t)((timespecToTimestamp(data->t2) - timespecToTimestamp(data->t1)) -
-                                (timespecToTimestamp(data->t4) - timespecToTimestamp(data->t3)))) / 2;
+                                (timespecToTimestamp(data->t4) - timespecToTimestamp(data->t3)))) /
+                    2;
     setDelta(port, delta);
     cleanupSequencesBefore(port, data->t2);
     return delta;
@@ -149,10 +152,17 @@ int64_t CTimesyncEngine::getDelta(int port) {
     }
 }
 
-
 // Message queue /////////////////////////////////////////////////
 
+bool CTimesyncEngine::isPacketTypeAllowed(TimesyncPacketType type) {
+    return (m_is_master && ((type == TimesyncPacketType::PTP_SYNC) || (type == TimesyncPacketType::PTP_FOLLOWUP) ||
+                            (type == TimesyncPacketType::PTP_DELAYRESP))) ||
+           (!m_is_master && (type == TimesyncPacketType::PTP_DELAYREQ));
+}
+
 void CTimesyncEngine::pushNextMessage(int port, uint16_t sequence_id, TimesyncPacketType type, timespec ts) {
+    if (!isPacketTypeAllowed(type))
+        return;
     CTimesyncPTPPacketQueue_t *packet_queue = getOrCreatePacketQueue(port);
     packet_queue->push({sequence_id, type, ts});
 }
@@ -173,12 +183,11 @@ bool CTimesyncEngine::hasNextMessage(int port) {
     return !(packet_queue->empty());
 }
 
-
 // Helper methods ////////////////////////////////////////////////
 
 CTimesyncSequences_t *CTimesyncEngine::getSequences(int port) {
     auto iter = m_sequences_per_port.find(port);
-    if (iter != m_sequences_per_port.end()) 
+    if (iter != m_sequences_per_port.end())
         return &m_sequences_per_port[port];
     return nullptr;
 }
@@ -218,7 +227,7 @@ CTimesyncPTPData_t *CTimesyncEngine::getOrCreateData(int port, uint16_t sequence
 
 CTimesyncPTPPacketQueue_t *CTimesyncEngine::getPacketQueue(int port) {
     auto iter = m_send_queue_per_port.find(port);
-    if (iter != m_send_queue_per_port.end()) 
+    if (iter != m_send_queue_per_port.end())
         return &m_send_queue_per_port[port];
     return nullptr;
 }
@@ -233,4 +242,3 @@ CTimesyncPTPPacketQueue_t *CTimesyncEngine::getOrCreatePacketQueue(int port) {
     }
     return &m_send_queue_per_port[port];
 }
-
