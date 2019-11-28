@@ -28,6 +28,7 @@ limitations under the License.
 
 #include <unordered_map>
 #include <queue>
+#include <common/Network/Packet/MacAddress.h>
 
 enum struct TimesyncMethod : uint8_t {
     NONE = 0,
@@ -40,6 +41,7 @@ typedef struct {
     timespec t2;
     timespec t3;
     timespec t4;
+    MacAddress mac_addr;
 } CTimesyncPTPData_t;
 
 // A type definition of map of sequence_id to CTimesyncPTPData_t
@@ -56,6 +58,7 @@ struct NextMessage {
     TimesyncPacketType type;
     uint16_t  seq_id;
     timespec  time_to_send;
+    MacAddress  src_mac;
 };
 
 /**
@@ -80,10 +83,10 @@ class CTimesyncEngine {
     void sentPTPDelayResp(int port, uint16_t sequence_id, timespec t); // master
 
     void receivedAdvertisement(int port, std::array<uint8_t, 6> mac_addr);      // master
-    void receivedPTPSync(int port, uint16_t sequence_id, timespec t);           // slave
-    void receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t);       // slave
-    void receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t);       // master
-    void receivedPTPDelayResp(int port, uint16_t seqsequence_idID, timespec t); // slave
+    void receivedPTPSync(int port, uint16_t sequence_id, timespec t, const MacAddress& mac_addr);           // slave
+    void receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t, const MacAddress& mac_addr);       // slave
+    void receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t, const MacAddress& mac_addr);       // master
+    void receivedPTPDelayResp(int port, uint16_t seqsequence_idID, timespec t, const MacAddress& mac_addr); // slave
 
     int64_t evalDelta(int port, uint16_t sequence_id);
     void setDelta(int port, int64_t delta);
@@ -97,14 +100,17 @@ class CTimesyncEngine {
       return !(m_per_port_send_queue[port_id].empty());
     }
 
-    NextMessage getNextMessage(uint8_t port_id){
+    NextMessage&& getNextMessage(uint8_t port_id){
+      printf("Poping packet from queue");
       NextMessage& next_message = m_per_port_send_queue[port_id].front();
       m_per_port_send_queue[port_id].pop();
-      return next_message;
+      return std::move(next_message);
     }
 
-    void pushNextMessage(uint8_t port_id, const TimesyncPacketType& type, const uint16_t& seq_id, const timespec& time = {0, 0}){
-      m_per_port_send_queue[port_id].emplace(NextMessage{type, seq_id, time});
+    void pushNextMessage(uint8_t port_id, const TimesyncPacketType& type, const uint16_t& seq_id, 
+                         const timespec& time = {0, 0}, const MacAddress& mac_addr = MacAddress()) {
+      printf("Pushing packet to queue");
+      m_per_port_send_queue[port_id].push(std::move(NextMessage{type, seq_id, time, mac_addr}));
     }
 
   private:

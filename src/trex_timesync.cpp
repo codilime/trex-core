@@ -49,21 +49,24 @@ void CTimesyncEngine::sentAdvertisement(int port) {
 
 // slave flow: receive SYNC, receive FOLLOW_UP, send DELAY_REQ, receive DELAY_RESP
 
-void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t) {
+void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t, const MacAddress& mac_addr) {
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getOrCreateData(port, sequence_id);
+    data->mac_addr = mac_addr;
     data->t2 = t;
 }
 
-void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t) {
+void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t, const MacAddress& mac_addr) {
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getData(port, sequence_id);
     if (data == nullptr)
         return;
+    if (!(data->mac_addr == mac_addr))
+        return;
     data->t1 = t;
-    // TODO send delay request with with sequence ID = sequence_id
+    pushNextMessage(port, TimesyncPacketType::PTP_DELAYREQ, sequence_id, {}, mac_addr);
 }
 
 void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t) {
@@ -75,11 +78,13 @@ void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t
     data->t3 = t;
 }
 
-void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t) {
+void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t, const MacAddress& mac_addr) {
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getData(port, sequence_id);
     if (data == nullptr)
+        return;
+    if (!(data->mac_addr == mac_addr))
         return;
     data->t4 = t;
     evalDelta(port, sequence_id);
@@ -96,20 +101,29 @@ void CTimesyncEngine::receivedAdvertisement(int port, std::array<uint8_t, 6> mac
 // master flow: send SYNC, send FOLLOW_UP, receive DELAY_REQ, send DELAY_RESP
 
 void CTimesyncEngine::sentPTPSync(int port, uint16_t sequence_id, timespec t) {
-    // TODO: Master has just sent the sync message
+    timespec t1;
+    if(clock_gettime(CLOCK_REALTIME, &t1) != 0) { // TODO: To unified get_time interface
+        return;
+    }
+    pushNextMessage(port, TimesyncPacketType::PTP_FOLLOWUP, sequence_id, t1, 
+                    MacAddress(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF));
 }
 
 void CTimesyncEngine::sentPTPFollowUp(int port, uint16_t sequence_id, timespec t) {
-    // TODO: Master has just sent the follow up message
+    // Nothing to do, I think?
 }
 
-void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t) {
-    // TODO put delay_resp details on the queue
+void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t, const MacAddress& mac_addr) {
+    timespec t4;
+    if(clock_gettime(CLOCK_REALTIME, &t4) != 0) { // TODO: To unified get_time interface
+        return;
+    }
+    pushNextMessage(port, TimesyncPacketType::PTP_DELAYRESP, sequence_id, t4, mac_addr);
 }
 
 
 void CTimesyncEngine::sentPTPDelayResp(int port, uint16_t sequence_id, timespec t) {
-    // TODO: Master has just sent the delayed response message
+    // Nothing to do, I think?
 }
 
 

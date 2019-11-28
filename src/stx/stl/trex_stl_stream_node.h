@@ -729,9 +729,9 @@ struct CGenNodeTimesync : public CGenNodeBase {
   private:
     CGenNodeStateless::stream_state_t m_state;
     uint8_t m_stream_type; // see TrexStream::STREAM_TYPE, stream_type_t
-    uint32_t m_ptp_slave_ip;
-    uint8_t m_pad_0[1];
-    uint64_t m_pad_1[3];
+    NextMessage next_message;
+    //uint8_t m_pad_0[1];
+    //uint64_t m_pad_1[1];
 
     /* cache line 1 */
     /* this cache line would better be readonly but is not */
@@ -760,97 +760,46 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
     inline void handle(CFlowGenListPerThread *thread) {
 
-        if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
-            m_timesync_engine->pushNextMessage(m_port_id, TimesyncPacketType::PTP_SYNC, m_timesync_engine->nextSeqID(m_port_id));
+        if ((CGlobalInfo::m_options.m_timesync_interval > 0) &&
+            (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec())) {
+            m_timesync_engine->pushNextMessage(m_port_id, TimesyncPacketType::PTP_SYNC,
+                                               m_timesync_engine->nextSeqID(m_port_id), {},
+                                               MacAddress(0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF));
+
+            // Get dest and src MAC
+            m_pkt_dir = thread->m_node_gen.m_v_if->port_id_to_dir(m_port_id);
+            thread->m_node_gen.m_v_if->update_mac_addr_from_global_cfg(m_pkt_dir, reinterpret_cast<uint8_t*>(&m_mac_addr));
+
+            // Update time to next sync
             timesync_last = now_sec();
         }
 
         if(m_timesync_engine->isNextMessage(m_port_id)) {
+            next_message = m_timesync_engine->getNextMessage(m_port_id);
+
             thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
+            switch (next_message.type) {
+                case TimesyncPacketType::PTP_SYNC: {
+                    m_timesync_engine->sentPTPSync(m_port_id, next_message.seq_id, {});
+                } break;
+
+                case TimesyncPacketType::PTP_FOLLOWUP: {
+                    m_timesync_engine->sentPTPFollowUp(m_port_id, next_message.seq_id, {});
+                } break;
+
+                case TimesyncPacketType::PTP_DELAYREQ: {
+                    m_timesync_engine->sentPTPDelayReq(m_port_id, next_message.seq_id, {});
+                } break;
+
+                case TimesyncPacketType::PTP_DELAYRESP: {
+                    printf("ARTUR - sending Delay Response");
+                    m_timesync_engine->sentPTPDelayResp(m_port_id, next_message.seq_id, {});
+                } break;
+            }
         }
-
-        // switch (m_ptp_state) {
-        //     case PTP_WAIT:
-        //         m_ptp_state = PTP_SYNC;
-        //         break;
-
-        //     case PTP_MARKED_FOR_FREE:
-        //         break;
-
-        //     case PTP_SYNC:
-        //         cleanup();
-        //         m_pkt_dir = thread->m_node_gen.m_v_if->port_id_to_dir(m_port_id);
-
-        //         // Get dest and src MAC
-        //         thread->m_node_gen.m_v_if->update_mac_addr_from_global_cfg(m_pkt_dir, reinterpret_cast<uint8_t*>(&m_mac_addr));
-
-        //         thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-        //         // probably need to implement read_timesync(tx/rx) in CVirtualIF
-
-        //         // t1 = rte_eth_timesync_read_tx_timestamp() or
-        //         // t1 = thread->m_node_gen.m_v_if->read_tx_timestamp()
-
-        //         // with hardware timestamping we will wait using read_tx_timestamp 
-        //         // till get timestamp of sending to process to next step
-        //         // see: https://github.com/DPDK/dpdk/blob/master/examples/ptpclient/ptpclient.c#L476-L481
-
-        //         if(clock_gettime(CLOCK_REALTIME, &m_ptp_t1) != 0) {
-        //             m_ptp_state = PTP_INVALID;
-        //             break;
-        //         }
-
-        //         m_ptp_state = PTP_FOLLOW_UP_T1;
-        //         break;
-
-        //     case PTP_FOLLOW_UP_T1:
-        //     case PTP_FOLLOW_UP_T3:
-        //         // send node with t1/t3 (prepare packet for get_pkt)
-        //         thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-        //         if (m_ptp_state == PTP_FOLLOW_UP_T1)
-        //             m_ptp_state = PTP_DELAYED_REQ;
-        //         else
-        //             m_ptp_state = PTP_DELAYED_RESP;
-        //         break;
-
-        //     case PTP_DELAYED_REQ:
-        //         thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-        //         // t3 = rte_eth_timesync_read_tx_timestamp() or
-        //         // t3 = thread->m_node_gen.m_v_if->read_tx_timestamp()
-        //         // see comment in PTP_SYNC
-
-        //         if(clock_gettime(CLOCK_REALTIME, &m_ptp_t3) != 0) {
-        //             m_ptp_state = PTP_INVALID;
-        //             break;
-        //         }
-        //         m_ptp_state = PTP_FOLLOW_UP_T3;
-
-        //         // wait for delayed_request will be achived in RXCore
-        //         // if delayed_request
-        //         // t4 = rte_eth_timesync_read_rx_timestamp() or
-        //         // t4 = thread->m_node_gen.m_v_if->read_rx_timestamp()
-        //         // next this value need to be passed to this node to 
-        //         break;
-
-        //     case PTP_DELAYED_RESP:
-        //         // send node with t4 (prepare packet for get_pkt)
-        //         thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-        //         timesync_last = now_sec();
-        //         m_ptp_state = PTP_WAIT;
-        //         break;
-
-        //     case PTP_INVALID:
-        //     default:
-        //         assert(0);
-        // }
     }
 
-    // inline void tspec_to_tstamp(const timespec& ts, PTP::Field::tstamp& tstamp){
-    //     tstamp.sec_msb = 0;
-    //     tstamp.sec_lsb = ts.tv_sec;
-    //     tstamp.ns = ts.tv_nsec;
-    // }
-
-    inline EthernetHeader* prepare_header(rte_mbuf_t* mbuf, const size_t& size){
+    inline EthernetHeader* prepare_header(rte_mbuf_t* mbuf, const size_t& size, const MacAddress& mac_addr){
             // Setup mbuf common
             m->data_len = (ETH_HDR_LEN + size);
             m->pkt_len = (ETH_HDR_LEN + size);
@@ -858,7 +807,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             // Setup Ethernet header
             EthernetHeader* eth_hdr = rte_pktmbuf_mtod(m, EthernetHeader*);
             eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
-            eth_hdr->myDestination = MacAddress(m_mac_addr.dst_mac_addr.b);
+            eth_hdr->myDestination = MacAddress(mac_addr);
             eth_hdr->mySource = MacAddress(m_mac_addr.src_mac_addr.b);
 
             return eth_hdr;
@@ -890,7 +839,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
                     break;
 
                 case PTP::Field::message_type::DELAY_REQ:
-                    ptp_hdr->message_len = PTP_MSG_DELAYREQ_LEN;
+                    ptp_hdr->message_len = PTP_DELAYREQ_LEN;
                     ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
                     ptp_hdr->control = PTP::Field::control::CTL_DELAY_REQ;
                     break;
@@ -935,7 +884,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
      * get the current packet as MBUF
      */
     inline rte_mbuf_t *get_pkt() {
-        NextMessage next_message = m_timesync_engine->getNextMessage(m_port_id);
+        
 
         switch (next_message.type) {
 
@@ -944,7 +893,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
                 // Setup Eth Header
                 //EthernetHeader* eth_hdr = 
-                prepare_header(m, PTP_SYNC_LEN);
+                prepare_header(m, PTP_SYNC_LEN, next_message.src_mac);
 
                 // Setup PTP message
                 //PTP::Header* ptp_hdr = 
@@ -957,8 +906,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 PTP::SyncPacket* ptp_msg = reinterpret_cast<PTP::SyncPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
                 // As we do not support PTP_ONE_WAY currently, this is set to 0
                 ptp_msg->origin_timestamp.sec_msb = 0;
-                ptp_msg->origin_timestamp.sec_lsb = 0;
-                ptp_msg->origin_timestamp.ns = 0;
+                ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;
+                ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;
             } break;
 
             case TimesyncPacketType::PTP_FOLLOWUP: {
@@ -966,7 +915,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
                 // Setup Eth Header
                 //EthernetHeader* eth_hdr = 
-                prepare_header(m, PTP_FOLLOWUP_LEN);
+                prepare_header(m, PTP_FOLLOWUP_LEN, next_message.src_mac);
 
                 // Setup PTP message
                 //PTP::Header* ptp_hdr = 
@@ -979,8 +928,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 PTP::FollowUpPacket* ptp_msg = reinterpret_cast<PTP::FollowUpPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
                 // As we do not support PTP_ONE_WAY currently, this is set to 0
                 ptp_msg->origin_timestamp.sec_msb = 0;
-                ptp_msg->origin_timestamp.sec_lsb = 0;
-                ptp_msg->origin_timestamp.ns = 0;
+                ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;
+                ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;
             } break;
 
             case TimesyncPacketType::PTP_DELAYREQ: {
@@ -988,7 +937,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
                 // Setup Eth Header
                 //EthernetHeader* eth_hdr = 
-                prepare_header(m, PTP_DELAYREQ_LEN);
+                prepare_header(m, PTP_DELAYREQ_LEN, next_message.src_mac);
 
                 // Setup PTP message
                 //PTP::Header* ptp_hdr = 
@@ -1001,8 +950,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 PTP::DelayedReqPacket* ptp_msg = reinterpret_cast<PTP::DelayedReqPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
                 // As we do not support PTP_ONE_WAY currently, this is set to 0
                 ptp_msg->origin_timestamp.sec_msb = 0;
-                ptp_msg->origin_timestamp.sec_lsb = 0;
-                ptp_msg->origin_timestamp.ns = 0;
+                ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;
+                ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;
             } break;
 
             case TimesyncPacketType::PTP_DELAYRESP: {
@@ -1010,7 +959,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
                 // Setup Eth Header
                 //EthernetHeader* eth_hdr = 
-                prepare_header(m, PTP_DELAYRESP_LEN);
+                prepare_header(m, PTP_DELAYRESP_LEN, next_message.src_mac);
 
                 // Setup PTP message
                 //PTP::Header* ptp_hdr = 
@@ -1023,8 +972,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 PTP::DelayedRespPacket* ptp_msg = reinterpret_cast<PTP::DelayedRespPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
                 // As we do not support PTP_ONE_WAY currently, this is set to 0
                 ptp_msg->origin_timestamp.sec_msb = 0;
-                ptp_msg->origin_timestamp.sec_lsb = 0;
-                ptp_msg->origin_timestamp.ns = 0;
+                ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;
+                ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;
             } break;
         }
 
