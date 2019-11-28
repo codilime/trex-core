@@ -1009,6 +1009,7 @@ public:
     static CPlatformSocketInfo   m_socket;
     static CDpdkMode             m_dpdk_mode;
     static CTimesyncEngine       m_timesync_engine;
+    static bool                  m_hardware_timestamping_enabled;
 };
 
 static inline CDpdkModeBase * get_dpdk_mode(){

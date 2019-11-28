@@ -25,6 +25,7 @@ limitations under the License.
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 typedef struct rte_mbuf  rte_mbuf_t;
 
@@ -265,6 +266,11 @@ rte_lcore_to_socket_id(unsigned lcore_id){
  */
 #define rte_pktmbuf_data_len(m) ((m)->data_len)
 
+static inline int rte_eth_timesync_read_rx_timestamp(uint16_t port_id,
+        struct timespec *timestamp, uint32_t flags) {
+    clock_gettime(CLOCK_REALTIME, timestamp);
+    return 0;
+}
 
 
 /**
