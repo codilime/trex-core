@@ -768,20 +768,13 @@ struct CGenNodeTimesync : public CGenNodeBase {
         if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
             m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
                                                TimesyncPacketType::PTP_SYNC, {0, 0});
-
-            // Get dest and src MAC -- not required since it is set in TrexStatelessDpCore::add_timesync_node
-            // m_pkt_dir = thread->m_node_gen.m_v_if->port_id_to_dir(m_port_id);
-            // thread->m_node_gen.m_v_if->update_mac_addr_from_global_cfg(m_pkt_dir, reinterpret_cast<uint8_t*>(&m_mac_addr));
-            
             timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
         }
 
         if (m_timesync_engine->hasNextMessage(m_port_id)) {
+            timespec ts;
             thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-
-            // this is the moment TRex has just sent this node, get the timestamp immediately
-            dsec_t sent_time = now_sec();  // not the ideal solution timespec -> double -> timespec...
-            timespec ts = {(long int) floor(sent_time), (long int)((sent_time - floor(sent_time)) * 1000 * 1000 * 1000)};
+            clock_gettime(CLOCK_REALTIME, &ts);
             
             switch (m_last_sent_ptp_packet_type)
             {
@@ -850,7 +843,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 break;
 
             case PTP::Field::message_type::DELAY_REQ:
-                ptp_hdr->message_len = PTP_MSG_DELAYREQ_LEN;
+                ptp_hdr->message_len = PTP_DELAYREQ_LEN;
                 ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
                 ptp_hdr->control = PTP::Field::control::CTL_DELAY_REQ;
                 break;
