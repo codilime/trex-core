@@ -105,7 +105,9 @@ enum struct message_type : uint8_t {
     PDELAY_RESP_FOLLOW_UP   = 0xA,
     ANNOUNCE                = 0xB,
     SIGNALING               = 0xC,
-    MANAGEMENT              = 0xD
+    MANAGEMENT              = 0xD,
+    // When something goes wrong 
+    UNKNOWN                 = 0xF,
 };
 
 struct trans_spec_and_mess_type{

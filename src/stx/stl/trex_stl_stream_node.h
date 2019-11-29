@@ -738,7 +738,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
     uint8_t m_port_id;
     uint32_t m_profile_id;
 
-    TimesyncPacketType m_last_sent_ptp_packet_type;
+    PTP::Field::message_type m_last_sent_ptp_packet_type;
     uint16_t m_last_sent_sequence_id;
 
   public:
@@ -767,28 +767,23 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
             m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
-                                               TimesyncPacketType::PTP_SYNC, {0, 0});
+                                               PTP::Field::message_type::SYNC, {0, 0});
             timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
         }
 
         if (m_timesync_engine->hasNextMessage(m_port_id)) {
             timespec ts;
             thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-            clock_gettime(CLOCK_REALTIME, &ts);
-            
+            if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
+                return;
+
             switch (m_last_sent_ptp_packet_type)
             {
-            case TimesyncPacketType::PTP_SYNC:
+            case PTP::Field::message_type::SYNC:
                 m_timesync_engine->sentPTPSync(m_port_id, m_last_sent_sequence_id, ts);
                 break;
-            case TimesyncPacketType::PTP_FOLLOWUP:
-                m_timesync_engine->sentPTPFollowUp(m_port_id, m_last_sent_sequence_id, ts);
-                break;
-            case TimesyncPacketType::PTP_DELAYREQ:
+            case PTP::Field::message_type::DELAY_REQ:
                 m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts);
-                break;
-            case TimesyncPacketType::PTP_DELAYRESP:
-                m_timesync_engine->sentPTPDelayResp(m_port_id, m_last_sent_sequence_id, ts);
                 break;
             
             default:
@@ -893,7 +888,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         switch (next_message.type) {
 
-        case TimesyncPacketType::PTP_SYNC: {
+        case PTP::Field::message_type::SYNC: {
             uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
 
             // Setup Eth Header
@@ -918,7 +913,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             m_last_sent_sequence_id = next_message.sequence_id;
             } break;
 
-        case TimesyncPacketType::PTP_FOLLOWUP: {
+        case PTP::Field::message_type::FOLLOW_UP: {
             uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
 
             // Setup Eth Header
@@ -935,14 +930,14 @@ struct CGenNodeTimesync : public CGenNodeBase {
             // Setup PTP follow up
             PTP::FollowUpPacket* ptp_msg = reinterpret_cast<PTP::FollowUpPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
             ptp_msg->origin_timestamp.sec_msb = 0;
-            ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;  // network-to-machine ...
-            ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;      // ... or machine-to-network?
+            ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;
+            ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;
 
             m_last_sent_ptp_packet_type = next_message.type;
             m_last_sent_sequence_id = next_message.sequence_id;
             } break;
 
-        case TimesyncPacketType::PTP_DELAYREQ: {
+        case PTP::Field::message_type::DELAY_REQ: {
             uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
 
             // Setup Eth Header
@@ -967,7 +962,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             m_last_sent_sequence_id = next_message.sequence_id;
             } break;
 
-        case TimesyncPacketType::PTP_DELAYRESP: {
+        case PTP::Field::message_type::DELAY_RESP: {
             uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
 
             // Setup Eth Header
@@ -985,8 +980,9 @@ struct CGenNodeTimesync : public CGenNodeBase {
             PTP::DelayedRespPacket* ptp_msg = reinterpret_cast<PTP::DelayedRespPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
             // As we do not support PTP_ONE_WAY currently, this is set to 0
             ptp_msg->origin_timestamp.sec_msb = 0;
-            ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;  // network-to-machine ...
-            ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;      // ... or machine-to-network?
+            ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;
+            ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;
+            ptp_msg->req_clock_identity = next_message.source_port_id;
 
             m_last_sent_ptp_packet_type = next_message.type;
             m_last_sent_sequence_id = next_message.sequence_id;
