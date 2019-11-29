@@ -38,6 +38,8 @@ enum struct TimesyncMethod : uint8_t {
 
 // A struct defining a single PTP synchronization sequence data
 typedef struct {
+    PTP::Field::src_port_id_field masters_source_port_id;
+    PTP::Field::src_port_id_field slaves_source_port_id;
     timespec t1;
     timespec t2;
     timespec t3;
@@ -87,16 +89,15 @@ class CTimesyncEngine {
             return 0;
     }
 
-    void sentPTPSync(int port, uint16_t sequence_id, timespec t); // master
-    // void sentPTPFollowUp(int port, uint16_t sequence_id, timespec t);  // master
-    void sentPTPDelayReq(int port, uint16_t sequence_id, timespec t); // slave
-    // void sentPTPDelayResp(int port, uint16_t sequence_id, timespec t); // master
+    void sentPTPSync(int port, uint16_t sequence_id, timespec t);
+    void sentPTPDelayReq(int port, uint16_t sequence_id, timespec t, PTP::Field::src_port_id_field source_port_id);
 
-    void receivedPTPSync(int port, uint16_t sequence_id, timespec t);     // slave
-    void receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t); // slave
-    void receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t,
-                             PTP::Field::src_port_id_field source_port_id);     // master
-    void receivedPTPDelayResp(int port, uint16_t seqsequence_idID, timespec t); // slave
+    void receivedPTPSync(int port, uint16_t sequence_id, timespec t, PTP::Field::src_port_id_field source_port_id);
+    void receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t, PTP::Field::src_port_id_field source_port_id);
+    void receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t, PTP::Field::src_port_id_field source_port_id);
+    void receivedPTPDelayResp(int port, uint16_t seqsequence_idID, timespec t,
+                              PTP::Field::src_port_id_field source_port_id,
+                              PTP::Field::src_port_id_field requesting_source_port_id);
 
     int64_t evalDelta(int port, uint16_t sequence_id);
     void setDelta(int port, int64_t delta);

@@ -37,7 +37,6 @@ class RXTimesync {
 
   private:
     TimesyncPacketParser_err_t parse_ptp_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port);
-    void hexdump(const unsigned char *msg, uint16_t len); // TODO remove
     void parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port);
     void parse_fup(PTP::FollowUpPacket *followup, timespec *t);
     void parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int port);

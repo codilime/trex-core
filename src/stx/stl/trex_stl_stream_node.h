@@ -740,12 +740,12 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
     PTP::Field::message_type m_last_sent_ptp_packet_type;
     uint16_t m_last_sent_sequence_id;
-
+    PTP::Field::src_port_id_field m_last_sent_ptp_src_port;
   public:
     dsec_t m_next_time_offset;
 
   private:
-    uint64_t m_pad_2[7];
+    uint64_t m_pad_2[6];
 
   public:
     uint8_t get_port_id() { return (m_port_id); }
@@ -783,7 +783,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 m_timesync_engine->sentPTPSync(m_port_id, m_last_sent_sequence_id, ts);
                 break;
             case PTP::Field::message_type::DELAY_REQ:
-                m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts);
+                m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts, m_last_sent_ptp_src_port);
                 break;
             
             default:
@@ -874,8 +874,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
         ptp_hdr->seq_id = seq_id;
         ptp_hdr->log_message_interval = 127;
 
-        ptp_hdr->dump(stdout);
-
         return ptp_hdr;
     }
 
@@ -945,8 +943,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             prepare_header(m, PTP_DELAYREQ_LEN);
 
             // Setup PTP message
-            //PTP::Header* ptp_hdr = 
-            prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::DELAY_REQ);
+            PTP::Header* ptp_hdr = prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::DELAY_REQ);
 
             // Enable flag for hardware timestamping.
             //m->ol_flags |= PKT_TX_IEEE1588_TMST;
@@ -960,6 +957,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
             m_last_sent_ptp_packet_type = next_message.type;
             m_last_sent_sequence_id = next_message.sequence_id;
+            m_last_sent_ptp_src_port = ptp_hdr->source_port_id;
             } break;
 
         case PTP::Field::message_type::DELAY_RESP: {

@@ -39,37 +39,45 @@ CTimesyncEngine::CTimesyncEngine() { m_timesync_method = TimesyncMethod::NONE; }
 
 // slave flow: receive SYNC, receive FOLLOW_UP, send DELAY_REQ, receive DELAY_RESP
 
-void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t) {
+void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t,
+                                      PTP::Field::src_port_id_field source_port_id) {
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getOrCreateData(port, sequence_id);
+    data->masters_source_port_id = source_port_id;
     data->t2 = t;
 }
 
-void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t) {
+void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t,
+                                          PTP::Field::src_port_id_field source_port_id) {
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getData(port, sequence_id);
-    if (data == nullptr)
+    if ((data == nullptr) || (data->masters_source_port_id != source_port_id))
         return;
     data->t1 = t;
     pushNextMessage(port, sequence_id, PTP::Field::message_type::DELAY_REQ, {0, 0});
 }
 
-void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t) {
+void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t,
+                                      PTP::Field::src_port_id_field source_port_id) {
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getData(port, sequence_id);
     if (data == nullptr)
         return;
+    data->slaves_source_port_id = source_port_id;
     data->t3 = t;
 }
 
-void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t) {
+void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t,
+                                           PTP::Field::src_port_id_field source_port_id,
+                                           PTP::Field::src_port_id_field requesting_source_port_id) {
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getData(port, sequence_id);
-    if (data == nullptr)
+    if ((data == nullptr) || (data->masters_source_port_id != source_port_id) ||
+        (data->slaves_source_port_id != requesting_source_port_id))
         return;
     data->t4 = t;
     evalDelta(port, sequence_id);
@@ -97,9 +105,9 @@ void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timesp
 // Delta calculations and handling ///////////////////////////////
 
 void CTimesyncEngine::cleanupSequencesBefore(int port, timespec ts) {
-    if (timespecToTimestamp(ts) <= 0)
-        return;
     uint64_t timestamp = timespecToTimestamp(ts);
+    if (timestamp == 0)
+        return;
     CTimesyncSequences_t sequences = m_sequences_per_port[port];
     for (auto kv : sequences) {
         if (timespecToTimestamp(kv.second.t2) <= timestamp) {

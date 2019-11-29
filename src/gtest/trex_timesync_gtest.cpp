@@ -49,10 +49,10 @@ TEST_F(timesync_engine_test, slave_delta_positive) {
     CTimesyncEngine engine;
     engine.setTimesyncMethod(TimesyncMethod::PTP);
     engine.setTimesyncMaster(false);
-    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {1, 0});
-    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {0, 500 * 1000 * 1000});
-    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID, {2, 0});
-    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {3, 0});
+    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {1, 0}, {});
+    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {0, 500 * 1000 * 1000}, {});
+    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID, {2, 0}, {});
+    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {3, 0}, {}, {});
     EXPECT_EQ(250 * 1000 * 1000, engine.getDelta(PORT_ID));
 }
 
@@ -60,10 +60,10 @@ TEST_F(timesync_engine_test, slave_delta_zero_large) {
     CTimesyncEngine engine;
     engine.setTimesyncMethod(TimesyncMethod::PTP);
     engine.setTimesyncMaster(false);
-    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {MAX_SEC - 2, 100 * 1000 * 1000});
-    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {MAX_SEC - 3, 0});
-    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID, {MAX_SEC - 1, 300 * 1000 * 1000});
-    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {MAX_SEC, 100 * 1000 * 1000});
+    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {MAX_SEC - 2, 100 * 1000 * 1000}, {});
+    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {MAX_SEC - 3, 0}, {});
+    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID, {MAX_SEC - 1, 300 * 1000 * 1000}, {});
+    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {MAX_SEC, 100 * 1000 * 1000}, {}, {});
     EXPECT_EQ(-150 * 1000 * 1000, engine.getDelta(PORT_ID));
 }
 
@@ -71,10 +71,10 @@ TEST_F(timesync_engine_test, slave_delta_invalid_setup) {
     CTimesyncEngine engine;
     engine.setTimesyncMethod(TimesyncMethod::PTP);
     engine.setTimesyncMaster(true);
-    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {MAX_SEC - 2, 100 * 1000 * 1000});
-    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {MAX_SEC - 3, 0});
-    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID, {MAX_SEC - 1, 300 * 1000 * 1000});
-    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {MAX_SEC, 100 * 1000 * 1000});
+    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {MAX_SEC - 2, 100 * 1000 * 1000}, {});
+    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {MAX_SEC - 3, 0}, {});
+    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID, {MAX_SEC - 1, 300 * 1000 * 1000}, {});
+    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {MAX_SEC, 100 * 1000 * 1000}, {}, {});
     EXPECT_EQ(0, engine.getDelta(PORT_ID));
 }
 
@@ -82,10 +82,10 @@ TEST_F(timesync_engine_test, slave_delta_invalid_delayreq_sequence_id) {
     CTimesyncEngine engine;
     engine.setTimesyncMethod(TimesyncMethod::PTP);
     engine.setTimesyncMaster(false);
-    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {1, 0});
-    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {0, 0});
-    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID + 1, {2, 0});
-    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {4, 0});
+    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {1, 0}, {});
+    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {0, 0}, {});
+    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID + 1, {2, 0}, {});
+    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {4, 0}, {}, {});
     EXPECT_EQ(0, engine.getDelta(PORT_ID));
 }
 
@@ -93,15 +93,15 @@ TEST_F(timesync_engine_test, slave_delta_mixed_processes) {
     CTimesyncEngine engine;
     engine.setTimesyncMethod(TimesyncMethod::PTP);
     engine.setTimesyncMaster(false);
-    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID + 1, {5, 0});
-    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {2, 0});
-    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {1, 0});
-    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID + 1, {3, 0});
-    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID, {3, 0});
-    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {5, 0});
-    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID + 1, {6, 0});
+    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID + 1, {5, 0}, {});
+    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {2, 0}, {});
+    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {1, 0}, {});
+    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID + 1, {3, 0}, {});
+    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID, {3, 0}, {});
+    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {5, 0}, {}, {});
+    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID + 1, {6, 0}, {});
     EXPECT_EQ(500 * 1000 * 1000, engine.getDelta(PORT_ID));
-    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID + 1, {7, 0});
+    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID + 1, {7, 0}, {}, {});
     EXPECT_EQ(-500 * 1000 * 1000, engine.getDelta(PORT_ID));
 }
 
@@ -109,14 +109,14 @@ TEST_F(timesync_engine_test, slave_delta_skip_deprecated_process) {
     CTimesyncEngine engine;
     engine.setTimesyncMethod(TimesyncMethod::PTP);
     engine.setTimesyncMaster(false);
-    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {2, 0});
-    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {1, 0});
-    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID, {3, 0});
-    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID + 1, {5, 0});
-    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID + 1, {3, 0});
-    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID + 1, {6, 0});
-    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID + 1, {7, 0});
+    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID, {2, 0}, {});
+    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID, {1, 0}, {});
+    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID, {3, 0}, {});
+    engine.receivedPTPSync(PORT_ID, SEQUENCE_ID + 1, {5, 0}, {});
+    engine.receivedPTPFollowUp(PORT_ID, SEQUENCE_ID + 1, {3, 0}, {});
+    engine.sentPTPDelayReq(PORT_ID, SEQUENCE_ID + 1, {6, 0}, {});
+    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID + 1, {7, 0}, {}, {});
     EXPECT_EQ(-500 * 1000 * 1000, engine.getDelta(PORT_ID));
-    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {5, 0});
+    engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {5, 0}, {}, {});
     EXPECT_EQ(-500 * 1000 * 1000, engine.getDelta(PORT_ID));
 }
