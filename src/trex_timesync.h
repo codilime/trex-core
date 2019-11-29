@@ -29,17 +29,11 @@ limitations under the License.
 #include <unordered_map>
 #include <queue>
 
+#include "common/Network/Packet/PTPPacket.h"
+
 enum struct TimesyncMethod : uint8_t {
     NONE = 0,
     PTP = 1,
-};
-
-enum struct TimesyncPacketType : uint8_t {
-    PTP_SYNC = 0x00,
-    PTP_FOLLOWUP = 0x08,
-    PTP_DELAYREQ = 0x01,
-    PTP_DELAYRESP = 0x09,
-    UNKNOWN = 0x0F,
 };
 
 // A struct defining a single PTP synchronization sequence data
@@ -53,15 +47,11 @@ typedef struct {
 // A type definition of map of sequence_id to CTimesyncPTPData_t
 typedef std::unordered_map<uint16_t, CTimesyncPTPData_t> CTimesyncSequences_t;
 
-// struct NextMessage {
-//     TimesyncPacketType type;
-//     uint16_t  seq_id;
-//     timespec  time_to_send;
-// };
 typedef struct {
     uint16_t sequence_id;
-    TimesyncPacketType type;
+    PTP::Field::message_type type;
     timespec time_to_send;
+    PTP::Field::src_port_id_field source_port_id;
 } CTimesyncPTPPacketData_t;
 
 typedef std::queue<CTimesyncPTPPacketData_t> CTimesyncPTPPacketQueue_t;
@@ -97,40 +87,25 @@ class CTimesyncEngine {
             return 0;
     }
 
+    void sentPTPSync(int port, uint16_t sequence_id, timespec t); // master
+    // void sentPTPFollowUp(int port, uint16_t sequence_id, timespec t);  // master
+    void sentPTPDelayReq(int port, uint16_t sequence_id, timespec t); // slave
+    // void sentPTPDelayResp(int port, uint16_t sequence_id, timespec t); // master
 
-    void sentPTPSync(int port, uint16_t sequence_id, timespec t);      // master
-    void sentPTPFollowUp(int port, uint16_t sequence_id, timespec t);  // master
-    void sentPTPDelayReq(int port, uint16_t sequence_id, timespec t);  // slave
-    void sentPTPDelayResp(int port, uint16_t sequence_id, timespec t); // master
-
-    void receivedPTPSync(int port, uint16_t sequence_id, timespec t);           // slave
-    void receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t);       // slave
-    void receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t);       // master
+    void receivedPTPSync(int port, uint16_t sequence_id, timespec t);     // slave
+    void receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t); // slave
+    void receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t,
+                             PTP::Field::src_port_id_field source_port_id);     // master
     void receivedPTPDelayResp(int port, uint16_t seqsequence_idID, timespec t); // slave
 
     int64_t evalDelta(int port, uint16_t sequence_id);
     void setDelta(int port, int64_t delta);
     int64_t getDelta(int port);
 
-    void pushNextMessage(int port, uint16_t sequence_id, TimesyncPacketType type, timespec time);
+    void pushNextMessage(int port, uint16_t sequence_id, PTP::Field::message_type type, timespec time,
+                         PTP::Field::src_port_id_field source_port_id = {});
     CTimesyncPTPPacketData_t popNextMessage(int port);
     bool hasNextMessage(int port);
-
-/*
-    bool isNextMessage(uint8_t port_id) {
-      return !(m_per_port_send_queue[port_id].empty());
-    }
-
-    NextMessage getNextMessage(uint8_t port_id){
-      NextMessage& next_message = m_per_port_send_queue[port_id].front();
-      m_per_port_send_queue[port_id].pop();
-      return next_message;
-    }
-
-    void pushNextMessage(uint8_t port_id, const TimesyncPacketType& type, const timespec& time = {0, 0}){
-      m_per_port_send_queue[port_id].emplace(type, ++last_seq_id, time);
-    }
-    */
 
   private:
     CTimesyncSequences_t *getSequences(int port);
@@ -143,7 +118,7 @@ class CTimesyncEngine {
     bool isDataValid(CTimesyncPTPData_t *data);
     void cleanupSequencesBefore(int port, timespec t);
 
-    bool isPacketTypeAllowed(TimesyncPacketType type);
+    bool isPacketTypeAllowed(PTP::Field::message_type type);
 
   private:
     TimesyncMethod m_timesync_method;

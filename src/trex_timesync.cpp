@@ -53,7 +53,7 @@ void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timesp
     if (data == nullptr)
         return;
     data->t1 = t;
-    pushNextMessage(port, sequence_id, TimesyncPacketType::PTP_DELAYREQ, {0, 0});
+    pushNextMessage(port, sequence_id, PTP::Field::message_type::DELAY_REQ, {0, 0});
 }
 
 void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t) {
@@ -79,28 +79,19 @@ void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, times
 
 // master flow: send SYNC, send FOLLOW_UP, receive DELAY_REQ, send DELAY_RESP
 
+// TODO mateusz: void CTimesyncEngine::sentPTPSync(const int &port, const uint16_t &sequence_id, const timespec &t) {
+
 void CTimesyncEngine::sentPTPSync(int port, uint16_t sequence_id, timespec t) {
     if (!m_is_master)
         return;
-    pushNextMessage(port, sequence_id, TimesyncPacketType::PTP_FOLLOWUP, t);
+    pushNextMessage(port, sequence_id, PTP::Field::message_type::FOLLOW_UP, t);
 }
 
-void CTimesyncEngine::sentPTPFollowUp(int port, uint16_t sequence_id, timespec t) {
+void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t,
+                                          PTP::Field::src_port_id_field source_port_id) {
     if (!m_is_master)
         return;
-    // wait for the Delay Resp packet
-}
-
-void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t) {
-    if (!m_is_master)
-        return;
-    pushNextMessage(port, sequence_id, TimesyncPacketType::PTP_DELAYRESP, t);
-}
-
-void CTimesyncEngine::sentPTPDelayResp(int port, uint16_t sequence_id, timespec t) {
-    if (!m_is_master)
-        return;
-    // be done
+    pushNextMessage(port, sequence_id, PTP::Field::message_type::DELAY_RESP, t, source_port_id);
 }
 
 // Delta calculations and handling ///////////////////////////////
@@ -154,23 +145,24 @@ int64_t CTimesyncEngine::getDelta(int port) {
 
 // Message queue /////////////////////////////////////////////////
 
-bool CTimesyncEngine::isPacketTypeAllowed(TimesyncPacketType type) {
-    return (m_is_master && ((type == TimesyncPacketType::PTP_SYNC) || (type == TimesyncPacketType::PTP_FOLLOWUP) ||
-                            (type == TimesyncPacketType::PTP_DELAYRESP))) ||
-           (!m_is_master && (type == TimesyncPacketType::PTP_DELAYREQ));
+bool CTimesyncEngine::isPacketTypeAllowed(PTP::Field::message_type type) {
+    return (m_is_master && ((type == PTP::Field::message_type::SYNC) || (type == PTP::Field::message_type::FOLLOW_UP) ||
+                            (type == PTP::Field::message_type::DELAY_RESP))) ||
+           (!m_is_master && (type == PTP::Field::message_type::DELAY_REQ));
 }
 
-void CTimesyncEngine::pushNextMessage(int port, uint16_t sequence_id, TimesyncPacketType type, timespec ts) {
+void CTimesyncEngine::pushNextMessage(int port, uint16_t sequence_id, PTP::Field::message_type type, timespec ts,
+                                      PTP::Field::src_port_id_field source_port_id) {
     if (!isPacketTypeAllowed(type))
         return;
     CTimesyncPTPPacketQueue_t *packet_queue = getOrCreatePacketQueue(port);
-    packet_queue->push({sequence_id, type, ts});
+    packet_queue->push({sequence_id, type, ts, source_port_id});
 }
 
 CTimesyncPTPPacketData_t CTimesyncEngine::popNextMessage(int port) {
     CTimesyncPTPPacketQueue_t *packet_queue = getPacketQueue(port);
     if (packet_queue == nullptr)
-        return {0, TimesyncPacketType::UNKNOWN, {0, 0}};
+        return {0, PTP::Field::message_type::UNKNOWN, {0, 0}, {}};
     CTimesyncPTPPacketData_t next_message = packet_queue->front();
     packet_queue->pop();
     return next_message;
