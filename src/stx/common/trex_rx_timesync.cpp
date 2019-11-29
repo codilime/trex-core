@@ -48,19 +48,18 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
 
     pkt_offset += PTP_HDR_LEN;
 
-
     switch (header->trn_and_msg.msg_type()) {
     case PTP::Field::message_type::SYNC: {
         // PTP::SyncPacket *sync = reinterpret_cast<PTP::SyncPacket *>(pkt + pkt_offset);
         timespec t;
         parse_sync(rx_tstamp_idx, &t, port);
-        m_timesync_engine->receivedPTPSync(port, *(header->seq_id), t);
+        m_timesync_engine->receivedPTPSync(port, *(header->seq_id), t, header->source_port_id);
     } break;
     case PTP::Field::message_type::FOLLOW_UP: {
         PTP::FollowUpPacket *followup = reinterpret_cast<PTP::FollowUpPacket *>(pkt + pkt_offset);
         timespec t;
         parse_fup(followup, &t);
-        m_timesync_engine->receivedPTPFollowUp(port, *(header->seq_id), t);
+        m_timesync_engine->receivedPTPFollowUp(port, *(header->seq_id), t, header->source_port_id);
     } break;
     case PTP::Field::message_type::DELAY_REQ: {
         // PTP::DelayedReqPacket *delay_req = reinterpret_cast<PTP::DelayedReqPacket *>(pkt + pkt_offset);
@@ -72,7 +71,8 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
         PTP::DelayedRespPacket *delay_resp = reinterpret_cast<PTP::DelayedRespPacket *>(pkt + pkt_offset);
         timespec t;
         parse_delay_response(delay_resp, &t);
-        m_timesync_engine->receivedPTPDelayResp(port, *(header->seq_id), t);
+        m_timesync_engine->receivedPTPDelayResp(port, *(header->seq_id), t, header->source_port_id,
+                                                delay_resp->req_clock_identity);
     } break;
     default:
         return TIMESYNC_PARSER_E_UNKNOWN_MSG;

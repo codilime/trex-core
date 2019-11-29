@@ -268,6 +268,13 @@ struct src_port_id_field {
     uint16_t port_number(){
         return PKT_NTOHS(_port_number);
     }
+
+    bool operator==(const src_port_id_field &other) {
+        return (_clock_id.l == other._clock_id.l) && (_port_number == other._port_number);
+    }
+
+    bool operator!=(const src_port_id_field &other) { return !(*this == other); }
+
 } __attribute__((packed));
 
 typedef net_field16_t sequence_id_field;
