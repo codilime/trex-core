@@ -242,3 +242,8 @@ CTimesyncPTPPacketQueue_t *CTimesyncEngine::getOrCreatePacketQueue(int port) {
     }
     return &m_send_queue_per_port[port];
 }
+
+CTimesyncPTPData_t CTimesyncEngine::getClockInfo(int port, uint16_t sequence_id) {
+    CTimesyncPTPData_t *data = getOrCreateData(port, sequence_id);
+    return *data;
+}

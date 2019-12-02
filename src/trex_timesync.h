@@ -99,6 +99,8 @@ class CTimesyncEngine {
                               PTP::Field::src_port_id_field source_port_id,
                               PTP::Field::src_port_id_field requesting_source_port_id);
 
+    CTimesyncPTPData_t getClockInfo(int port, uint16_t sequence_id);
+
     int64_t evalDelta(int port, uint16_t sequence_id);
     void setDelta(int port, int64_t delta);
     int64_t getDelta(int port);

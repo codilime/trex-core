@@ -24,6 +24,8 @@ limitations under the License.
 #include "bp_gtest.h"
 
 #include "trex_timesync.h"
+#include "trex_rx_timesync.h"
+#include "../stx/stl/trex_stl_stream_node.h"
 
 #define MAX_SEC 2147483647
 #define PORT_ID 0
@@ -199,3 +201,92 @@ TEST_F(timesync_engine_test, slave_delta_invalid_req_src_port_id) {
     engine.receivedPTPDelayResp(PORT_ID, SEQUENCE_ID, {5, 0}, CLOCK_ID_M1, CLOCK_ID_S2);
     EXPECT_EQ(0 * 1000 * 1000, engine.getDelta(PORT_ID));
 }
+
+TEST_F(timesync_engine_test, test_rx_handle_pkt) {
+    // Prepare node
+    CGenNode *node = new CGenNode();
+    node->m_type = CGenNode::TIMESYNC;
+
+    // Prepare master engine
+    CGlobalInfo::timesync_engine_setup();
+    CTimesyncEngine *master_engine = CGlobalInfo::get_timesync_engine();
+    master_engine->setTimesyncMethod(TimesyncMethod::PTP);
+    master_engine->setTimesyncMaster(true);
+
+    CGenNodeTimesync *timesync_node = (CGenNodeTimesync *)node;
+    timesync_node->init();
+    rte_mempool_t * mp1=utl_rte_mempool_create("big-const", 10, 2048, 32, 0, false);
+    timesync_node->allocate_m(mp1);
+
+
+    // Prepare slave engine
+    CTimesyncEngine slave_engine;
+    slave_engine.setTimesyncMaster(false);
+    slave_engine.setTimesyncMethod(TimesyncMethod::PTP);
+    RXTimesync rx = RXTimesync(&slave_engine, PORT_ID);
+
+    // Confirm that all values are 0 before parsing any packets
+    CTimesyncPTPData_t data = slave_engine.getClockInfo(PORT_ID, 0);
+    EXPECT_EQ(0, data.t1.tv_sec);
+    EXPECT_EQ(0, data.t1.tv_nsec);
+    EXPECT_EQ(0, data.t2.tv_sec);
+    EXPECT_EQ(0, data.t2.tv_nsec);
+    EXPECT_EQ(0, data.t3.tv_sec);
+    EXPECT_EQ(0, data.t3.tv_nsec);
+    EXPECT_EQ(0, data.t4.tv_sec);
+    EXPECT_EQ(0, data.t4.tv_nsec);
+
+
+    // Master - push SYNC
+    master_engine->pushNextMessage(PORT_ID, 0, PTP::Field::message_type::SYNC, {0, 0});
+    // Slave - retrieve and parse SYNC
+    rte_mbuf_t * pkt = timesync_node->get_pkt();  
+    rx.handle_pkt(pkt, PORT_ID);
+
+    data = slave_engine.getClockInfo(PORT_ID, 0);
+    EXPECT_EQ(0, data.t1.tv_sec);
+    EXPECT_EQ(0, data.t1.tv_nsec);
+    EXPECT_NE(0, data.t2.tv_sec);
+    EXPECT_NE(0, data.t2.tv_nsec);
+    EXPECT_EQ(0, data.t3.tv_sec);
+    EXPECT_EQ(0, data.t3.tv_nsec);
+    EXPECT_EQ(0, data.t4.tv_sec);
+    EXPECT_EQ(0, data.t4.tv_nsec);
+
+
+    // Master - push FOLLOW UP
+    timespec time =  {1111, 2222};
+    master_engine->pushNextMessage(PORT_ID, 0, PTP::Field::message_type::FOLLOW_UP, time);
+    // Slave - parse FOLLOW UP
+    pkt = timesync_node->get_pkt();
+    rx.handle_pkt(pkt, PORT_ID);
+
+    data = slave_engine.getClockInfo(PORT_ID, 0);
+    EXPECT_EQ(time.tv_sec, data.t1.tv_sec);
+    EXPECT_EQ(time.tv_nsec, data.t1.tv_nsec);
+    EXPECT_NE(0, data.t2.tv_sec);
+    EXPECT_NE(0, data.t2.tv_nsec);
+    EXPECT_EQ(0, data.t3.tv_sec);
+    EXPECT_EQ(0, data.t3.tv_nsec);
+    EXPECT_EQ(0, data.t4.tv_sec);
+    EXPECT_EQ(0, data.t4.tv_nsec);
+
+
+    // Master - push DELAY REQ
+    timespec time4 = {3333, 4444};
+    master_engine->pushNextMessage(PORT_ID, 0, PTP::Field::message_type::DELAY_RESP, time4);
+    // Slave - parse DELAY REQ
+    pkt = timesync_node->get_pkt();
+    rx.handle_pkt(pkt, PORT_ID);
+
+    data = slave_engine.getClockInfo(PORT_ID, 0);
+    EXPECT_EQ(time.tv_sec, data.t1.tv_sec);
+    EXPECT_EQ(time.tv_nsec, data.t1.tv_nsec);
+    EXPECT_NE(0, data.t2.tv_sec);
+    EXPECT_NE(0, data.t2.tv_nsec);
+    EXPECT_EQ(0, data.t3.tv_sec);
+    EXPECT_EQ(0, data.t3.tv_nsec);
+    EXPECT_EQ(time4.tv_sec, data.t4.tv_sec);
+    EXPECT_EQ(time4.tv_nsec, data.t4.tv_nsec);    
+}
+
