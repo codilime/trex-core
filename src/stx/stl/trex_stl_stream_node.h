@@ -1006,6 +1006,11 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
     inline uint8_t get_stream_type() { return (m_stream_type); }
 
+    // for linux case
+    inline void allocate_m(rte_mempool_t * mp1) {
+        m = rte_pktmbuf_alloc(mp1);
+    }
+
 } __rte_cache_aligned;
 
 static_assert(sizeof(CGenNodeTimesync) == sizeof(CGenNode), "sizeof(CGenNodeTimesync) != sizeof(CGenNode)");
