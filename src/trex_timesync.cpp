@@ -87,8 +87,6 @@ void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, times
 
 // master flow: send SYNC, send FOLLOW_UP, receive DELAY_REQ, send DELAY_RESP
 
-// TODO mateusz: void CTimesyncEngine::sentPTPSync(const int &port, const uint16_t &sequence_id, const timespec &t) {
-
 void CTimesyncEngine::sentPTPSync(int port, uint16_t sequence_id, timespec t) {
     if (!m_is_master)
         return;

@@ -1962,7 +1962,9 @@ HOT_FUNC int CCoreEthIFStateless::send_node_flow_stat(rte_mbuf *m, CGenNodeState
 
     if (hw_id >= MAX_FLOW_STATS) {
         fsp_head->time_stamp = CGlobalInfo::m_options.get_latency_timestamp();
-
+        if (CGlobalInfo::m_options.is_timesync_enabled()) {
+            fsp_head->time_stamp = (uint64_t)(CGlobalInfo::get_timesync_engine()->getDelta(lp_port->m_port->get_tvpid()) + (int64_t)fsp_head->time_stamp);
+        }
         send_pkt_lat(lp_port, mi, lp_stats);
     } else {
         send_pkt(lp_port, mi, lp_stats);
