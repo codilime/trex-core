@@ -3816,8 +3816,7 @@ void CNodeGenerator::handle_timesync_msg(CGenNodeTimesync *node, CFlowGenListPer
         node->handle(thread);  // do the Tx part of PTP communication
 
         // schedule for next time synchronization check
-        // node->m_time += node->m_next_time_offset;
-        node->m_time += SYNC_TIME_OUT;
+        node->m_time += node->m_next_time_offset; 
         m_p_queue.push((CGenNode *)node);
     }
 }
