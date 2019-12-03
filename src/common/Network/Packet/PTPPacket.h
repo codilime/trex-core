@@ -334,7 +334,7 @@ struct BasePacket {
 static_assert(std::is_standard_layout<BasePacket>::value,
               "PTP::BasePacket must be a simple linear data structure.");
 static_assert(sizeof(BasePacket) == PTP_MSG_BASE_LEN,
-              "PTP::BasePacket must have exactly " STR(PTP_HDR_LEN) ".");
+              "PTP::BasePacket must have exactly " STR(PTP_MSG_BASE_LEN) ".");
 
 struct SyncPacket : BasePacket {};
 static_assert(std::is_standard_layout<SyncPacket>::value,
