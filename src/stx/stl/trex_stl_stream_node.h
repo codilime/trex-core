@@ -792,12 +792,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
         }
     }
 
-    // inline void tspec_to_tstamp(const timespec& ts, PTP::Field::tstamp& tstamp){
-    //     tstamp.sec_msb = 0;
-    //     tstamp.sec_lsb = ts.tv_sec;
-    //     tstamp.ns = ts.tv_nsec;
-    // }
-
     inline EthernetHeader* prepare_header(rte_mbuf_t* mbuf, const size_t& size){
         // Setup mbuf common
         m->data_len = (ETH_HDR_LEN + size);
