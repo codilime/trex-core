@@ -798,7 +798,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
         m->pkt_len = (ETH_HDR_LEN + size);
 
         // Setup Ethernet header
-        EthernetHeader* eth_hdr = rte_pktmbuf_mtod(m, EthernetHeader*);
+        EthernetHeader* eth_hdr = rte_pktmbuf_mtod(mbuf, EthernetHeader*);
         eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
         eth_hdr->myDestination = MacAddress(m_mac_addr[0], m_mac_addr[1], m_mac_addr[2], m_mac_addr[3], m_mac_addr[4], m_mac_addr[5]);
         eth_hdr->mySource = MacAddress(m_mac_addr[6], m_mac_addr[7], m_mac_addr[8], m_mac_addr[9], m_mac_addr[10], m_mac_addr[11]);
