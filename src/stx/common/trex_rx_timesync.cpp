@@ -9,9 +9,6 @@
 
 void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
     if (m_timesync_engine->getTimesyncMethod() == TimesyncMethod::PTP) {
-#ifdef _DEBUG
-        printf("PTP time synchronisation is currently not supported (but we are working on that).\n");
-#endif
         uint16_t rx_tstamp_idx = 0;
 
         if (hardware_timestamping_enabled) {
