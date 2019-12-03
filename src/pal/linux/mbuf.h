@@ -32,6 +32,8 @@ typedef struct rte_mbuf  rte_mbuf_t;
 #define MAGIC0 0xAABBCCDD
 #define MAGIC2 0x11223344
 
+#define PKT_TX_IEEE1588_TMST (1ULL << 51) /**< TX IEEE1588 packet to timestamp. */
+
 #define IND_ATTACHED_MBUF    (1ULL << 62) /**< Indirect attached mbuf */
 #define PKT_TX_VLAN_PKT      (1ULL << 57) /**< TX packet is a 802.1q VLAN packet. */
 #define RTE_MBUF_CLONED(mb)   ((mb)->ol_flags & IND_ATTACHED_MBUF)

@@ -892,7 +892,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::SYNC);
 
             // Enable flag for hardware timestamping.
-            //m->ol_flags |= PKT_TX_IEEE1588_TMST;
+            m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
             // Setup PTP sync
             PTP::SyncPacket* ptp_msg = reinterpret_cast<PTP::SyncPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
@@ -917,7 +917,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::FOLLOW_UP);
 
             // Enable flag for hardware timestamping.
-            //m->ol_flags |= PKT_TX_IEEE1588_TMST;
+            m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
             // Setup PTP follow up
             PTP::FollowUpPacket* ptp_msg = reinterpret_cast<PTP::FollowUpPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
@@ -940,7 +940,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             PTP::Header* ptp_hdr = prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::DELAY_REQ);
 
             // Enable flag for hardware timestamping.
-            //m->ol_flags |= PKT_TX_IEEE1588_TMST;
+            m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
             // Setup PTP delay req
             PTP::DelayedReqPacket* ptp_msg = reinterpret_cast<PTP::DelayedReqPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
@@ -966,7 +966,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::DELAY_RESP);
 
             // Enable flag for hardware timestamping.
-            //m->ol_flags |= PKT_TX_IEEE1588_TMST;
+            m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
             // Setup PTP delay resp
             PTP::DelayedRespPacket* ptp_msg = reinterpret_cast<PTP::DelayedRespPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
