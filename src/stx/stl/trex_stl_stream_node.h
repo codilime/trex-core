@@ -733,7 +733,9 @@ struct CGenNodeTimesync : public CGenNodeBase {
     TrexStream *m_ref_stream_info;
     rte_mbuf_t *m;
     CTimesyncEngine *m_timesync_engine;
-    uint64_t m_pad_1[3];
+    bool hardware_timestamping_enabled;
+    uint8_t m_pad_1[7];
+    uint64_t m_pad_2[2];
 
     uint8_t m_port_id;
     uint32_t m_profile_id;
@@ -745,14 +747,18 @@ struct CGenNodeTimesync : public CGenNodeBase {
     dsec_t m_next_time_offset;
 
   private:
-    uint64_t m_pad_2[6];
+    uint64_t m_pad_3[6];
 
   public:
     uint8_t get_port_id() { return (m_port_id); }
 
     inline void init() {
         m_timesync_engine = CGlobalInfo::get_timesync_engine();
+        
         assert(m_timesync_engine);
+
+        TrexPlatformApi &api = get_platform_api();
+        hardware_timestamping_enabled = api.getPortAttrObj(m_port_id)->is_hardware_timesync_enabled();
 
         set_slow_path(true);
         set_send_immediately(true);
@@ -774,8 +780,13 @@ struct CGenNodeTimesync : public CGenNodeBase {
         if (m_timesync_engine->hasNextMessage(m_port_id)) {
             timespec ts;
             thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-            if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
-                return;
+            if (hardware_timestamping_enabled) {
+                if (rte_eth_timesync_read_tx_timestamp(m_port_id, &ts) != 0)
+                    return;
+            } else {
+                if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
+                    return;
+            }
 
             switch (m_last_sent_ptp_packet_type)
             {
