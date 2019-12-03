@@ -270,10 +270,13 @@ rte_lcore_to_socket_id(unsigned lcore_id){
 
 static inline int rte_eth_timesync_read_rx_timestamp(uint16_t port_id,
         struct timespec *timestamp, uint32_t flags) {
-    clock_gettime(CLOCK_REALTIME, timestamp);
-    return 0;
+    return clock_gettime(CLOCK_REALTIME, timestamp);
 }
 
+static inline int rte_eth_timesync_read_tx_timestamp(uint16_t port_id,
+        struct timespec *timestamp) {
+    return clock_gettime(CLOCK_REALTIME, timestamp);
+}
 
 /**
  * Get the headroom in a packet mbuf.
