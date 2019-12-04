@@ -184,8 +184,8 @@ dsec_t  CTimeHistogram::get_average_latency() {
 }
 
 
-int64_t CTimeHistogram::get_usec(dsec_t d) {
-    return (int64_t)(d*1000000.0);
+uint32_t CTimeHistogram::get_usec(dsec_t d) {
+    return (uint32_t)(d*1000000.0);
 }
 
 void CTimeHistogram::DumpWinMax(FILE *fd) {
@@ -220,7 +220,7 @@ void CTimeHistogram::Dump(FILE *fd) {
     for (j = 0; j < HISTOGRAM_SIZE_LOG; j++) {
         for (i = 0; i < HISTOGRAM_SIZE; i++) {
             if (m_hcnt[j][i] > 0) {
-                fprintf (fd," h[%u]  :  %llu \n",(base*(i+1)),(long long)m_hcnt[j][i]);
+                fprintf (fd," h[%u]  :  %llu \n",(base*(i+1)),(unsigned long long)m_hcnt[j][i]);
             }
         }
         base=base*10;
@@ -284,7 +284,7 @@ void CTimeHistogram::dump_json(Json::Value & json, bool add_histogram) {
                 if (m_hcnt[j][i] > 0) {
                     std::string key = static_cast<std::ostringstream*>( &(std::ostringstream()
                                                                           << int(base * (i + 1)) ) )->str();
-                    json["histogram"][key] = Json::Value::Int64(m_hcnt[j][i]);
+                    json["histogram"][key] = Json::Value::UInt64(m_hcnt[j][i]);
                 }
             }
             base = base * 10;
@@ -332,7 +332,7 @@ CTimeHistogram CTimeHistogram::operator+= (const CTimeHistogram& in) {
     }
     this->m_total_cnt += in.m_total_cnt;
     this->m_total_cnt_high += in.m_total_cnt_high;
-    int64_t new_sum = 0;
+    uint64_t new_sum = 0;
     for (uint8_t i = 0; i < 2; i++) {
         new_sum += this->m_period_data[i].get_sum();
     }

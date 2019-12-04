@@ -33,7 +33,11 @@ inline uint64_t timespecToTimestamp(timespec ts) { return ((uint64_t)ts.tv_sec *
  * CTimesyncEngine
  */
 
-CTimesyncEngine::CTimesyncEngine() { m_timesync_method = TimesyncMethod::NONE; }
+CTimesyncEngine::CTimesyncEngine() {
+    setTimesyncMethod(TimesyncMethod::NONE);
+    setTimesyncMaster(false);
+    m_is_slave_synchronized = false;
+}
 
 // PTP Slave's code //////////////////////////////////////////////
 
@@ -129,6 +133,7 @@ int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
                     2;
     setDelta(port, delta);
     cleanupSequencesBefore(port, data->t2);
+    m_is_slave_synchronized = true;
     return delta;
 }
 
@@ -138,14 +143,6 @@ void CTimesyncEngine::setDelta(int port, int64_t delta) {
         m_deltas[port] = delta;
     } else {
         m_deltas.insert({port, delta});
-    }
-}
-
-int64_t CTimesyncEngine::getDelta(int port) {
-    try {
-        return m_deltas.at(port);
-    } catch (const std::out_of_range &e) {
-        return 0;
     }
 }
 

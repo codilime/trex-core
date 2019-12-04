@@ -1963,7 +1963,10 @@ HOT_FUNC int CCoreEthIFStateless::send_node_flow_stat(rte_mbuf *m, CGenNodeState
     if (hw_id >= MAX_FLOW_STATS) {
         fsp_head->time_stamp = CGlobalInfo::m_options.get_latency_timestamp();
         if (CGlobalInfo::m_options.is_timesync_enabled()) {
-            fsp_head->time_stamp += static_cast<uint64_t>(CGlobalInfo::get_timesync_engine()->getDelta(lp_port->m_port->get_tvpid()));
+            // do not send latency packets unless we are synchronized
+            if (!CGlobalInfo::m_timesync_engine.isSlaveSynchronized())
+                return -1;
+            fsp_head->time_stamp += CGlobalInfo::get_timesync_engine()->getDelta(lp_port->m_port->get_tvpid());
         }
         send_pkt_lat(lp_port, mi, lp_stats);
     } else {

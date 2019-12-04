@@ -227,10 +227,18 @@ RXLatency::handle_correct_flow(
     uint16_t hw_id = fsp_head->hw_id;
     m_rx_pg_stat_payload[hw_id].add_pkts(1);
     m_rx_pg_stat_payload[hw_id].add_bytes(pkt_len + 4); // +4 for ethernet CRC
-    // calculate difference of floats as (hr_time_now - fsp_head->time_stamp) could be < 0
-    dsec_t ctime = CGlobalInfo::m_options.timestamp_diff_to_dsec(hr_time_now) -
-                   CGlobalInfo::m_options.timestamp_diff_to_dsec(fsp_head->time_stamp);
+    if (!has_valid_timestamps(fsp_head, hr_time_now))
+        return;
+    uint64_t d = (hr_time_now - fsp_head->time_stamp);
+    dsec_t ctime = CGlobalInfo::m_options.timestamp_diff_to_dsec(d);
     curr_rfc2544->add_sample(ctime);
+}
+
+inline bool
+RXLatency::has_valid_timestamps(
+        flow_stat_payload_header *fsp_head,
+        hr_time_t hr_time_now) {
+    return hr_time_now >= fsp_head->time_stamp;
 }
 
 void

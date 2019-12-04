@@ -59,7 +59,7 @@ class CTimeHistogramPerPeriodData {
     void update_sum(dsec_t dt) {
         m_sum += dt * 1000000;
     }
-    inline int64_t get_sum() {return m_sum;}
+    inline uint64_t get_sum() {return m_sum;}
     inline uint64_t get_cnt() {return m_cnt;}
     inline uint64_t get_high_cnt() {return m_cnt_high;}
     inline dsec_t get_max() {return m_max;}
@@ -76,7 +76,7 @@ class CTimeHistogramPerPeriodData {
 
 
  private:
-    int64_t m_sum; // Sum of samples
+    uint64_t m_sum; // Sum of samples
     uint64_t m_cnt;  // Number of samples
     uint64_t m_cnt_high;  // Number of samples above configured threshold
     dsec_t   m_max;  // Max sample
@@ -118,7 +118,7 @@ public:
     friend std::ostream& operator<<(std::ostream& os, const CTimeHistogram& in);
 
 private:
-    int64_t get_usec(dsec_t d);
+    uint32_t get_usec(dsec_t d);
     double  get_cur_average();
     void  update_average(CTimeHistogramPerPeriodData &period_elem);
     inline uint8_t get_read_period_index() {
@@ -143,7 +143,7 @@ private:
     uint32_t m_win_cnt;
     uint32_t m_hot_max;
     dsec_t   m_max_ar[HISTOGRAM_QUEUE_SIZE]; // Array of maximum latencies for previous periods
-    int64_t  m_hcnt[HISTOGRAM_SIZE_LOG][HISTOGRAM_SIZE];
+    uint64_t m_hcnt[HISTOGRAM_SIZE_LOG][HISTOGRAM_SIZE];
     // Hdr histogram instance
     hdr_histogram *m_hdrh;
 };

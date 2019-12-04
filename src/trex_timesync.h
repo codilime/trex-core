@@ -69,20 +69,22 @@ class CTimesyncEngine {
     void setTimesyncMethod(TimesyncMethod method) { m_timesync_method = method; }
     TimesyncMethod getTimesyncMethod() { return m_timesync_method; }
 
-    void setTimesyncMaster(bool is_master) { m_is_master = is_master; }
-    bool isTimesyncMaster() { return m_is_master; }
+    inline void setTimesyncMaster(bool is_master) { m_is_master = is_master; }
+    inline bool isTimesyncMaster() { return m_is_master; }
+
+    inline bool isSlaveSynchronized() { return m_is_slave_synchronized; }
 
     void setSequenceId(uint16_t sequence_id) {
         if (m_is_master)
             m_sequence_id = sequence_id;
     }
-    uint16_t getSequenceId() {
+    inline uint16_t getSequenceId() {
         if (m_is_master)
             return m_sequence_id;
         else
             return 0;
     }
-    uint16_t nextSequenceId() {
+    inline uint16_t nextSequenceId() {
         if (m_is_master)
             return ++m_sequence_id;
         else
@@ -103,7 +105,13 @@ class CTimesyncEngine {
 
     int64_t evalDelta(int port, uint16_t sequence_id);
     void setDelta(int port, int64_t delta);
-    int64_t getDelta(int port);
+    inline int64_t getDelta(int port) {
+        try {
+            return m_deltas.at(port);
+        } catch (const std::out_of_range &e) {
+            return 0;
+        }
+    }
 
     void pushNextMessage(int port, uint16_t sequence_id, PTP::Field::message_type type, timespec time,
                          PTP::Field::src_port_id_field source_port_id = {});
@@ -126,6 +134,7 @@ class CTimesyncEngine {
   private:
     TimesyncMethod m_timesync_method;
     bool m_is_master;
+    bool m_is_slave_synchronized;
     uint16_t m_sequence_id;
     std::unordered_map<int, CTimesyncSequences_t> m_sequences_per_port;
     std::unordered_map<int, CTimesyncPTPPacketQueue_t> m_send_queue_per_port;
