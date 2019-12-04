@@ -5,7 +5,6 @@
 /**************************************
  * RXTimesync
  *************************************/
-// RXTimesync::RXTimesync() {}
 
 void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
     if (m_timesync_engine->getTimesyncMethod() == TimesyncMethod::PTP) {
