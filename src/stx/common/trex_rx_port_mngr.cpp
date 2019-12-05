@@ -557,6 +557,10 @@ void RXPortManager::handle_pkt(rte_mbuf_t *m) {
         m_latency.handle_pkt(m, m_port_id);
     }
 
+    if (is_feature_set(TIMESYNC)) {
+        m_timesync->handle_pkt(m, m_port_id);
+    }
+
     if (is_feature_set(QUEUE)) {
         m_queue.handle_pkt(m);
     }
@@ -580,10 +584,6 @@ void RXPortManager::handle_pkt(rte_mbuf_t *m) {
         if ( action == RX_PKT_NOOP ) {
             return;
         }
-    }
-
-    if (is_feature_set(TIMESYNC)) {
-        m_timesync->handle_pkt(m, m_port_id);
     }
 
     rte_pktmbuf_free(m);

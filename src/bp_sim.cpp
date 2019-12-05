@@ -3813,12 +3813,10 @@ void CNodeGenerator::handle_timesync_msg(CGenNodeTimesync *node, CFlowGenListPer
         thread->free_node((CGenNode *)node);
         exit_scheduler = true;
     } else {
-        if (node->timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
-            // synchronize time
-            node->handle(thread);
-        }
+        node->handle(thread);  // do the Tx part of PTP communication
+
         // schedule for next time synchronization check
-        node->m_time += node->m_next_time_offset;
+        node->m_time += node->m_next_time_offset; 
         m_p_queue.push((CGenNode *)node);
     }
 }

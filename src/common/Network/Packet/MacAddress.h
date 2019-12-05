@@ -141,7 +141,12 @@ public:
         memcpy(data, rhs, ETHER_ADDR_LEN);
         return (*this);
     }
-     
+
+    MacAddress &operator=(const MacAddress &mac_addr) {
+        *this = mac_addr.GetConstBuffer();
+        return (*this);
+    }
+
     uint8_t*	GetBuffer()
     {
         return data;

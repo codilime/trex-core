@@ -444,6 +444,7 @@ main_src = SrcGroup(dir='src',
              'astf/astf_template_db.cpp',
              'stt_cp.cpp',
              'trex_global.cpp',
+             'trex_timesync.cpp',
              'trex_modes.cpp',
              'bp_sim.cpp',
              'trex_platform.cpp',
@@ -521,6 +522,7 @@ net_src = SrcGroup(dir='src/common/Network/Packet',
            'EthernetHeader.cpp',
            'IPHeader.cpp',
            'IPv6Header.cpp',
+           'PTPPacket.cpp',
            'TCPHeader.cpp',
            'TCPOptions.cpp',
            'UDPHeader.cpp',
@@ -583,7 +585,7 @@ stx_src = SrcGroup(dir='src/stx/common/',
         'trex_rx_rpc_tunnel.cpp',
         'trex_stack_linux_based.cpp',
         'trex_stx.cpp',
-        'trex_timesync.cpp',
+        'trex_rx_timesync.cpp',
     ])
 
 
@@ -607,7 +609,6 @@ stateless_src = SrcGroup(dir='src/stx/stl/',
                                     'trex_stl_messaging.cpp',
 
                                     'trex_stl_rpc_cmds.cpp'
-
                                     ])
 
 

@@ -29,9 +29,9 @@
 
 #include "trex_pkt.h"
 #include "trex_rx_feature_api.h"
+#include "trex_rx_timesync.h"
 #include "trex_stack_base.h"
 #include "trex_latency_counters.h"
-#include "trex_timesync.h"
 
 class CPortLatencyHWBase;
 class BPFFilter;
@@ -308,12 +308,13 @@ public:
     }
 
     /* timesync */
-    void enable_timesync(uint8_t timesync_method) {
-        m_timesync = new RXTimesync(timesync_method);
+    void enable_timesync(CTimesyncEngine *timesync_engine) {
+        m_timesync = new RXTimesync(timesync_engine, m_port_id);
         set_feature(TIMESYNC);
     }
 
     void disable_timesync() {
+        delete m_timesync;
         unset_feature(TIMESYNC);
     }
 

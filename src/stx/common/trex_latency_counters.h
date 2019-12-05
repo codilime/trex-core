@@ -127,6 +127,9 @@ private:
         CRFC2544Info *curr_rfc2544,
         uint32_t pkt_len,
         hr_time_t hr_time_now);
+    inline bool has_valid_timestamps(
+        flow_stat_payload_header *fsp_head,
+        hr_time_t hr_time_now);
     void check_seq_number_and_update_stats(
         flow_stat_payload_header *fsp_head,
         CRFC2544Info *curr_rfc2544);

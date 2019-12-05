@@ -106,6 +106,8 @@ extern "C" {
 #include "utl_offloads.h"
 #include "trex_defs.h"
 
+#include "trex_timesync.h"
+
 #define MAX_PKT_BURST   32
 #define BP_MAX_CORES 48
 #define BP_MASTER_AND_LATENCY 2
@@ -931,10 +933,10 @@ COLD_FUNC static int parse_options(int argc, char *argv[], bool first_time ) {
                 break;
             case OPT_TIME_SYNC_METHOD:
                 sscanf(args.OptionArg(), "%d", &tmp_data);
-                if (! po->is_valid_opt_val(tmp_data, CParserOption::TIMESYNC_NONE, CParserOption::TIMESYNC_PTP, "--timesync-method")) {
+                if (!po->is_valid_opt_val(tmp_data, (uint8_t)TimesyncMethod::NONE, (uint8_t)TimesyncMethod::PTP, "--timesync-method")) {
                     exit(-1);
                 }
-                CGlobalInfo::m_options.m_timesync_method = (uint8_t)tmp_data;
+                CGlobalInfo::m_options.m_timesync_method = (TimesyncMethod)tmp_data;
                 break;
             case OPT_TIME_SYNC_PERIOD:
                 sscanf(args.OptionArg(), "%d", &CGlobalInfo::m_options.m_timesync_interval);
@@ -1959,8 +1961,13 @@ HOT_FUNC int CCoreEthIFStateless::send_node_flow_stat(rte_mbuf *m, CGenNodeState
     lp_s->add_bytes(mi->pkt_len + 4); // We add 4 because of ethernet CRC
 
     if (hw_id >= MAX_FLOW_STATS) {
-        fsp_head->time_stamp = CGlobalInfo::m_options.m_get_latency_timestamp();
-
+        fsp_head->time_stamp = CGlobalInfo::m_options.get_latency_timestamp();
+        if (CGlobalInfo::m_options.is_timesync_enabled()) {
+            // do not send latency packets unless we are synchronized
+            if (!CGlobalInfo::m_timesync_engine.isSlaveSynchronized())
+                return -1;
+            fsp_head->time_stamp += CGlobalInfo::get_timesync_engine()->getDelta(lp_port->m_port->get_tvpid());
+        }
         send_pkt_lat(lp_port, mi, lp_stats);
     } else {
         send_pkt(lp_port, mi, lp_stats);
@@ -2068,6 +2075,11 @@ CCoreEthIFStateless::generate_slow_path_node_pkt(CGenNodeStateless *node_sl) {
     if (node_sl->m_type == CGenNode::PCAP_PKT) {
         CGenNodePCAP *pcap_node = (CGenNodePCAP *)node_sl;
         return pcap_node->get_pkt();
+    }
+
+    if (node_sl->m_type == CGenNode::TIMESYNC) {
+        CGenNodeTimesync *timesync_node = (CGenNodeTimesync *)node_sl;
+        return timesync_node->get_pkt();
     }
 
     /* unhandled case of slow path node */
@@ -3561,6 +3573,9 @@ COLD_FUNC int  CGlobalTRex::device_start(void){
             _if->get_port_attr()->set_promiscuous(true);
             _if->get_port_attr()->set_multicast(true);
         }
+        if (CGlobalInfo::m_options.m_timesync_method == TimesyncMethod::PTP) {
+            _if->get_port_attr()->set_hardware_timesync(true);
+        }
 
         _if->configure_rx_duplicate_rules();
 
@@ -3715,6 +3730,9 @@ COLD_FUNC bool CGlobalTRex::Create(){
         assert(0);
     }
 
+    if (CGlobalInfo::m_options.is_timesync_enabled()) {
+        CGlobalInfo::timesync_engine_setup();
+    }
     
     return (true);
 
@@ -5111,6 +5129,10 @@ COLD_FUNC int CGlobalTRex::stop_master(){
         printf("ERROR: there are not enogth clients for this rate, try to add more clients to the pool ! \n");
     }
 
+    if (CGlobalInfo::m_options.is_timesync_enabled()) {
+        CGlobalInfo::timesync_engine_teardown();
+    }
+
     return (0);
 }
 
@@ -6002,7 +6024,7 @@ COLD_FUNC int update_global_info_from_platform_file(){
     if (cg->m_timesync_method.length()) {
         if ((cg->m_timesync_method.compare("PTP") == 0) ||
             (cg->m_timesync_method.compare("1") == 0)) {
-            g_opts->m_timesync_method = CParserOption::TIMESYNC_PTP;
+            g_opts->m_timesync_method = TimesyncMethod::PTP;
         }
     }
 
@@ -6451,12 +6473,11 @@ COLD_FUNC int main_test(int argc , char * argv[]){
 
     check_pdev_vdev_dummy();
 
-    if (CGlobalInfo::m_options.m_timesync_method == CParserOption::TIMESYNC_PTP) {
-        if (CGlobalInfo::m_options.m_timesync_interval == 0) {
-            printf("Enabled PTP time synchronisation (as slave).\n");
-        } else {
-            printf("Enabled PTP time synchronisation every %d seconds (as master).\n", CGlobalInfo::m_options.m_timesync_interval);
-        }
+    if (CGlobalInfo::m_options.is_timesync_rx_enabled()) {
+        printf("Enabled %s time synchronisation (as slave).\n", CGlobalInfo::m_options.timesync_method_desc());
+    } else if (CGlobalInfo::m_options.is_timesync_tx_enabled()) {
+        printf("Enabled %s time synchronisation (as master) every %d seconds.\n",
+               CGlobalInfo::m_options.timesync_method_desc(), CGlobalInfo::m_options.m_timesync_interval);
     } else {
         printf("Time synchronisation disabled.\n");
     }
@@ -6466,12 +6487,12 @@ COLD_FUNC int main_test(int argc , char * argv[]){
     // to functions and compare the performance;  there are four more CPU cycles associated with using
     // std::function so, for the time being, we will stick to the function pointers
     if (CGlobalInfo::m_options.m_latency_measurement == CParserOption::LATENCY_METHOD_NANOS) {
-        CGlobalInfo::m_options.m_get_latency_timestamp = &get_time_epoch_nanoseconds;
-        CGlobalInfo::m_options.m_timestamp_diff_to_dsec = &ptime_convert_ns_dsec;
+        CGlobalInfo::m_options.get_latency_timestamp = &get_time_epoch_nanoseconds;
+        CGlobalInfo::m_options.timestamp_diff_to_dsec = &ptime_convert_ns_dsec;
         printf("Using realtime (nanoseconds) timestamps in latency stream.\n");
     } else {
-        CGlobalInfo::m_options.m_get_latency_timestamp = &os_get_hr_tick_64;
-        CGlobalInfo::m_options.m_timestamp_diff_to_dsec = &ptime_convert_hr_dsec;
+        CGlobalInfo::m_options.get_latency_timestamp = &os_get_hr_tick_64;
+        CGlobalInfo::m_options.timestamp_diff_to_dsec = &ptime_convert_hr_dsec;
         printf("Using cpu ticks timestamps in latency stream.\n");
     }
 

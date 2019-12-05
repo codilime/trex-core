@@ -1289,7 +1289,7 @@ TrexStatelessDpCore::add_stream(PerPortProfile * profile,
     }
 
     // create and add CGenNodeTimesync (moved from start_scheduler)
-    if (node->is_latency_stream() && CGlobalInfo::m_options.is_timesync_tx_enabled()) {
+    if (node->is_latency_stream() && CGlobalInfo::m_options.is_timesync_enabled()) {
         add_timesync_node(profile, profile_id, stream, start_at_ts);
     }
 }
@@ -1456,7 +1456,19 @@ TrexStatelessDpCore::add_timesync_node(PerPortProfile *profile,
     node->m_ref_stream_info = stream->clone();
     node->m_port_id = stream->m_port_id;
     node->m_profile_id = profile_id;
-    node->m_next_time_offset = 1.0 / stream->get_pps();  // these are latency stream's PPS, could be not frequent enough
+    // We need to figure out what M_nex_time_offset should be,
+    // right now we add standard SYNC_TIME_OUT
+    // node->m_next_time_offset = 1.0 / stream->get_pps();  // these are latency stream's PPS, could be not frequent enough
+    node->m_next_time_offset = SYNC_TIME_OUT;
+    node->init();
+
+    rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), (ETH_HDR_LEN + PTP_DELAYRESP_LEN));
+    assert(m);
+    node->m = m;
+
+    // Get dest and src MAC
+    pkt_dir_t pkt_dir = m_core->m_node_gen.m_v_if->port_id_to_dir(stream->m_port_id);
+    m_core->m_node_gen.m_v_if->update_mac_addr_from_global_cfg(pkt_dir, reinterpret_cast<uint8_t*>(&(node->m_mac_addr)));
 
     if (stream->m_self_start) {
         node->m_state = CGenNodeStateless::ss_ACTIVE;
@@ -1508,7 +1520,7 @@ TrexStatelessDpCore::start_traffic(TrexStreamsCompiledObj *obj,
         /* all commands should be for the same port */
         assert(obj->get_port_id() == single_stream.m_stream->m_port_id);
         add_stream(profile,profile_id,single_stream.m_stream,obj,start_at_ts);
-        if ((CGlobalInfo::m_options.is_timesync_tx_enabled()) && (single_stream.m_stream->is_latency_stream())) {
+        if ((CGlobalInfo::m_options.is_timesync_enabled()) && (single_stream.m_stream->is_latency_stream())) {
             number_of_latency_streams++;
         }
     }
@@ -1839,7 +1851,3 @@ void CGenNodePCAP::destroy() {
 
     m_state = PCAP_INVALID;
 }
-
-
-
-

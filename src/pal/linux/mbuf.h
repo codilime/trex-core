@@ -25,11 +25,14 @@ limitations under the License.
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 typedef struct rte_mbuf  rte_mbuf_t;
 
 #define MAGIC0 0xAABBCCDD
 #define MAGIC2 0x11223344
+
+#define PKT_TX_IEEE1588_TMST (1ULL << 51) /**< TX IEEE1588 packet to timestamp. */
 
 #define IND_ATTACHED_MBUF    (1ULL << 62) /**< Indirect attached mbuf */
 #define PKT_TX_VLAN_PKT      (1ULL << 57) /**< TX packet is a 802.1q VLAN packet. */
@@ -93,6 +96,7 @@ struct rte_mbuf {
         uint32_t rss;     /**< RSS hash result if RSS enabled */
     } hash;                   /**< hash information */
 
+    uint16_t timesync;
 } ;
 
 #ifdef TREX_MBUF_SIM_LOCAL
@@ -264,7 +268,15 @@ rte_lcore_to_socket_id(unsigned lcore_id){
  */
 #define rte_pktmbuf_data_len(m) ((m)->data_len)
 
+static inline int rte_eth_timesync_read_rx_timestamp(uint16_t port_id,
+        struct timespec *timestamp, uint32_t flags) {
+    return clock_gettime(CLOCK_REALTIME, timestamp);
+}
 
+static inline int rte_eth_timesync_read_tx_timestamp(uint16_t port_id,
+        struct timespec *timestamp) {
+    return clock_gettime(CLOCK_REALTIME, timestamp);
+}
 
 /**
  * Get the headroom in a packet mbuf.

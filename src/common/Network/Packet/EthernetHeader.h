@@ -45,7 +45,8 @@ public:
             PPP             = 0x880b,
             PPPoED          = 0x8863,
             PPPoES          = 0x8864,
-            QINQ            = 0x88A8
+            QINQ            = 0x88A8,
+            PTP             = 0x88F7
         };
     };
 
