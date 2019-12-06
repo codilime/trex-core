@@ -892,6 +892,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
                     udp_hdr->setSourcePort(319);
                     udp_hdr->setDestPort(319);
                 }
+                m_last_sent_ptp_src_port = ptp_hdr->source_port_id;
                 break;
 
             case PTP::Field::message_type::DELAY_RESP:
