@@ -756,15 +756,13 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
     inline void init() {
         m_timesync_engine = CGlobalInfo::get_timesync_engine();
-        
         assert(m_timesync_engine);
 
         TrexPlatformApi &api = get_platform_api();
         hardware_timestamping_enabled = api.getPortAttrObj(m_port_id)->is_hardware_timesync_enabled();
 
-        // Current it is 192.168.1.1
-        // Need to figure out how to get ip address of port
-        m_ip_addr = 3232235777;
+        // Get Ip Addr
+        m_ip_addr = CGlobalInfo::m_options.m_ip_cfg[m_port_id].get_ip();
 
         set_slow_path(true);
         set_send_immediately(true);
@@ -820,7 +818,14 @@ struct CGenNodeTimesync : public CGenNodeBase {
         IPHeader* ipv4_hdr = nullptr;
         UDPHeader* udp_hdr = nullptr;
 
-        if (false) { // If UDP
+        if (CGlobalInfo::m_options.is_timesync_L2()) {
+            // "Two multicast MAC addresses are used for PTP over Ethernet: 01-1B-19-00-00-00 and 01-80-C2-00-00-0E."
+            // Source: https://www.juniper.net/documentation/en_US/junos/topics/concept/ptp-over-ethernet-configuration-guidelines.html
+            // Source: http://www.ieee802.org/1/files/public/docs2006/as-garner-multicast-address-ptp-msgs-r2-060517.pdf
+            eth_hdr->myDestination = { 0x01, 0x1B, 0x19, 0x00, 0x00, 0x00 };
+            eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
+
+        } else { // If UDP
             eth_hdr->setNextProtocol(EthernetHeader::Protocol::IP);
 
             ipv4_hdr = rte_pktmbuf_mtod_offset(mbuf, IPHeader*, size);
@@ -843,12 +848,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
             udp_hdr = rte_pktmbuf_mtod_offset(mbuf, UDPHeader*, size);
             size += UDP_HEADER_LEN;
-        } else {
-            // "Two multicast MAC addresses are used for PTP over Ethernet: 01-1B-19-00-00-00 and 01-80-C2-00-00-0E."
-            // Source: https://www.juniper.net/documentation/en_US/junos/topics/concept/ptp-over-ethernet-configuration-guidelines.html
-            // Source: http://www.ieee802.org/1/files/public/docs2006/as-garner-multicast-address-ptp-msgs-r2-060517.pdf
-            eth_hdr->myDestination = { 0x01, 0x1B, 0x19, 0x00, 0x00, 0x00 };
-            eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
         }
 
         // Setup PTP message

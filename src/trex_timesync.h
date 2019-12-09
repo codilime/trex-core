@@ -36,6 +36,11 @@ enum struct TimesyncMethod : uint8_t {
     PTP = 1,
 };
 
+enum struct TimesyncTransport : uint8_t {
+    ETH = 0,
+    UDP = 1,
+};
+
 // A struct defining a single PTP synchronization sequence data
 typedef struct {
     PTP::Field::src_port_id_field masters_source_port_id;

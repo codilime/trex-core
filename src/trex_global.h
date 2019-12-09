@@ -566,6 +566,7 @@ public:
         m_hdrh = false;
         m_latency_measurement = 0;
         m_timesync_method = TimesyncMethod::NONE;
+        m_timesync_transport = TimesyncTransport::ETH;
         m_timesync_interval = 0;
     }
 
@@ -631,6 +632,7 @@ public:
     uint64_t        (*get_latency_timestamp)();
     double          (*timestamp_diff_to_dsec)(uint64_t);
     TimesyncMethod  m_timesync_method;
+    TimesyncTransport m_timesync_transport;
     uint32_t        m_timesync_interval;
 
 
@@ -715,6 +717,10 @@ public:
         return m_timesync_method != TimesyncMethod::NONE;
     }
 
+    inline bool is_timesync_L2() {
+        return m_timesync_transport == TimesyncTransport::ETH;
+    }
+
     inline bool is_timesync_tx_enabled() {
         return is_timesync_enabled() && (m_timesync_interval > 0);
     }
@@ -728,7 +734,12 @@ public:
         case TimesyncMethod::NONE:
             return (const char *)"NONE";
         case TimesyncMethod::PTP:
-            return (const char *)"PTP";
+            if(m_timesync_transport == TimesyncTransport::ETH)
+                return (const char *)"PTP over L2";
+            else if (m_timesync_transport == TimesyncTransport::UDP)
+                return (const char *)"PTP over UDP";
+            else
+                return (const char *)"PTP with unknown transport";
         default:
             return (const char *)"undefined";
         }
