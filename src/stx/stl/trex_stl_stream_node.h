@@ -28,6 +28,7 @@ limitations under the License.
 #include <common/Network/Packet/PTPPacket.h>
 #include <common/Network/Packet/EthernetHeader.h>
 #include <common/Network/Packet/IPHeader.h>
+#include <common/Network/Packet/UdpHeader.h>
 
 #include "bp_sim.h"
 #include "trex_stl_stream.h"
@@ -726,7 +727,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
     CGenNodeStateless::stream_state_t m_state;
     uint8_t m_stream_type; // see TrexStream::STREAM_TYPE, stream_type_t
     pkt_dir_t m_pkt_dir;
-    uint32_t m_ptp_slave_ip;
+    uint32_t m_ip_addr;
     uint64_t m_pad_0[2];
 
     /* cache line 1 */
@@ -760,6 +761,10 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         TrexPlatformApi &api = get_platform_api();
         hardware_timestamping_enabled = api.getPortAttrObj(m_port_id)->is_hardware_timesync_enabled();
+
+        // Current it is 192.168.1.1
+        // Need to figure out how to get ip address of port
+        m_ip_addr = 3232235777;
 
         set_slow_path(true);
         set_send_immediately(true);
@@ -808,13 +813,43 @@ struct CGenNodeTimesync : public CGenNodeBase {
     PTPMsgType* prepare_packet(rte_mbuf_t* mbuf, const CTimesyncPTPPacketData_t& next_msg) {
         size_t size = 0;
 
-        // Setup Eth Header
         EthernetHeader* eth_hdr = rte_pktmbuf_mtod(mbuf, EthernetHeader*);
-        eth_hdr->myDestination = MacAddress(m_mac_addr[0], m_mac_addr[1], m_mac_addr[2], m_mac_addr[3], m_mac_addr[4], m_mac_addr[5]);
-        eth_hdr->mySource = MacAddress(m_mac_addr[6], m_mac_addr[7], m_mac_addr[8], m_mac_addr[9], m_mac_addr[10], m_mac_addr[11]);
         size += ETH_HDR_LEN;
+        eth_hdr->mySource = { m_mac_addr[6], m_mac_addr[7], m_mac_addr[8], m_mac_addr[9], m_mac_addr[10], m_mac_addr[11] };
 
-        eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
+        IPHeader* ipv4_hdr = nullptr;
+        UDPHeader* udp_hdr = nullptr;
+
+        if (false) { // If UDP
+            eth_hdr->setNextProtocol(EthernetHeader::Protocol::IP);
+
+            ipv4_hdr = rte_pktmbuf_mtod_offset(mbuf, IPHeader*, size);
+            size += IPV4_HDR_LEN;
+
+            ipv4_hdr->setVersion(4);
+            ipv4_hdr->setHeaderLength(IPV4_HDR_LEN);
+            ipv4_hdr->setProtocol(IPHeader::Protocol::UDP);
+            ipv4_hdr->setTimeToLive(1);
+            ipv4_hdr->setSourceIp(m_ip_addr);
+            ipv4_hdr->setFragment(0, false, true);
+            
+            // IP Addr = 224.0.1.129 (multicast ip addr for PTP)
+            // Source: https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
+            ipv4_hdr->setDestIp(0xE0000181);
+
+            // Set IPv4mcast for PTP multicast ip
+            // Source: https://techhub.hpe.com/eginfolib/networking/docs/switches/5130ei/5200-3944_ip-multi_cg/content/483573739.htm
+            eth_hdr->myDestination = { 0x01, 0x00, 0x5e, 0x00, 0x01, 0x81 };
+
+            udp_hdr = rte_pktmbuf_mtod_offset(mbuf, UDPHeader*, size);
+            size += UDP_HEADER_LEN;
+        } else {
+            // "Two multicast MAC addresses are used for PTP over Ethernet: 01-1B-19-00-00-00 and 01-80-C2-00-00-0E."
+            // Source: https://www.juniper.net/documentation/en_US/junos/topics/concept/ptp-over-ethernet-configuration-guidelines.html
+            // Source: http://www.ieee802.org/1/files/public/docs2006/as-garner-multicast-address-ptp-msgs-r2-060517.pdf
+            eth_hdr->myDestination = { 0x01, 0x1B, 0x19, 0x00, 0x00, 0x00 };
+            eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
+        }
 
         // Setup PTP message
         PTP::Header* ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, size);
@@ -823,12 +858,18 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         ptp_hdr->ver = PTP::Field::version::PTPv2;
 
+        // "The PTP frames are sent on UDP ports 319 (ptp-event) and 320 (ptp-general)."
+        // Source: http://wiki.hevs.ch/uit/index.php5/Standards/Ethernet_PTP
         switch(PTPMsgType::type){
             case PTP::Field::message_type::SYNC:
                 ptp_hdr->trn_and_msg = PTP::Field::message_type::SYNC;
                 ptp_hdr->message_len = PTP_SYNC_LEN;
                 ptp_hdr->flag_field = PTP::Field::flags::PTP_TWO_STEP | PTP::Field::flags::PTP_UNICAST;
                 ptp_hdr->control = PTP::Field::control::CTL_SYNC;
+                if (udp_hdr) {
+                    udp_hdr->setSourcePort(319);
+                    udp_hdr->setDestPort(319);
+                }
                 break;
 
             case PTP::Field::message_type::FOLLOW_UP:
@@ -836,6 +877,10 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 ptp_hdr->message_len = PTP_FOLLOWUP_LEN;
                 ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
                 ptp_hdr->control = PTP::Field::control::CTL_FOLLOW_UP;
+                if (udp_hdr) {
+                    udp_hdr->setSourcePort(320);
+                    udp_hdr->setDestPort(320);
+                }
                 break;
 
             case PTP::Field::message_type::DELAY_REQ:
@@ -843,6 +888,10 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 ptp_hdr->message_len = PTP_DELAYREQ_LEN;
                 ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
                 ptp_hdr->control = PTP::Field::control::CTL_DELAY_REQ;
+                if (udp_hdr) {
+                    udp_hdr->setSourcePort(319);
+                    udp_hdr->setDestPort(319);
+                }
                 break;
 
             case PTP::Field::message_type::DELAY_RESP:
@@ -850,11 +899,13 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 ptp_hdr->message_len = PTP_DELAYRESP_LEN;
                 ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
                 ptp_hdr->control = PTP::Field::control::CTL_DELAY_RESP;
+                if (udp_hdr) {
+                    udp_hdr->setSourcePort(320);
+                    udp_hdr->setDestPort(320);
+                }
                 break;
             default:
-                ptp_hdr->message_len = PTP_HDR_LEN + PTP_MSG_BASE_LEN;
-                ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
-                ptp_hdr->control = PTP::Field::control::CTL_OTHER;
+                assert(0);
                 break;
         }
 
@@ -881,7 +932,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         // Setup PTP sync
         PTPMsgType* ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, size);
-        // As we do not support PTP_ONE_WAY currently, this is set to 0
+
         ptp_msg->origin_timestamp.sec_msb = 0;
         ptp_msg->origin_timestamp.sec_lsb = next_msg.time_to_send.tv_sec;
         ptp_msg->origin_timestamp.ns = next_msg.time_to_send.tv_nsec;
@@ -894,6 +945,14 @@ struct CGenNodeTimesync : public CGenNodeBase {
         // Set pkt size
         m->data_len = size;
         m->pkt_len = size;
+
+        // Update length for IP and UDP headers
+        if (ipv4_hdr != nullptr && udp_hdr != nullptr) {
+            ipv4_hdr->setTotalLength(size - ETH_HDR_LEN);
+            udp_hdr->setLength(size - ETH_HDR_LEN - IPV4_HDR_LEN);
+            ipv4_hdr->updateCheckSum();
+            udp_hdr->updateCheckSum(ipv4_hdr);
+        }
 
         return ptp_msg;
 
