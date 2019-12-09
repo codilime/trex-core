@@ -27,6 +27,7 @@ limitations under the License.
 
 #include <common/Network/Packet/PTPPacket.h>
 #include <common/Network/Packet/EthernetHeader.h>
+#include <common/Network/Packet/IPHeader.h>
 
 #include "bp_sim.h"
 #include "trex_stl_stream.h"
@@ -817,13 +818,13 @@ struct CGenNodeTimesync : public CGenNodeBase {
         return eth_hdr;
     }
 
-    inline PTP::Header* prepare_ptp_header(uint8_t* data, const size_t& offset,
-                                           const uint16_t& seq_id, const PTP::Field::message_type& type){
+    inline PTP::Header* prepare_ptp_header(rte_mbuf_t* mbuf, const size_t& offset,
+                                           const uint16_t& seq_id, const PTP::Field::message_type& type)    {
         // Get Eth header
-        EthernetHeader* eth_hdr = reinterpret_cast<EthernetHeader*>(data);
+        EthernetHeader* eth_hdr = rte_pktmbuf_mtod(mbuf, EthernetHeader*);
 
         // Setup PTP message
-        PTP::Header* ptp_hdr = reinterpret_cast<PTP::Header*>(data + offset);
+        PTP::Header* ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, offset);
 
         ptp_hdr->trn_and_msg = PTP::Field::transport_specific::DEFAULT;
         ptp_hdr->trn_and_msg = type;
@@ -892,7 +893,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
         switch (next_message.type) {
 
         case PTP::Field::message_type::SYNC: {
-            uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
 
             // Setup Eth Header
             //EthernetHeader* eth_hdr = 
@@ -900,13 +900,13 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
             // Setup PTP message
             //PTP::Header* ptp_hdr = 
-            prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::SYNC);
+            prepare_ptp_header(m, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::SYNC);
 
             // Enable flag for hardware timestamping.
             m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
             // Setup PTP sync
-            PTP::SyncPacket* ptp_msg = reinterpret_cast<PTP::SyncPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
+            PTP::SyncPacket* ptp_msg = rte_pktmbuf_mtod_offset(m, PTP::SyncPacket*, (ETH_HDR_LEN + PTP_HDR_LEN));
             // As we do not support PTP_ONE_WAY currently, this is set to 0
             ptp_msg->origin_timestamp.sec_msb = 0;
             ptp_msg->origin_timestamp.sec_lsb = 0;
@@ -917,7 +917,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
             } break;
 
         case PTP::Field::message_type::FOLLOW_UP: {
-            uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
 
             // Setup Eth Header
             //EthernetHeader* eth_hdr = 
@@ -925,13 +924,13 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
             // Setup PTP message
             //PTP::Header* ptp_hdr = 
-            prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::FOLLOW_UP);
+            prepare_ptp_header(m, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::FOLLOW_UP);
 
             // Enable flag for hardware timestamping.
             m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
             // Setup PTP follow up
-            PTP::FollowUpPacket* ptp_msg = reinterpret_cast<PTP::FollowUpPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
+            PTP::FollowUpPacket* ptp_msg = rte_pktmbuf_mtod_offset(m, PTP::FollowUpPacket*, (ETH_HDR_LEN + PTP_HDR_LEN));
             ptp_msg->origin_timestamp.sec_msb = 0;
             ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;
             ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;
@@ -941,20 +940,19 @@ struct CGenNodeTimesync : public CGenNodeBase {
             } break;
 
         case PTP::Field::message_type::DELAY_REQ: {
-            uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
 
             // Setup Eth Header
             //EthernetHeader* eth_hdr = 
             prepare_header(m, PTP_DELAYREQ_LEN);
 
             // Setup PTP message
-            PTP::Header* ptp_hdr = prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::DELAY_REQ);
+            PTP::Header* ptp_hdr = prepare_ptp_header(m, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::DELAY_REQ);
 
             // Enable flag for hardware timestamping.
             m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
             // Setup PTP delay req
-            PTP::DelayedReqPacket* ptp_msg = reinterpret_cast<PTP::DelayedReqPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
+            PTP::DelayedReqPacket* ptp_msg = rte_pktmbuf_mtod_offset(m, PTP::DelayedReqPacket*, (ETH_HDR_LEN + PTP_HDR_LEN));
             // As we do not support PTP_ONE_WAY currently, this is set to 0
             ptp_msg->origin_timestamp.sec_msb = 0;
             ptp_msg->origin_timestamp.sec_lsb = 0;
@@ -966,7 +964,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
             } break;
 
         case PTP::Field::message_type::DELAY_RESP: {
-            uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
 
             // Setup Eth Header
             //EthernetHeader* eth_hdr = 
@@ -974,13 +971,13 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
             // Setup PTP message
             //PTP::Header* ptp_hdr = 
-            prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::DELAY_RESP);
+            prepare_ptp_header(m, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::DELAY_RESP);
 
             // Enable flag for hardware timestamping.
             m->ol_flags |= PKT_TX_IEEE1588_TMST;
 
             // Setup PTP delay resp
-            PTP::DelayedRespPacket* ptp_msg = reinterpret_cast<PTP::DelayedRespPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
+            PTP::DelayedRespPacket* ptp_msg = rte_pktmbuf_mtod_offset(m, PTP::DelayedRespPacket*, (ETH_HDR_LEN + PTP_HDR_LEN));
             // As we do not support PTP_ONE_WAY currently, this is set to 0
             ptp_msg->origin_timestamp.sec_msb = 0;
             ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;
