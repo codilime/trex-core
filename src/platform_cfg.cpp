@@ -507,6 +507,12 @@ void operator >> (const YAML::Node& node, CPlatformYamlInfo & plat_info) {
                        plat_info.m_timesync_method.begin(), ::toupper);
     }
 
+    if ( node.FindValue("timesync_transport") ) {
+        node["timesync_transport"] >> plat_info.m_timesync_transport;
+        std::transform(plat_info.m_timesync_transport.begin(), plat_info.m_timesync_transport.end(),
+                       plat_info.m_timesync_transport.begin(), ::toupper);
+    }
+
     if ( node.FindValue("timesync_interval") ){
         node["timesync_interval"] >> plat_info.m_timesync_interval;
     }

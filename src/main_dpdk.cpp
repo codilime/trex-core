@@ -219,6 +219,7 @@ enum {
        OPT_HDRH,
        OPT_LATENCY_MEASUREMENT_METHOD,
        OPT_TIME_SYNC_METHOD,
+       OPT_TIME_SYNC_TRANSPORT,
        OPT_TIME_SYNC_PERIOD,
     
        /* no more pass this */
@@ -313,6 +314,7 @@ static CSimpleOpt::SOption parser_options[] =
         { OPT_SLEEPY_SCHEDULER,       "--sleeps",          SO_NONE},
         { OPT_LATENCY_MEASUREMENT_METHOD, "--latency-measurement", SO_REQ_SEP},
         { OPT_TIME_SYNC_METHOD,       "--timesync-method", SO_REQ_SEP},
+        { OPT_TIME_SYNC_TRANSPORT,    "--timesync-transport", SO_REQ_SEP},
         { OPT_TIME_SYNC_PERIOD,       "--timesync-interval", SO_REQ_SEP},
 
         SO_END_OF_OPTIONS
@@ -412,6 +414,8 @@ static int COLD_FUNC  usage() {
     printf("                              argument from config file. Supported method are 1 for nanoseconds (clock_gettime), 0 (default) for standard system ticks (RDTSC)\n");
     printf(" --timesync-method <method> : Enable time synchronisation with given method. Overrides the 'timesync_method' argument from config file\n");
     printf("                              Supported method is 1 for PTP. Default is 0 for no synchronisation\n");
+    printf(" --timesync-transport <method> : Set transport method for PTP packets. Overrides the 'timesync_transport' argument from config file\n");
+    printf("                              Supported method is 0 for Eth/L2 and 1 for IP/UDP. Default is 0 if timesync_transport was set to PTP\n");
     printf(" --timesync-interval <num>  : Define how often (in seconds) will time synchronisation take place. Overrides the 'timesync_interval' argument from config file\n");
     printf("                              Default is 0 seconds which means TRex will be running as a client/slave in time synchronisation protocol.\n");
     
@@ -937,6 +941,13 @@ COLD_FUNC static int parse_options(int argc, char *argv[], bool first_time ) {
                     exit(-1);
                 }
                 CGlobalInfo::m_options.m_timesync_method = (TimesyncMethod)tmp_data;
+                break;
+            case OPT_TIME_SYNC_TRANSPORT:
+                sscanf(args.OptionArg(), "%d", &tmp_data);
+                if (!po->is_valid_opt_val(tmp_data, (uint8_t)TimesyncTransport::ETH, (uint8_t)TimesyncTransport::UDP, "--timesync-transport")) {
+                    exit(-1);
+                }
+                CGlobalInfo::m_options.m_timesync_transport = (TimesyncTransport)tmp_data;
                 break;
             case OPT_TIME_SYNC_PERIOD:
                 sscanf(args.OptionArg(), "%d", &CGlobalInfo::m_options.m_timesync_interval);
@@ -6025,6 +6036,13 @@ COLD_FUNC int update_global_info_from_platform_file(){
         if ((cg->m_timesync_method.compare("PTP") == 0) ||
             (cg->m_timesync_method.compare("1") == 0)) {
             g_opts->m_timesync_method = TimesyncMethod::PTP;
+        }
+    }
+
+    if (cg->m_timesync_transport.length()) {
+        if ((cg->m_timesync_transport.compare("UDP") == 0) ||
+            (cg->m_timesync_transport.compare("1") == 0)) {
+            g_opts->m_timesync_transport = TimesyncTransport::UDP;
         }
     }
 

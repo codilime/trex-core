@@ -138,6 +138,7 @@ int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
 }
 
 void CTimesyncEngine::setDelta(int port, int64_t delta) {
+    printf("PTP delta for port %d: %ld ns\n", port, delta);  // TODO this is useful but not mandatory, shall we keep it?
     auto iter = m_deltas.find(port);
     if (iter != m_deltas.end()) {
         m_deltas[port] = delta;

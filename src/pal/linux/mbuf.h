@@ -246,7 +246,10 @@ rte_lcore_to_socket_id(unsigned lcore_id){
     return (0);
 }
 
-#define rte_pktmbuf_mtod(m, t) ((t)((char *)(m)->buf_addr + (m)->data_off))
+#define rte_pktmbuf_mtod_offset(m, t, o)	\
+	((t)((char *)(m)->buf_addr + (m)->data_off + (o)))
+
+#define rte_pktmbuf_mtod(m, t) rte_pktmbuf_mtod_offset(m, t, 0)
 
 /**
  * A macro that returns the length of the packet.

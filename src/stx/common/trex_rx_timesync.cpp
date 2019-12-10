@@ -13,58 +13,68 @@ void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
         if (hardware_timestamping_enabled) {
             rx_tstamp_idx = m->timesync;
         }
-        parse_ptp_pkt(rte_pktmbuf_mtod(m, uint8_t *), m->pkt_len, rx_tstamp_idx, port);
+
+        if (m->pkt_len < ETH_HDR_LEN)
+            return;
+
+        uint8_t *pkt = rte_pktmbuf_mtod(m, uint8_t *);
+        EthernetHeader *ether_hdr = (EthernetHeader *)pkt;
+        uint32_t offset = ether_hdr->getSize();
+        switch (ether_hdr->getNextProtocol()) {
+        case EthernetHeader::Protocol::IP:
+            parse_ip_pkt(pkt + offset, m->pkt_len - offset, rx_tstamp_idx, port);
+            break;
+        case EthernetHeader::Protocol::PTP:
+            // TODO what about vxlan support (a.k.a. CFlowStatParser.m_flags |= FSTAT_PARSER_VXLAN_SKIP)
+            parse_ptp_pkt(pkt + offset, m->pkt_len - offset, rx_tstamp_idx, port);
+            break;
+        }
+    }
+}
+
+TimesyncPacketParser_err_t RXTimesync::parse_ip_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port) {
+    if (pkt == NULL)
+        return TIMESYNC_PARSER_E_NO_DATA;
+    if (len < IPV4_HDR_LEN + UDP_HEADER_LEN)
+        return TIMESYNC_PARSER_E_TOO_SHORT;
+
+    IPHeader *ip_hdr = (IPHeader *)pkt;
+    switch (ip_hdr->getNextProtocol()) {
+        case IPHeader::Protocol::UDP:
+            return parse_ptp_pkt(pkt + IPV4_HDR_LEN + UDP_HEADER_LEN, len - IPV4_HDR_LEN - UDP_HEADER_LEN, rx_tstamp_idx, port);
+        default:
+            return TIMESYNC_PARSER_E_UNKNOWN_HDR;
     }
 }
 
 TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port) {
-    PTP::Header *header;
-
-    if (pkt == NULL) {
+    if (pkt == NULL)
         return TIMESYNC_PARSER_E_NO_DATA;
-    }
-
-    // TODO what about vxlan support (a.k.a. CFlowStatParser.m_flags |= FSTAT_PARSER_VXLAN_SKIP)
-
-    if (len < ETH_HDR_LEN)
-        return TIMESYNC_PARSER_E_TOO_SHORT;
-
-    EthernetHeader *ether_hdr = (EthernetHeader *)pkt;
-    uint16_t next_hdr = ether_hdr->getNextProtocol();
-
-    if (next_hdr != EthernetHeader::Protocol::PTP) {
-        return TIMESYNC_PARSER_E_UNKNOWN_HDR;
-    }
-
-    uint16_t pkt_offset = ether_hdr->getSize();
-    if (len < pkt_offset + PTP_HDR_LEN)
+    if (len < PTP_HDR_LEN)
         return TIMESYNC_PARSER_E_SHORT_PTP_HEADER;
 
-    header = (PTP::Header *)(pkt + pkt_offset);
-
-    pkt_offset += PTP_HDR_LEN;
-
+    PTP::Header *header = (PTP::Header *)pkt;
     switch (header->trn_and_msg.msg_type()) {
     case PTP::Field::message_type::SYNC: {
-        // PTP::SyncPacket *sync = reinterpret_cast<PTP::SyncPacket *>(pkt + pkt_offset);
+        // PTP::SyncPacket *sync = reinterpret_cast<PTP::SyncPacket *>(pkt + PTP_HDR_LEN);
         timespec t;
         parse_sync(rx_tstamp_idx, &t, port);
         m_timesync_engine->receivedPTPSync(port, *(header->seq_id), t, header->source_port_id);
     } break;
     case PTP::Field::message_type::FOLLOW_UP: {
-        PTP::FollowUpPacket *followup = reinterpret_cast<PTP::FollowUpPacket *>(pkt + pkt_offset);
+        PTP::FollowUpPacket *followup = reinterpret_cast<PTP::FollowUpPacket *>(pkt + PTP_HDR_LEN);
         timespec t;
         parse_fup(followup, &t);
         m_timesync_engine->receivedPTPFollowUp(port, *(header->seq_id), t, header->source_port_id);
     } break;
     case PTP::Field::message_type::DELAY_REQ: {
-        // PTP::DelayedReqPacket *delay_req = reinterpret_cast<PTP::DelayedReqPacket *>(pkt + pkt_offset);
+        // PTP::DelayedReqPacket *delay_req = reinterpret_cast<PTP::DelayedReqPacket *>(pkt + PTP_HDR_LEN);
         timespec t;
         parse_delay_request(rx_tstamp_idx, &t, port);
         m_timesync_engine->receivedPTPDelayReq(port, *(header->seq_id), t, header->source_port_id);
     } break;
     case PTP::Field::message_type::DELAY_RESP: {
-        PTP::DelayedRespPacket *delay_resp = reinterpret_cast<PTP::DelayedRespPacket *>(pkt + pkt_offset);
+        PTP::DelayedRespPacket *delay_resp = reinterpret_cast<PTP::DelayedRespPacket *>(pkt + PTP_HDR_LEN);
         timespec t;
         parse_delay_response(delay_resp, &t);
         m_timesync_engine->receivedPTPDelayResp(port, *(header->seq_id), t, header->source_port_id,

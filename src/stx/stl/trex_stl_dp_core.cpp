@@ -1462,9 +1462,13 @@ TrexStatelessDpCore::add_timesync_node(PerPortProfile *profile,
     node->m_next_time_offset = SYNC_TIME_OUT;
     node->init();
 
-    rte_mbuf_t *m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), (ETH_HDR_LEN + PTP_DELAYRESP_LEN));
-    assert(m);
-    node->m = m;
+    if (CGlobalInfo::m_options.is_timesync_L2()) {
+        node->m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), (ETH_HDR_LEN + PTP_DELAYRESP_LEN));
+    } else {
+        node->m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), (ETH_HDR_LEN + IPV4_HDR_LEN + UDP_HEADER_LEN + PTP_DELAYRESP_LEN));
+    }
+
+    assert(node->m);
 
     // Get dest and src MAC
     pkt_dir_t pkt_dir = m_core->m_node_gen.m_v_if->port_id_to_dir(stream->m_port_id);

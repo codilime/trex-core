@@ -220,6 +220,7 @@ public:
 
         m_latency_measurement = "";
         m_timesync_method = "";
+        m_timesync_transport = "";
         m_timesync_interval = TIMESYNC_INTERVAL_DEFAULT;
     }
 
@@ -267,6 +268,7 @@ public:
 
     std::string                 m_latency_measurement;
     std::string                 m_timesync_method;
+    std::string                 m_timesync_transport;
     uint32_t                    m_timesync_interval;
 
 public:

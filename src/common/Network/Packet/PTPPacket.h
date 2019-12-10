@@ -336,19 +336,28 @@ static_assert(std::is_standard_layout<BasePacket>::value,
 static_assert(sizeof(BasePacket) == PTP_MSG_BASE_LEN,
               "PTP::BasePacket must have exactly " STR(PTP_MSG_BASE_LEN) ".");
 
-struct SyncPacket : BasePacket {};
+struct SyncPacket : BasePacket {
+    static constexpr size_t size = PTP_MSG_SYNC_LEN;
+    static constexpr Field::message_type type = Field::message_type::SYNC;
+};
 static_assert(std::is_standard_layout<SyncPacket>::value,
               "PTP::SyncPacket must be a simple linear data structure.");
 static_assert(sizeof(SyncPacket) == PTP_MSG_SYNC_LEN,
               "PTP::SyncPacket must have exactly " STR(PTP_MSG_SYNC_LEN) ".");
 
-struct FollowUpPacket : BasePacket {};
+struct FollowUpPacket : BasePacket {
+    static constexpr size_t size = PTP_MSG_FOLLOWUP_LEN;
+    static constexpr Field::message_type type = Field::message_type::FOLLOW_UP;
+};
 static_assert(std::is_standard_layout<FollowUpPacket>::value,
               "PTP::FollowUpPacket must be a simple linear data structure.");
 static_assert(sizeof(FollowUpPacket) == PTP_MSG_FOLLOWUP_LEN, 
               "PTP::FollowUpPacket must have exactly " STR(PTP_MSG_FOLLOWUP_LEN) ".");
 
-struct DelayedReqPacket : BasePacket {};
+struct DelayedReqPacket : BasePacket {
+    static constexpr size_t size = PTP_MSG_DELAYREQ_LEN;
+    static constexpr Field::message_type type = Field::message_type::DELAY_REQ;
+};
 static_assert(std::is_standard_layout<DelayedReqPacket>::value,
               "PTP::DelayedReqPacket must be a simple linear data structure.");
 static_assert(sizeof(DelayedReqPacket) == PTP_MSG_DELAYREQ_LEN, 
@@ -359,6 +368,9 @@ struct DelayedRespPacket {
     Field::src_port_id_field req_clock_identity;
 
     void dump(FILE *fd);
+
+    static constexpr size_t size = PTP_MSG_DELAYRESP_LEN;
+    static constexpr Field::message_type type = Field::message_type::DELAY_RESP;
 };
 static_assert(std::is_standard_layout<DelayedRespPacket>::value,
               "PTP::DelayedRespPacket must be a simple linear data structure.");

@@ -27,6 +27,8 @@ limitations under the License.
 
 #include <common/Network/Packet/PTPPacket.h>
 #include <common/Network/Packet/EthernetHeader.h>
+#include <common/Network/Packet/IPHeader.h>
+#include <common/Network/Packet/UdpHeader.h>
 
 #include "bp_sim.h"
 #include "trex_stl_stream.h"
@@ -725,7 +727,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
     CGenNodeStateless::stream_state_t m_state;
     uint8_t m_stream_type; // see TrexStream::STREAM_TYPE, stream_type_t
     pkt_dir_t m_pkt_dir;
-    uint32_t m_ptp_slave_ip;
+    uint32_t m_ip_addr;
     uint64_t m_pad_0[2];
 
     /* cache line 1 */
@@ -754,11 +756,13 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
     inline void init() {
         m_timesync_engine = CGlobalInfo::get_timesync_engine();
-        
         assert(m_timesync_engine);
 
         TrexPlatformApi &api = get_platform_api();
         hardware_timestamping_enabled = api.getPortAttrObj(m_port_id)->is_hardware_timesync_enabled();
+
+        // Get Ip Addr
+        m_ip_addr = CGlobalInfo::m_options.m_ip_cfg[m_port_id].get_ip();
 
         set_slow_path(true);
         set_send_immediately(true);
@@ -803,60 +807,105 @@ struct CGenNodeTimesync : public CGenNodeBase {
         }
     }
 
-    inline EthernetHeader* prepare_header(rte_mbuf_t* mbuf, const size_t& size){
-        // Setup mbuf common
-        m->data_len = (ETH_HDR_LEN + size);
-        m->pkt_len = (ETH_HDR_LEN + size);
+    template<typename PTPMsgType>
+    PTPMsgType* prepare_packet(rte_mbuf_t* mbuf, const CTimesyncPTPPacketData_t& next_msg) {
+        size_t size = 0;
 
-        // Setup Ethernet header
         EthernetHeader* eth_hdr = rte_pktmbuf_mtod(mbuf, EthernetHeader*);
-        eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
-        eth_hdr->myDestination = MacAddress(m_mac_addr[0], m_mac_addr[1], m_mac_addr[2], m_mac_addr[3], m_mac_addr[4], m_mac_addr[5]);
-        eth_hdr->mySource = MacAddress(m_mac_addr[6], m_mac_addr[7], m_mac_addr[8], m_mac_addr[9], m_mac_addr[10], m_mac_addr[11]);
+        size += ETH_HDR_LEN;
+        eth_hdr->mySource = { m_mac_addr[6], m_mac_addr[7], m_mac_addr[8], m_mac_addr[9], m_mac_addr[10], m_mac_addr[11] };
 
-        return eth_hdr;
-    }
+        IPHeader* ipv4_hdr = nullptr;
+        UDPHeader* udp_hdr = nullptr;
 
-    inline PTP::Header* prepare_ptp_header(uint8_t* data, const size_t& offset,
-                                           const uint16_t& seq_id, const PTP::Field::message_type& type){
-        // Get Eth header
-        EthernetHeader* eth_hdr = reinterpret_cast<EthernetHeader*>(data);
+        if (CGlobalInfo::m_options.is_timesync_L2()) {
+            // "Two multicast MAC addresses are used for PTP over Ethernet: 01-1B-19-00-00-00 and 01-80-C2-00-00-0E."
+            // Source: https://www.juniper.net/documentation/en_US/junos/topics/concept/ptp-over-ethernet-configuration-guidelines.html
+            // Source: http://www.ieee802.org/1/files/public/docs2006/as-garner-multicast-address-ptp-msgs-r2-060517.pdf
+            eth_hdr->myDestination = { 0x01, 0x1B, 0x19, 0x00, 0x00, 0x00 };
+            eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
+
+        } else { // If UDP
+            eth_hdr->setNextProtocol(EthernetHeader::Protocol::IP);
+
+            ipv4_hdr = rte_pktmbuf_mtod_offset(mbuf, IPHeader*, size);
+            size += IPV4_HDR_LEN;
+
+            ipv4_hdr->setVersion(4);
+            ipv4_hdr->setHeaderLength(IPV4_HDR_LEN);
+            ipv4_hdr->setProtocol(IPHeader::Protocol::UDP);
+            ipv4_hdr->setTimeToLive(1);
+            ipv4_hdr->setSourceIp(m_ip_addr);
+            ipv4_hdr->setFragment(0, false, true);
+            
+            // IP Addr = 224.0.1.129 (multicast ip addr for PTP)
+            // Source: https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
+            ipv4_hdr->setDestIp(0xE0000181);
+
+            // Set IPv4mcast for PTP multicast ip
+            // Source: https://techhub.hpe.com/eginfolib/networking/docs/switches/5130ei/5200-3944_ip-multi_cg/content/483573739.htm
+            eth_hdr->myDestination = { 0x01, 0x00, 0x5e, 0x00, 0x01, 0x81 };
+
+            udp_hdr = rte_pktmbuf_mtod_offset(mbuf, UDPHeader*, size);
+            size += UDP_HEADER_LEN;
+        }
 
         // Setup PTP message
-        PTP::Header* ptp_hdr = reinterpret_cast<PTP::Header*>(data + offset);
+        PTP::Header* ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, size);
 
         ptp_hdr->trn_and_msg = PTP::Field::transport_specific::DEFAULT;
-        ptp_hdr->trn_and_msg = type;
 
         ptp_hdr->ver = PTP::Field::version::PTPv2;
-        switch(type){
+
+        // "The PTP frames are sent on UDP ports 319 (ptp-event) and 320 (ptp-general)."
+        // Source: http://wiki.hevs.ch/uit/index.php5/Standards/Ethernet_PTP
+        switch(PTPMsgType::type){
             case PTP::Field::message_type::SYNC:
+                ptp_hdr->trn_and_msg = PTP::Field::message_type::SYNC;
                 ptp_hdr->message_len = PTP_SYNC_LEN;
                 ptp_hdr->flag_field = PTP::Field::flags::PTP_TWO_STEP | PTP::Field::flags::PTP_UNICAST;
                 ptp_hdr->control = PTP::Field::control::CTL_SYNC;
+                if (udp_hdr) {
+                    udp_hdr->setSourcePort(319);
+                    udp_hdr->setDestPort(319);
+                }
                 break;
 
             case PTP::Field::message_type::FOLLOW_UP:
+                ptp_hdr->trn_and_msg = PTP::Field::message_type::FOLLOW_UP;
                 ptp_hdr->message_len = PTP_FOLLOWUP_LEN;
                 ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
                 ptp_hdr->control = PTP::Field::control::CTL_FOLLOW_UP;
+                if (udp_hdr) {
+                    udp_hdr->setSourcePort(320);
+                    udp_hdr->setDestPort(320);
+                }
                 break;
 
             case PTP::Field::message_type::DELAY_REQ:
+                ptp_hdr->trn_and_msg = PTP::Field::message_type::DELAY_REQ;
                 ptp_hdr->message_len = PTP_DELAYREQ_LEN;
                 ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
                 ptp_hdr->control = PTP::Field::control::CTL_DELAY_REQ;
+                if (udp_hdr) {
+                    udp_hdr->setSourcePort(319);
+                    udp_hdr->setDestPort(319);
+                }
+                m_last_sent_ptp_src_port = ptp_hdr->source_port_id;
                 break;
 
             case PTP::Field::message_type::DELAY_RESP:
+                ptp_hdr->trn_and_msg = PTP::Field::message_type::DELAY_RESP;
                 ptp_hdr->message_len = PTP_DELAYRESP_LEN;
                 ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
                 ptp_hdr->control = PTP::Field::control::CTL_DELAY_RESP;
+                if (udp_hdr) {
+                    udp_hdr->setSourcePort(320);
+                    udp_hdr->setDestPort(320);
+                }
                 break;
             default:
-                ptp_hdr->message_len = PTP_HDR_LEN + PTP_MSG_BASE_LEN;
-                ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
-                ptp_hdr->control = PTP::Field::control::CTL_OTHER;
+                assert(0);
                 break;
         }
 
@@ -876,10 +925,37 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         ptp_hdr->source_port_id._port_number = m_port_id;
 
-        ptp_hdr->seq_id = seq_id;
+        ptp_hdr->seq_id = next_msg.sequence_id;
         ptp_hdr->log_message_interval = 127;
 
-        return ptp_hdr;
+        size += PTP_HDR_LEN;
+
+        // Setup PTP sync
+        PTPMsgType* ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, size);
+
+        ptp_msg->origin_timestamp.sec_msb = 0;
+        ptp_msg->origin_timestamp.sec_lsb = next_msg.time_to_send.tv_sec;
+        ptp_msg->origin_timestamp.ns = next_msg.time_to_send.tv_nsec;
+        size += PTPMsgType::size;
+
+        // Set mbuf data
+        // Enable flag for hardware timestamping.
+        mbuf->ol_flags |= PKT_TX_IEEE1588_TMST;
+
+        // Set pkt size
+        m->data_len = size;
+        m->pkt_len = size;
+
+        // Update length for IP and UDP headers
+        if (ipv4_hdr != nullptr && udp_hdr != nullptr) {
+            ipv4_hdr->setTotalLength(size - ETH_HDR_LEN);
+            udp_hdr->setLength(size - ETH_HDR_LEN - IPV4_HDR_LEN);
+            ipv4_hdr->updateCheckSum();
+            udp_hdr->updateCheckSum(ipv4_hdr);
+        }
+
+        return ptp_msg;
+
     }
 
     /**
@@ -888,108 +964,28 @@ struct CGenNodeTimesync : public CGenNodeBase {
     inline rte_mbuf_t *get_pkt() {
         // NextMessage next_message = m_timesync_engine->getNextMessage(m_port_id);
         CTimesyncPTPPacketData_t next_message = m_timesync_engine->popNextMessage(m_port_id);
+        m_last_sent_ptp_packet_type = next_message.type;
+        m_last_sent_sequence_id = next_message.sequence_id;
+        m_last_sent_ptp_src_port = next_message.source_port_id;
 
         switch (next_message.type) {
 
         case PTP::Field::message_type::SYNC: {
-            uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
-
-            // Setup Eth Header
-            //EthernetHeader* eth_hdr = 
-            prepare_header(m, PTP_SYNC_LEN);
-
-            // Setup PTP message
-            //PTP::Header* ptp_hdr = 
-            prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::SYNC);
-
-            // Enable flag for hardware timestamping.
-            m->ol_flags |= PKT_TX_IEEE1588_TMST;
-
-            // Setup PTP sync
-            PTP::SyncPacket* ptp_msg = reinterpret_cast<PTP::SyncPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
-            // As we do not support PTP_ONE_WAY currently, this is set to 0
-            ptp_msg->origin_timestamp.sec_msb = 0;
-            ptp_msg->origin_timestamp.sec_lsb = 0;
-            ptp_msg->origin_timestamp.ns = 0;
-
-            m_last_sent_ptp_packet_type = next_message.type;
-            m_last_sent_sequence_id = next_message.sequence_id;
-            } break;
+            prepare_packet<PTP::SyncPacket>(m, next_message);
+        } break;
 
         case PTP::Field::message_type::FOLLOW_UP: {
-            uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
-
-            // Setup Eth Header
-            //EthernetHeader* eth_hdr = 
-            prepare_header(m, PTP_FOLLOWUP_LEN);
-
-            // Setup PTP message
-            //PTP::Header* ptp_hdr = 
-            prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::FOLLOW_UP);
-
-            // Enable flag for hardware timestamping.
-            m->ol_flags |= PKT_TX_IEEE1588_TMST;
-
-            // Setup PTP follow up
-            PTP::FollowUpPacket* ptp_msg = reinterpret_cast<PTP::FollowUpPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
-            ptp_msg->origin_timestamp.sec_msb = 0;
-            ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;
-            ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;
-
-            m_last_sent_ptp_packet_type = next_message.type;
-            m_last_sent_sequence_id = next_message.sequence_id;
-            } break;
+            prepare_packet<PTP::FollowUpPacket>(m, next_message);
+        } break;
 
         case PTP::Field::message_type::DELAY_REQ: {
-            uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
-
-            // Setup Eth Header
-            //EthernetHeader* eth_hdr = 
-            prepare_header(m, PTP_DELAYREQ_LEN);
-
-            // Setup PTP message
-            PTP::Header* ptp_hdr = prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::DELAY_REQ);
-
-            // Enable flag for hardware timestamping.
-            m->ol_flags |= PKT_TX_IEEE1588_TMST;
-
-            // Setup PTP delay req
-            PTP::DelayedReqPacket* ptp_msg = reinterpret_cast<PTP::DelayedReqPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
-            // As we do not support PTP_ONE_WAY currently, this is set to 0
-            ptp_msg->origin_timestamp.sec_msb = 0;
-            ptp_msg->origin_timestamp.sec_lsb = 0;
-            ptp_msg->origin_timestamp.ns = 0;
-
-            m_last_sent_ptp_packet_type = next_message.type;
-            m_last_sent_sequence_id = next_message.sequence_id;
-            m_last_sent_ptp_src_port = ptp_hdr->source_port_id;
-            } break;
+            prepare_packet<PTP::DelayedReqPacket>(m, next_message);
+        } break;
 
         case PTP::Field::message_type::DELAY_RESP: {
-            uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
-
-            // Setup Eth Header
-            //EthernetHeader* eth_hdr = 
-            prepare_header(m, PTP_DELAYRESP_LEN);
-
-            // Setup PTP message
-            //PTP::Header* ptp_hdr = 
-            prepare_ptp_header(data, ETH_HDR_LEN, next_message.sequence_id, PTP::Field::message_type::DELAY_RESP);
-
-            // Enable flag for hardware timestamping.
-            m->ol_flags |= PKT_TX_IEEE1588_TMST;
-
-            // Setup PTP delay resp
-            PTP::DelayedRespPacket* ptp_msg = reinterpret_cast<PTP::DelayedRespPacket*>(data + (ETH_HDR_LEN + PTP_HDR_LEN));
-            // As we do not support PTP_ONE_WAY currently, this is set to 0
-            ptp_msg->origin_timestamp.sec_msb = 0;
-            ptp_msg->origin_timestamp.sec_lsb = next_message.time_to_send.tv_sec;
-            ptp_msg->origin_timestamp.ns = next_message.time_to_send.tv_nsec;
-            ptp_msg->req_clock_identity = next_message.source_port_id;
-
-            m_last_sent_ptp_packet_type = next_message.type;
-            m_last_sent_sequence_id = next_message.sequence_id;
-            } break;
+            PTP::DelayedRespPacket* ptp_delresp = prepare_packet<PTP::DelayedRespPacket>(m, next_message);
+            ptp_delresp->req_clock_identity = next_message.source_port_id;
+        } break;
 
         default:
             break;
