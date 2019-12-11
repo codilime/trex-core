@@ -717,7 +717,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
     /* important stuff here */
     dsec_t timesync_last;
 
-  private:
+  protected:
     uint8_t m_mac_addr[12];
     uint16_t m_stat_hw_id; // hw id used to count rx and tx stats
     uint16_t m_cache_array_cnt;
@@ -733,14 +733,16 @@ struct CGenNodeTimesync : public CGenNodeBase {
     /* cache line 1 */
     /* this cache line would better be readonly but is not */
     TrexStream *m_ref_stream_info;
-    rte_mbuf_t *m;
     CTimesyncEngine *m_timesync_engine;
-    bool hardware_timestamping_enabled;
-    uint8_t m_pad_1[7];
-    uint64_t m_pad_2[2];
+    bool m_hardware_timestamping_enabled;
+    bool m_timesync_L2_enabled;
+    uint8_t m_pad_1[6];
+    uint64_t m_pad_2[3];
 
     uint8_t m_port_id;
     uint32_t m_profile_id;
+
+    rte_mbuf_t *m[4];
 
     PTP::Field::message_type m_last_sent_ptp_packet_type;
     uint16_t m_last_sent_sequence_id;
@@ -749,66 +751,13 @@ struct CGenNodeTimesync : public CGenNodeBase {
     dsec_t m_next_time_offset;
 
   private:
-    uint64_t m_pad_3[6];
+    uint64_t m_pad_3[2];
 
   public:
     uint8_t get_port_id() { return (m_port_id); }
 
-    inline void init() {
-        m_timesync_engine = CGlobalInfo::get_timesync_engine();
-        assert(m_timesync_engine);
-
-        TrexPlatformApi &api = get_platform_api();
-        hardware_timestamping_enabled = api.getPortAttrObj(m_port_id)->is_hardware_timesync_enabled();
-
-        // Get Ip Addr
-        m_ip_addr = CGlobalInfo::m_options.m_ip_cfg[m_port_id].get_ip();
-
-        set_slow_path(true);
-        set_send_immediately(true);
-
-    }
-
-    inline void teardown() {
-        m_timesync_engine = nullptr;
-    }
-
-    inline void handle(CFlowGenListPerThread *thread) {
-
-        if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
-            m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
-                                               PTP::Field::message_type::SYNC, {0, 0});
-            timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
-        }
-
-        if (m_timesync_engine->hasNextMessage(m_port_id)) {
-            timespec ts;
-            thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-            if (hardware_timestamping_enabled) {
-                if (rte_eth_timesync_read_tx_timestamp(m_port_id, &ts) != 0)
-                    return;
-            } else {
-                if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
-                    return;
-            }
-
-            switch (m_last_sent_ptp_packet_type)
-            {
-            case PTP::Field::message_type::SYNC:
-                m_timesync_engine->sentPTPSync(m_port_id, m_last_sent_sequence_id, ts);
-                break;
-            case PTP::Field::message_type::DELAY_REQ:
-                m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts, m_last_sent_ptp_src_port);
-                break;
-            
-            default:
-                break;
-            }
-        }
-    }
-
     template<typename PTPMsgType>
-    PTPMsgType* prepare_packet(rte_mbuf_t* mbuf, const CTimesyncPTPPacketData_t& next_msg) {
+    PTPMsgType* prepare_packet(rte_mbuf_t* mbuf) {
         size_t size = 0;
 
         EthernetHeader* eth_hdr = rte_pktmbuf_mtod(mbuf, EthernetHeader*);
@@ -818,7 +767,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
         IPHeader* ipv4_hdr = nullptr;
         UDPHeader* udp_hdr = nullptr;
 
-        if (CGlobalInfo::m_options.is_timesync_L2()) {
+        if (m_timesync_L2_enabled) {
             // "Two multicast MAC addresses are used for PTP over Ethernet: 01-1B-19-00-00-00 and 01-80-C2-00-00-0E."
             // Source: https://www.juniper.net/documentation/en_US/junos/topics/concept/ptp-over-ethernet-configuration-guidelines.html
             // Source: http://www.ieee802.org/1/files/public/docs2006/as-garner-multicast-address-ptp-msgs-r2-060517.pdf
@@ -891,7 +840,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
                     udp_hdr->setSourcePort(319);
                     udp_hdr->setDestPort(319);
                 }
-                m_last_sent_ptp_src_port = ptp_hdr->source_port_id;
                 break;
 
             case PTP::Field::message_type::DELAY_RESP:
@@ -925,7 +873,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         ptp_hdr->source_port_id._port_number = m_port_id;
 
-        ptp_hdr->seq_id = next_msg.sequence_id;
+        ptp_hdr->seq_id = 0;
         ptp_hdr->log_message_interval = 127;
 
         size += PTP_HDR_LEN;
@@ -934,8 +882,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
         PTPMsgType* ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, size);
 
         ptp_msg->origin_timestamp.sec_msb = 0;
-        ptp_msg->origin_timestamp.sec_lsb = next_msg.time_to_send.tv_sec;
-        ptp_msg->origin_timestamp.ns = next_msg.time_to_send.tv_nsec;
+        ptp_msg->origin_timestamp.sec_lsb = 0;
+        ptp_msg->origin_timestamp.ns = 0;
         size += PTPMsgType::size;
 
         // Set mbuf data
@@ -943,8 +891,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
         mbuf->ol_flags |= PKT_TX_IEEE1588_TMST;
 
         // Set pkt size
-        m->data_len = size;
-        m->pkt_len = size;
+        mbuf->data_len = size;
+        mbuf->pkt_len = size;
 
         // Update length for IP and UDP headers
         if (ipv4_hdr != nullptr && udp_hdr != nullptr) {
@@ -958,6 +906,89 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
     }
 
+    inline void init() {
+        m_timesync_engine = CGlobalInfo::get_timesync_engine();
+        assert(m_timesync_engine);
+
+        TrexPlatformApi &api = get_platform_api();
+        m_hardware_timestamping_enabled = api.getPortAttrObj(m_port_id)->is_hardware_timesync_enabled();
+
+        // Get Ip Addr
+        m_ip_addr = CGlobalInfo::m_options.m_ip_cfg[m_port_id].get_ip();
+
+        m_timesync_L2_enabled = CGlobalInfo::m_options.is_timesync_L2();
+
+        // Prepare packet buffering
+        prepare_packet<PTP::SyncPacket>(m[0]);
+        prepare_packet<PTP::FollowUpPacket>(m[1]);
+        prepare_packet<PTP::DelayedReqPacket>(m[2]);
+        prepare_packet<PTP::DelayedRespPacket>(m[3]);
+
+        set_slow_path(true);
+        set_send_immediately(true);
+
+    }
+
+    inline void teardown() {
+        m_timesync_engine = nullptr;
+    }
+
+    inline void handle(CFlowGenListPerThread *thread) {
+
+        if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
+            m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
+                                               PTP::Field::message_type::SYNC, {0, 0});
+            timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
+        }
+
+        if (m_timesync_engine->hasNextMessage(m_port_id)) {
+            timespec ts;
+            thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
+            if (m_hardware_timestamping_enabled) {
+                if (rte_eth_timesync_read_tx_timestamp(m_port_id, &ts) != 0)
+                    return;
+            } else {
+                if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
+                    return;
+            }
+
+            switch (m_last_sent_ptp_packet_type)
+            {
+            case PTP::Field::message_type::SYNC:
+                m_timesync_engine->sentPTPSync(m_port_id, m_last_sent_sequence_id, ts);
+                break;
+            case PTP::Field::message_type::DELAY_REQ:
+                m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts, m_last_sent_ptp_src_port);
+                break;
+            
+            default:
+                break;
+            }
+        }
+    }
+
+    template<typename PTPMsgType>
+    PTPMsgType* adjust_packet(rte_mbuf_t* mbuf, const CTimesyncPTPPacketData_t& next_msg) {
+        PTP::Header* ptp_hdr = nullptr;
+        PTPMsgType* ptp_msg = nullptr;
+
+        if(m_timesync_L2_enabled) {
+            ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, ETH_HDR_LEN);
+            ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, ETH_HDR_LEN + PTP_HDR_LEN);
+        } else {
+            ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, ETH_HDR_LEN + IPV4_HDR_LEN + UDP_HEADER_LEN);
+            ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, ETH_HDR_LEN + IPV4_HDR_LEN + UDP_HEADER_LEN + PTP_HDR_LEN);
+        }
+
+        ptp_hdr->seq_id = next_msg.sequence_id;
+        ptp_msg->origin_timestamp.sec_lsb = next_msg.time_to_send.tv_sec;
+        ptp_msg->origin_timestamp.ns = next_msg.time_to_send.tv_nsec;
+
+        m_last_sent_ptp_src_port = ptp_hdr->source_port_id;
+
+        return ptp_msg;
+    }
+
     /**
      * get the current packet as MBUF
      */
@@ -966,32 +997,33 @@ struct CGenNodeTimesync : public CGenNodeBase {
         CTimesyncPTPPacketData_t next_message = m_timesync_engine->popNextMessage(m_port_id);
         m_last_sent_ptp_packet_type = next_message.type;
         m_last_sent_sequence_id = next_message.sequence_id;
-        m_last_sent_ptp_src_port = next_message.source_port_id;
 
         switch (next_message.type) {
 
         case PTP::Field::message_type::SYNC: {
-            prepare_packet<PTP::SyncPacket>(m, next_message);
+            adjust_packet<PTP::SyncPacket>(m[0], next_message);
+            return m[0];
         } break;
 
         case PTP::Field::message_type::FOLLOW_UP: {
-            prepare_packet<PTP::FollowUpPacket>(m, next_message);
+            adjust_packet<PTP::FollowUpPacket>(m[1], next_message);
+            return m[1];
         } break;
 
         case PTP::Field::message_type::DELAY_REQ: {
-            prepare_packet<PTP::DelayedReqPacket>(m, next_message);
+            adjust_packet<PTP::DelayedReqPacket>(m[2], next_message);
+            return m[2];
         } break;
 
         case PTP::Field::message_type::DELAY_RESP: {
-            PTP::DelayedRespPacket* ptp_delresp = prepare_packet<PTP::DelayedRespPacket>(m, next_message);
+            PTP::DelayedRespPacket* ptp_delresp = adjust_packet<PTP::DelayedRespPacket>(m[3], next_message);
             ptp_delresp->req_clock_identity = next_message.source_port_id;
+            return m[3];
         } break;
 
         default:
-            break;
+            assert(0);
         }
-
-        return (m);
     }
 
     inline CGenNodeStateless::stream_state_t get_state() { return m_state; }
@@ -1001,11 +1033,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
     inline void mark_for_free() { m_state = CGenNodeStateless::ss_FREE_RESUSE; }
 
     inline uint8_t get_stream_type() { return (m_stream_type); }
-
-    // for linux case
-    inline void allocate_m(rte_mempool_t * mp1) {
-        m = rte_pktmbuf_alloc(mp1);
-    }
 
 } __rte_cache_aligned;
 

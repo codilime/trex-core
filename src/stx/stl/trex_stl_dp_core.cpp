@@ -1460,19 +1460,22 @@ TrexStatelessDpCore::add_timesync_node(PerPortProfile *profile,
     // right now we add standard SYNC_TIME_OUT
     // node->m_next_time_offset = 1.0 / stream->get_pps();  // these are latency stream's PPS, could be not frequent enough
     node->m_next_time_offset = SYNC_TIME_OUT;
-    node->init();
 
     if (CGlobalInfo::m_options.is_timesync_L2()) {
-        node->m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), (ETH_HDR_LEN + PTP_DELAYRESP_LEN));
+        for (int i = 0; i < 4; i++)
+            node->m[i] = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), (ETH_HDR_LEN + PTP_DELAYRESP_LEN));
     } else {
-        node->m = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), (ETH_HDR_LEN + IPV4_HDR_LEN + UDP_HEADER_LEN + PTP_DELAYRESP_LEN));
+        for (int i = 0; i < 4; i++)
+            node->m[i] = CGlobalInfo::pktmbuf_alloc_local(node->get_socket_id(), (ETH_HDR_LEN + IPV4_HDR_LEN + UDP_HEADER_LEN + PTP_DELAYRESP_LEN));
     }
-
     assert(node->m);
 
     // Get dest and src MAC
     pkt_dir_t pkt_dir = m_core->m_node_gen.m_v_if->port_id_to_dir(stream->m_port_id);
     m_core->m_node_gen.m_v_if->update_mac_addr_from_global_cfg(pkt_dir, reinterpret_cast<uint8_t*>(&(node->m_mac_addr)));
+
+    // Init node
+    node->init();
 
     if (stream->m_self_start) {
         node->m_state = CGenNodeStateless::ss_ACTIVE;

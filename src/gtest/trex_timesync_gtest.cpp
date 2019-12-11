@@ -202,10 +202,20 @@ TEST_F(timesync_engine_test, slave_delta_invalid_req_src_port_id) {
     EXPECT_EQ(0 * 1000 * 1000, engine.getDelta(PORT_ID));
 }
 
+struct CGenNodeTimesyncTest : CGenNodeTimesync {
+    inline void dummy_pkt_buffer() {
+        std::unique_ptr<rte_mempool_t> mp1(utl_rte_mempool_create("big-const", 10, 2048, 32, 0, false));
+
+        for (int i = 0; i < 4; i++)
+            m[i] = rte_pktmbuf_alloc(mp1.get());
+    }
+
+    inline void set_port_id(uint8_t port_id) {
+        m_port_id = port_id;
+    }
+};
+
 TEST_F(timesync_engine_test, test_rx_handle_pkt) {
-    // Prepare node
-    CGenNode *node = new CGenNode();
-    node->m_type = CGenNode::TIMESYNC;
 
     // Prepare master engine
     CGlobalInfo::timesync_engine_setup();
@@ -213,11 +223,10 @@ TEST_F(timesync_engine_test, test_rx_handle_pkt) {
     master_engine->setTimesyncMethod(TimesyncMethod::PTP);
     master_engine->setTimesyncMaster(true);
 
-    CGenNodeTimesync *timesync_node = (CGenNodeTimesync *)node;
+    CGenNodeTimesyncTest *timesync_node = new CGenNodeTimesyncTest();
+    timesync_node->m_type = CGenNode::TIMESYNC;
+    timesync_node->dummy_pkt_buffer();
     timesync_node->init();
-    rte_mempool_t * mp1=utl_rte_mempool_create("big-const", 10, 2048, 32, 0, false);
-    timesync_node->allocate_m(mp1);
-
 
     // Prepare slave engine
     CTimesyncEngine slave_engine;
@@ -287,6 +296,5 @@ TEST_F(timesync_engine_test, test_rx_handle_pkt) {
     EXPECT_EQ(0, data.t3.tv_sec);
     EXPECT_EQ(0, data.t3.tv_nsec);
     EXPECT_EQ(time4.tv_sec, data.t4.tv_sec);
-    EXPECT_EQ(time4.tv_nsec, data.t4.tv_nsec);    
+    EXPECT_EQ(time4.tv_nsec, data.t4.tv_nsec);
 }
-
