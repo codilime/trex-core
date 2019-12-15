@@ -5971,6 +5971,7 @@ COLD_FUNC int update_global_info_from_platform_file(){
     g_opts->preview.setCores(cg->m_thread_per_dual_if);
     if ( cg->m_is_lowend ) {
         g_opts->m_is_lowend = true;
+        g_opts->m_lowend_core = cg->m_lowend_core;
         g_opts->m_is_sleepy_scheduler = true;
         g_opts->m_is_queuefull_retry = false;
     }
@@ -6209,9 +6210,9 @@ COLD_FUNC int core_mask_sanity(uint32_t wanted_core_mask) {
 
 COLD_FUNC int  update_dpdk_args(void){
 
-    CPlatformSocketInfo * lpsock=&CGlobalInfo::m_socket;
-    CParserOption * lpop= &CGlobalInfo::m_options;
-    CPlatformYamlInfo *cg=&global_platform_cfg_info;
+    CPlatformSocketInfo * lpsock = &CGlobalInfo::m_socket;
+    CParserOption * lpop = &CGlobalInfo::m_options;
+    CPlatformYamlInfo *cg = &global_platform_cfg_info;
 
     lpsock->set_rx_thread_is_enabled(get_is_rx_thread_enabled());
     lpsock->set_number_of_threads_per_ports(lpop->preview.getCores() );
@@ -6225,7 +6226,7 @@ COLD_FUNC int  update_dpdk_args(void){
         lpsock->dump(stdout);
     }
 
-    if ( !CGlobalInfo::m_options.m_is_vdev ){
+    if ( !lpop->m_is_vdev ){
         std::string err;
         if ( port_map.set_cfg_input(cg->m_if_list,err)!= 0){
             printf("%s \n",err.c_str());
@@ -6238,7 +6239,7 @@ COLD_FUNC int  update_dpdk_args(void){
     #define SET_ARGS(val) { g_dpdk_args[g_dpdk_args_num++] = (char *)(val); }
 
     SET_ARGS((char *)"xx");
-    CPreviewMode *lpp=&CGlobalInfo::m_options.preview;
+    CPreviewMode *lpp=&lpop->preview;
 
     if ( lpp->get_ntacc_so_mode() ){
         std::string &ntacc_so_str = get_ntacc_so_string();
@@ -6261,10 +6262,11 @@ COLD_FUNC int  update_dpdk_args(void){
         SET_ARGS(mlx4_so_str.c_str());
     }
 
-    if ( CGlobalInfo::m_options.m_is_lowend ) { // assign all threads to core 0
+    if ( lpop->m_is_lowend ) { // assign all threads to core 0
         g_cores_str[0] = '(';
         lpsock->get_cores_list_lowend(g_cores_str + 1);
-        strcat(g_cores_str, ")@0");
+        strcat(g_cores_str, ")@");
+        strcat(g_cores_str, std::to_string(lpop->m_lowend_core).c_str());
         SET_ARGS("--lcores");
         SET_ARGS(g_cores_str);
     } else {
@@ -6296,7 +6298,7 @@ COLD_FUNC int  update_dpdk_args(void){
     SET_ARGS(g_master_id_str);
 
     /* add white list */
-    if ( CGlobalInfo::m_options.m_is_vdev ) {
+    if ( lpop->m_is_vdev ) {
         for ( std::string &iface : cg->m_if_list ) {
             if ( iface != "dummy" ) {
                 SET_ARGS(iface.c_str());
@@ -6308,7 +6310,7 @@ COLD_FUNC int  update_dpdk_args(void){
         SET_ARGS("-m");
         if ( cg->m_limit_memory.size() ) {
             mem_str = cg->m_limit_memory;
-        } else if ( CGlobalInfo::m_options.m_is_lowend ) {
+        } else if ( lpop->m_is_lowend ) {
             mem_str = std::to_string(50 + 100 * cg->m_if_list.size());
         } else {
             mem_str = "1024";
@@ -6335,7 +6337,7 @@ COLD_FUNC int  update_dpdk_args(void){
     }
 
     if( lpop->prefix.length() or cg->m_limit_memory.length() ) {
-        if ( !CGlobalInfo::m_options.m_is_lowend && !CGlobalInfo::m_options.m_is_vdev ) {
+        if ( !lpop->m_is_lowend && !lpop->m_is_vdev ) {
             SET_ARGS("--socket-mem");
             char *mem_str;
             if (cg->m_limit_memory.length()) {
