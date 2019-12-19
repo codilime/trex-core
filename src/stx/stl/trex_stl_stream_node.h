@@ -708,6 +708,12 @@ private:
 
 static_assert(sizeof(CGenNodePCAP) == sizeof(CGenNode), "sizeof(CGenNodePCAP) != sizeof(CGenNode)" );
 
+#define PAD_TO_SIZE(structure, size) \
+union { \
+    structure \
+    uint8_t __pad__COUNTER__[size]; \
+};
+
 /* this is a event for time synchronization. */
 struct CGenNodeTimesync : public CGenNodeBase {
     friend class TrexStatelessDpCore;
@@ -715,327 +721,351 @@ struct CGenNodeTimesync : public CGenNodeBase {
   public:
     /* cache line 0 */
     /* important stuff here */
-    dsec_t timesync_last;
-
-  protected:
-    uint8_t m_mac_addr[12];
-    uint16_t m_stat_hw_id; // hw id used to count rx and tx stats
-    uint16_t m_cache_array_cnt;
-
-    uint8_t m_null_stream;
-
-    CGenNodeStateless::stream_state_t m_state;
-    uint8_t m_stream_type; // see TrexStream::STREAM_TYPE, stream_type_t
-    pkt_dir_t m_pkt_dir;
-    uint32_t m_ip_addr;
-    uint64_t m_pad_0[2];
+    union {
+        struct {
+            dsec_t timesync_last;
+            PTP::Field::message_type m_last_sent_ptp_packet_type;
+            uint16_t m_last_sent_sequence_id;
+            PTP::Field::src_port_id_field m_last_sent_ptp_src_port;
+            rte_mbuf_t *m[4];
+        };
+        uint8_t __pad_c0[64];
+    //};
+    } c0;
+    assert(sizeof(c0) == RTE_CACHE_LINE_SIZE);
 
     /* cache line 1 */
-    /* this cache line would better be readonly but is not */
-    TrexStream *m_ref_stream_info;
-    CTimesyncEngine *m_timesync_engine;
-    bool m_hardware_timestamping_enabled;
-    bool m_timesync_L2_enabled;
-    uint8_t m_pad_1[6];
-    uint64_t m_pad_2[3];
+    /* Should be read only important stuff */
+    union {
+        struct {
+            CTimesyncEngine *m_timesync_engine;
+            uint8_t m_port_id;
+            bool m_hardware_timestamping_enabled;
+            bool m_timesync_L2_enabled;
+            double m_timesync_interval;
+            uint8_t m_mac_addr[12];
+            uint32_t m_ip_addr;
+            CGenNodeStateless::stream_state_t m_state;
+            uint8_t m_stream_type; // see TrexStream::STREAM_TYPE, stream_type_t
+            dsec_t m_next_time_offset;
 
-    uint8_t m_port_id;
-    uint32_t m_profile_id;
+        };
+        uint8_t __pad_c1[64];
+    //};
+    } c1;
+    assert(sizeof(c1) == RTE_CACHE_LINE_SIZE);
 
-    rte_mbuf_t *m[4];
+    /* cache line 2 */
+    /* Unimportant stuff here */
+    union {
+        struct {
+            uint16_t m_stat_hw_id; // hw id used to count rx and tx stats
+            uint16_t m_cache_array_cnt;
+            TrexStream *m_ref_stream_info;
+            uint32_t m_profile_id;
+        };
+        uint8_t __pad_c2[64];
+    //};
+    } c2;
+    assert(sizeof(c2) == RTE_CACHE_LINE_SIZE);
 
-    PTP::Field::message_type m_last_sent_ptp_packet_type;
-    uint16_t m_last_sent_sequence_id;
-    PTP::Field::src_port_id_field m_last_sent_ptp_src_port;
-  public:
-    dsec_t m_next_time_offset;
+  //public:
+    // uint8_t get_port_id() { return (m_port_id); }
 
-  private:
-    uint64_t m_pad_3[2];
+    // template<typename PTPMsgType>
+    // PTPMsgType* prepare_packet(rte_mbuf_t* mbuf) {
+    //     size_t size = 0;
 
-  public:
-    uint8_t get_port_id() { return (m_port_id); }
+    //     EthernetHeader* eth_hdr = rte_pktmbuf_mtod(mbuf, EthernetHeader*);
+    //     size += ETH_HDR_LEN;
+    //     eth_hdr->mySource = { m_mac_addr[6], m_mac_addr[7], m_mac_addr[8], m_mac_addr[9], m_mac_addr[10], m_mac_addr[11] };
 
-    template<typename PTPMsgType>
-    PTPMsgType* prepare_packet(rte_mbuf_t* mbuf) {
-        size_t size = 0;
+    //     IPHeader* ipv4_hdr = nullptr;
+    //     UDPHeader* udp_hdr = nullptr;
 
-        EthernetHeader* eth_hdr = rte_pktmbuf_mtod(mbuf, EthernetHeader*);
-        size += ETH_HDR_LEN;
-        eth_hdr->mySource = { m_mac_addr[6], m_mac_addr[7], m_mac_addr[8], m_mac_addr[9], m_mac_addr[10], m_mac_addr[11] };
+    //     if (m_timesync_L2_enabled) {
+    //         // "Two multicast MAC addresses are used for PTP over Ethernet: 01-1B-19-00-00-00 and 01-80-C2-00-00-0E."
+    //         // Source: https://www.juniper.net/documentation/en_US/junos/topics/concept/ptp-over-ethernet-configuration-guidelines.html
+    //         // Source: http://www.ieee802.org/1/files/public/docs2006/as-garner-multicast-address-ptp-msgs-r2-060517.pdf
+    //         eth_hdr->myDestination = { 0x01, 0x1B, 0x19, 0x00, 0x00, 0x00 };
+    //         eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
 
-        IPHeader* ipv4_hdr = nullptr;
-        UDPHeader* udp_hdr = nullptr;
+    //     } else { // If UDP
+    //         eth_hdr->setNextProtocol(EthernetHeader::Protocol::IP);
 
-        if (m_timesync_L2_enabled) {
-            // "Two multicast MAC addresses are used for PTP over Ethernet: 01-1B-19-00-00-00 and 01-80-C2-00-00-0E."
-            // Source: https://www.juniper.net/documentation/en_US/junos/topics/concept/ptp-over-ethernet-configuration-guidelines.html
-            // Source: http://www.ieee802.org/1/files/public/docs2006/as-garner-multicast-address-ptp-msgs-r2-060517.pdf
-            eth_hdr->myDestination = { 0x01, 0x1B, 0x19, 0x00, 0x00, 0x00 };
-            eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
+    //         ipv4_hdr = rte_pktmbuf_mtod_offset(mbuf, IPHeader*, size);
+    //         size += IPV4_HDR_LEN;
 
-        } else { // If UDP
-            eth_hdr->setNextProtocol(EthernetHeader::Protocol::IP);
-
-            ipv4_hdr = rte_pktmbuf_mtod_offset(mbuf, IPHeader*, size);
-            size += IPV4_HDR_LEN;
-
-            ipv4_hdr->setVersion(4);
-            ipv4_hdr->setHeaderLength(IPV4_HDR_LEN);
-            ipv4_hdr->setProtocol(IPHeader::Protocol::UDP);
-            ipv4_hdr->setTimeToLive(1);
-            ipv4_hdr->setSourceIp(m_ip_addr);
-            ipv4_hdr->setFragment(0, false, true);
+    //         ipv4_hdr->setVersion(4);
+    //         ipv4_hdr->setHeaderLength(IPV4_HDR_LEN);
+    //         ipv4_hdr->setProtocol(IPHeader::Protocol::UDP);
+    //         ipv4_hdr->setTimeToLive(1);
+    //         ipv4_hdr->setSourceIp(m_ip_addr);
+    //         ipv4_hdr->setFragment(0, false, true);
             
-            // IP Addr = 224.0.1.129 (multicast ip addr for PTP)
-            // Source: https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
-            ipv4_hdr->setDestIp(0xE0000181);
+    //         // IP Addr = 224.0.1.129 (multicast ip addr for PTP)
+    //         // Source: https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
+    //         ipv4_hdr->setDestIp(0xE0000181);
 
-            // Set IPv4mcast for PTP multicast ip
-            // Source: https://techhub.hpe.com/eginfolib/networking/docs/switches/5130ei/5200-3944_ip-multi_cg/content/483573739.htm
-            eth_hdr->myDestination = { 0x01, 0x00, 0x5e, 0x00, 0x01, 0x81 };
+    //         // Set IPv4mcast for PTP multicast ip
+    //         // Source: https://techhub.hpe.com/eginfolib/networking/docs/switches/5130ei/5200-3944_ip-multi_cg/content/483573739.htm
+    //         eth_hdr->myDestination = { 0x01, 0x00, 0x5e, 0x00, 0x01, 0x81 };
 
-            udp_hdr = rte_pktmbuf_mtod_offset(mbuf, UDPHeader*, size);
-            size += UDP_HEADER_LEN;
-        }
+    //         udp_hdr = rte_pktmbuf_mtod_offset(mbuf, UDPHeader*, size);
+    //         size += UDP_HEADER_LEN;
+    //     }
 
-        // Setup PTP message
-        PTP::Header* ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, size);
+    //     // Setup PTP message
+    //     PTP::Header* ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, size);
 
-        ptp_hdr->trn_and_msg = PTP::Field::transport_specific::DEFAULT;
+    //     ptp_hdr->trn_and_msg = PTP::Field::transport_specific::DEFAULT;
 
-        ptp_hdr->ver = PTP::Field::version::PTPv2;
+    //     ptp_hdr->ver = PTP::Field::version::PTPv2;
 
-        // "The PTP frames are sent on UDP ports 319 (ptp-event) and 320 (ptp-general)."
-        // Source: http://wiki.hevs.ch/uit/index.php5/Standards/Ethernet_PTP
-        switch(PTPMsgType::type){
-            case PTP::Field::message_type::SYNC:
-                ptp_hdr->trn_and_msg = PTP::Field::message_type::SYNC;
-                ptp_hdr->message_len = PTP_SYNC_LEN;
-                ptp_hdr->flag_field = PTP::Field::flags::PTP_TWO_STEP | PTP::Field::flags::PTP_UNICAST;
-                ptp_hdr->control = PTP::Field::control::CTL_SYNC;
-                if (udp_hdr) {
-                    udp_hdr->setSourcePort(319);
-                    udp_hdr->setDestPort(319);
-                }
-                break;
+    //     // "The PTP frames are sent on UDP ports 319 (ptp-event) and 320 (ptp-general)."
+    //     // Source: http://wiki.hevs.ch/uit/index.php5/Standards/Ethernet_PTP
+    //     switch(PTPMsgType::type){
+    //         case PTP::Field::message_type::SYNC:
+    //             ptp_hdr->trn_and_msg = PTP::Field::message_type::SYNC;
+    //             ptp_hdr->message_len = PTP_SYNC_LEN;
+    //             ptp_hdr->flag_field = PTP::Field::flags::PTP_TWO_STEP | PTP::Field::flags::PTP_UNICAST;
+    //             ptp_hdr->control = PTP::Field::control::CTL_SYNC;
+    //             if (udp_hdr) {
+    //                 udp_hdr->setSourcePort(319);
+    //                 udp_hdr->setDestPort(319);
+    //             }
+    //             break;
 
-            case PTP::Field::message_type::FOLLOW_UP:
-                ptp_hdr->trn_and_msg = PTP::Field::message_type::FOLLOW_UP;
-                ptp_hdr->message_len = PTP_FOLLOWUP_LEN;
-                ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
-                ptp_hdr->control = PTP::Field::control::CTL_FOLLOW_UP;
-                if (udp_hdr) {
-                    udp_hdr->setSourcePort(320);
-                    udp_hdr->setDestPort(320);
-                }
-                break;
+    //         case PTP::Field::message_type::FOLLOW_UP:
+    //             ptp_hdr->trn_and_msg = PTP::Field::message_type::FOLLOW_UP;
+    //             ptp_hdr->message_len = PTP_FOLLOWUP_LEN;
+    //             ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
+    //             ptp_hdr->control = PTP::Field::control::CTL_FOLLOW_UP;
+    //             if (udp_hdr) {
+    //                 udp_hdr->setSourcePort(320);
+    //                 udp_hdr->setDestPort(320);
+    //             }
+    //             break;
 
-            case PTP::Field::message_type::DELAY_REQ:
-                ptp_hdr->trn_and_msg = PTP::Field::message_type::DELAY_REQ;
-                ptp_hdr->message_len = PTP_DELAYREQ_LEN;
-                ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
-                ptp_hdr->control = PTP::Field::control::CTL_DELAY_REQ;
-                if (udp_hdr) {
-                    udp_hdr->setSourcePort(319);
-                    udp_hdr->setDestPort(319);
-                }
-                break;
+    //         case PTP::Field::message_type::DELAY_REQ:
+    //             ptp_hdr->trn_and_msg = PTP::Field::message_type::DELAY_REQ;
+    //             ptp_hdr->message_len = PTP_DELAYREQ_LEN;
+    //             ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
+    //             ptp_hdr->control = PTP::Field::control::CTL_DELAY_REQ;
+    //             if (udp_hdr) {
+    //                 udp_hdr->setSourcePort(319);
+    //                 udp_hdr->setDestPort(319);
+    //             }
+    //             break;
 
-            case PTP::Field::message_type::DELAY_RESP:
-                ptp_hdr->trn_and_msg = PTP::Field::message_type::DELAY_RESP;
-                ptp_hdr->message_len = PTP_DELAYRESP_LEN;
-                ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
-                ptp_hdr->control = PTP::Field::control::CTL_DELAY_RESP;
-                if (udp_hdr) {
-                    udp_hdr->setSourcePort(320);
-                    udp_hdr->setDestPort(320);
-                }
-                break;
-            default:
-                assert(0);
-                break;
-        }
+    //         case PTP::Field::message_type::DELAY_RESP:
+    //             ptp_hdr->trn_and_msg = PTP::Field::message_type::DELAY_RESP;
+    //             ptp_hdr->message_len = PTP_DELAYRESP_LEN;
+    //             ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
+    //             ptp_hdr->control = PTP::Field::control::CTL_DELAY_RESP;
+    //             if (udp_hdr) {
+    //                 udp_hdr->setSourcePort(320);
+    //                 udp_hdr->setDestPort(320);
+    //             }
+    //             break;
+    //         default:
+    //             assert(0);
+    //             break;
+    //     }
 
-        ptp_hdr->domain_number = 0;
-        //ptp_hdr->reserved1;
-        ptp_hdr->correction = 0;
-        //ptp_hdr->reserved2;
+    //     ptp_hdr->domain_number = 0;
+    //     //ptp_hdr->reserved1;
+    //     ptp_hdr->correction = 0;
+    //     //ptp_hdr->reserved2;
 
-        ptp_hdr->source_port_id._clock_id.b[0] = eth_hdr->mySource.data[0];
-        ptp_hdr->source_port_id._clock_id.b[1] = eth_hdr->mySource.data[1];
-        ptp_hdr->source_port_id._clock_id.b[2] = eth_hdr->mySource.data[2];
-        ptp_hdr->source_port_id._clock_id.b[3] = 0xFF;
-        ptp_hdr->source_port_id._clock_id.b[4] = 0xFE;
-        ptp_hdr->source_port_id._clock_id.b[5] = eth_hdr->mySource.data[3];
-        ptp_hdr->source_port_id._clock_id.b[6] = eth_hdr->mySource.data[4];
-        ptp_hdr->source_port_id._clock_id.b[7] = eth_hdr->mySource.data[5];
+    //     ptp_hdr->source_port_id._clock_id.b[0] = eth_hdr->mySource.data[0];
+    //     ptp_hdr->source_port_id._clock_id.b[1] = eth_hdr->mySource.data[1];
+    //     ptp_hdr->source_port_id._clock_id.b[2] = eth_hdr->mySource.data[2];
+    //     ptp_hdr->source_port_id._clock_id.b[3] = 0xFF;
+    //     ptp_hdr->source_port_id._clock_id.b[4] = 0xFE;
+    //     ptp_hdr->source_port_id._clock_id.b[5] = eth_hdr->mySource.data[3];
+    //     ptp_hdr->source_port_id._clock_id.b[6] = eth_hdr->mySource.data[4];
+    //     ptp_hdr->source_port_id._clock_id.b[7] = eth_hdr->mySource.data[5];
 
-        ptp_hdr->source_port_id._port_number = m_port_id;
+    //     ptp_hdr->source_port_id._port_number = m_port_id;
 
-        ptp_hdr->seq_id = 0;
-        ptp_hdr->log_message_interval = 127;
+    //     ptp_hdr->seq_id = 0;
+    //     ptp_hdr->log_message_interval = 127;
 
-        size += PTP_HDR_LEN;
+    //     size += PTP_HDR_LEN;
 
-        // Setup PTP sync
-        PTPMsgType* ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, size);
+    //     // Setup PTP sync
+    //     PTPMsgType* ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, size);
 
-        ptp_msg->origin_timestamp.sec_msb = 0;
-        ptp_msg->origin_timestamp.sec_lsb = 0;
-        ptp_msg->origin_timestamp.ns = 0;
-        size += PTPMsgType::size;
+    //     ptp_msg->origin_timestamp.sec_msb = 0;
+    //     ptp_msg->origin_timestamp.sec_lsb = 0;
+    //     ptp_msg->origin_timestamp.ns = 0;
+    //     size += PTPMsgType::size;
 
-        // Set mbuf data
-        // Enable flag for hardware timestamping.
-        mbuf->ol_flags |= PKT_TX_IEEE1588_TMST;
+    //     // Set mbuf data
+    //     // Enable flag for hardware timestamping.
+    //     mbuf->ol_flags |= PKT_TX_IEEE1588_TMST;
 
-        // Set pkt size
-        mbuf->data_len = size;
-        mbuf->pkt_len = size;
+    //     // Set pkt size
+    //     mbuf->data_len = size;
+    //     mbuf->pkt_len = size;
 
-        // Update length for IP and UDP headers
-        if (ipv4_hdr != nullptr && udp_hdr != nullptr) {
-            ipv4_hdr->setTotalLength(size - ETH_HDR_LEN);
-            udp_hdr->setLength(size - ETH_HDR_LEN - IPV4_HDR_LEN);
-            ipv4_hdr->updateCheckSum();
-            udp_hdr->updateCheckSum(ipv4_hdr);
-        }
+    //     // Update length for IP and UDP headers
+    //     if (ipv4_hdr != nullptr && udp_hdr != nullptr) {
+    //         ipv4_hdr->setTotalLength(size - ETH_HDR_LEN);
+    //         udp_hdr->setLength(size - ETH_HDR_LEN - IPV4_HDR_LEN);
+    //         ipv4_hdr->updateCheckSum();
+    //         udp_hdr->updateCheckSum(ipv4_hdr);
+    //     }
 
-        return ptp_msg;
+    //     return ptp_msg;
 
-    }
+    // }
 
-    inline void init() {
-        m_timesync_engine = CGlobalInfo::get_timesync_engine();
-        assert(m_timesync_engine);
+    // inline void init() {
+    //     m_timesync_engine = CGlobalInfo::get_timesync_engine();
+    //     assert(m_timesync_engine);
 
-        TrexPlatformApi &api = get_platform_api();
-        m_hardware_timestamping_enabled = api.getPortAttrObj(m_port_id)->is_hardware_timesync_enabled();
+    //     TrexPlatformApi &api = get_platform_api();
+    //     m_hardware_timestamping_enabled = api.getPortAttrObj(m_port_id)->is_hardware_timesync_enabled();
 
-        // Get Ip Addr
-        m_ip_addr = CGlobalInfo::m_options.m_ip_cfg[m_port_id].get_ip();
+    //     // Get Ip Addr
+    //     m_ip_addr = CGlobalInfo::m_options.m_ip_cfg[m_port_id].get_ip();
 
-        m_timesync_L2_enabled = CGlobalInfo::m_options.is_timesync_L2();
+    //     m_timesync_L2_enabled = CGlobalInfo::m_options.is_timesync_L2();
 
-        // Prepare packet buffering
-        prepare_packet<PTP::SyncPacket>(m[0]);
-        prepare_packet<PTP::FollowUpPacket>(m[1]);
-        prepare_packet<PTP::DelayedReqPacket>(m[2]);
-        prepare_packet<PTP::DelayedRespPacket>(m[3]);
+    //     m_timesync_interval = static_cast<double>(CGlobalInfo::m_options.m_timesync_interval);
+    //     timesync_last = -1.0 * m_timesync_interval;
 
-        set_slow_path(true);
-        set_send_immediately(true);
+    //     // Prepare packet buffering
+    //     prepare_packet<PTP::SyncPacket>(m[0]);
+    //     prepare_packet<PTP::FollowUpPacket>(m[1]);
+    //     prepare_packet<PTP::DelayedReqPacket>(m[2]);
+    //     prepare_packet<PTP::DelayedRespPacket>(m[3]);
 
-    }
+    //     set_slow_path(true);
+    //     set_send_immediately(true);
 
-    inline void teardown() {
-        m_timesync_engine = nullptr;
-    }
+    // }
 
-    inline void handle(CFlowGenListPerThread *thread) {
+    // inline void teardown() {
+    //     m_timesync_engine = nullptr;
+    // }
 
-        if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
-            m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
-                                               PTP::Field::message_type::SYNC, {0, 0});
-            timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
-        }
+    // inline void handle(CFlowGenListPerThread *thread) {
 
-        if (m_timesync_engine->hasNextMessage(m_port_id)) {
-            timespec ts;
-            thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
-            if (m_hardware_timestamping_enabled) {
-                if (rte_eth_timesync_read_tx_timestamp(m_port_id, &ts) != 0)
-                    return;
-            } else {
-                if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
-                    return;
-            }
+    //     if ((timesync_last + m_timesync_interval) < now_sec()) {
+    //         m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
+    //                                            PTP::Field::message_type::SYNC, {0, 0});
+    //         timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
+    //     }
 
-            switch (m_last_sent_ptp_packet_type)
-            {
-            case PTP::Field::message_type::SYNC:
-                m_timesync_engine->sentPTPSync(m_port_id, m_last_sent_sequence_id, ts);
-                break;
-            case PTP::Field::message_type::DELAY_REQ:
-                m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts, m_last_sent_ptp_src_port);
-                break;
+    //     if (m_timesync_engine->hasNextMessage(m_port_id)) {
+    //         timespec ts;
+    //         thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
+    //         if (m_hardware_timestamping_enabled) {
+    //             if (rte_eth_timesync_read_tx_timestamp(m_port_id, &ts) != 0)
+    //                 return;
+    //         } else {
+    //             if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
+    //                 return;
+    //         }
+
+    //         switch (m_last_sent_ptp_packet_type)
+    //         {
+    //         case PTP::Field::message_type::SYNC:
+    //             m_timesync_engine->sentPTPSync(m_port_id, m_last_sent_sequence_id, ts);
+    //             break;
+    //         case PTP::Field::message_type::DELAY_REQ:
+    //             m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts, m_last_sent_ptp_src_port);
+    //             break;
             
-            default:
-                break;
-            }
-        }
-    }
+    //         default:
+    //             break;
+    //         }
+    //     }
+    // }
 
-    template<typename PTPMsgType>
-    PTPMsgType* adjust_packet(rte_mbuf_t* mbuf, const CTimesyncPTPPacketData_t& next_msg) {
-        PTP::Header* ptp_hdr = nullptr;
-        PTPMsgType* ptp_msg = nullptr;
+    // template<typename PTPMsgType>
+    // PTPMsgType* adjust_packet(rte_mbuf_t* mbuf, const CTimesyncPTPPacketData_t& next_msg) {
+    //     PTP::Header* ptp_hdr = nullptr;
+    //     PTPMsgType* ptp_msg = nullptr;
 
-        if(m_timesync_L2_enabled) {
-            ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, ETH_HDR_LEN);
-            ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, ETH_HDR_LEN + PTP_HDR_LEN);
-        } else {
-            ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, ETH_HDR_LEN + IPV4_HDR_LEN + UDP_HEADER_LEN);
-            ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, ETH_HDR_LEN + IPV4_HDR_LEN + UDP_HEADER_LEN + PTP_HDR_LEN);
-        }
+    //     if(m_timesync_L2_enabled) {
+    //         ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, ETH_HDR_LEN);
+    //         ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, ETH_HDR_LEN + PTP_HDR_LEN);
+    //     } else {
+    //         ptp_hdr = rte_pktmbuf_mtod_offset(mbuf, PTP::Header*, ETH_HDR_LEN + IPV4_HDR_LEN + UDP_HEADER_LEN);
+    //         ptp_msg = rte_pktmbuf_mtod_offset(mbuf, PTPMsgType*, ETH_HDR_LEN + IPV4_HDR_LEN + UDP_HEADER_LEN + PTP_HDR_LEN);
+    //     }
 
-        ptp_hdr->seq_id = next_msg.sequence_id;
-        ptp_msg->origin_timestamp.sec_lsb = next_msg.time_to_send.tv_sec;
-        ptp_msg->origin_timestamp.ns = next_msg.time_to_send.tv_nsec;
+    //     ptp_hdr->seq_id = next_msg.sequence_id;
+    //     ptp_msg->origin_timestamp.sec_lsb = next_msg.time_to_send.tv_sec;
+    //     ptp_msg->origin_timestamp.ns = next_msg.time_to_send.tv_nsec;
 
-        m_last_sent_ptp_src_port = ptp_hdr->source_port_id;
+    //     m_last_sent_ptp_src_port = ptp_hdr->source_port_id;
 
-        return ptp_msg;
-    }
+    //     return ptp_msg;
+    // }
 
-    /**
-     * get the current packet as MBUF
-     */
-    inline rte_mbuf_t *get_pkt() {
-        // NextMessage next_message = m_timesync_engine->getNextMessage(m_port_id);
-        CTimesyncPTPPacketData_t next_message = m_timesync_engine->popNextMessage(m_port_id);
-        m_last_sent_ptp_packet_type = next_message.type;
-        m_last_sent_sequence_id = next_message.sequence_id;
+    // /**
+    //  * get the current packet as MBUF
+    //  */
+    // inline rte_mbuf_t *get_pkt() {
+    //     // NextMessage next_message = m_timesync_engine->getNextMessage(m_port_id);
+    //     CTimesyncPTPPacketData_t next_message = m_timesync_engine->popNextMessage(m_port_id);
+    //     m_last_sent_ptp_packet_type = next_message.type;
+    //     m_last_sent_sequence_id = next_message.sequence_id;
 
-        switch (next_message.type) {
+    //     switch (next_message.type) {
 
-        case PTP::Field::message_type::SYNC: {
-            adjust_packet<PTP::SyncPacket>(m[0], next_message);
-            return m[0];
-        } break;
+    //     case PTP::Field::message_type::SYNC: {
+    //         adjust_packet<PTP::SyncPacket>(m[0], next_message);
+    //         return m[0];
+    //     } break;
 
-        case PTP::Field::message_type::FOLLOW_UP: {
-            adjust_packet<PTP::FollowUpPacket>(m[1], next_message);
-            return m[1];
-        } break;
+    //     case PTP::Field::message_type::FOLLOW_UP: {
+    //         adjust_packet<PTP::FollowUpPacket>(m[1], next_message);
+    //         return m[1];
+    //     } break;
 
-        case PTP::Field::message_type::DELAY_REQ: {
-            adjust_packet<PTP::DelayedReqPacket>(m[2], next_message);
-            return m[2];
-        } break;
+    //     case PTP::Field::message_type::DELAY_REQ: {
+    //         adjust_packet<PTP::DelayedReqPacket>(m[2], next_message);
+    //         return m[2];
+    //     } break;
 
-        case PTP::Field::message_type::DELAY_RESP: {
-            PTP::DelayedRespPacket* ptp_delresp = adjust_packet<PTP::DelayedRespPacket>(m[3], next_message);
-            ptp_delresp->req_clock_identity = next_message.source_port_id;
-            return m[3];
-        } break;
+    //     case PTP::Field::message_type::DELAY_RESP: {
+    //         PTP::DelayedRespPacket* ptp_delresp = adjust_packet<PTP::DelayedRespPacket>(m[3], next_message);
+    //         ptp_delresp->req_clock_identity = next_message.source_port_id;
+    //         return m[3];
+    //     } break;
 
-        default:
-            assert(0);
-        }
-    }
+    //     default:
+    //         assert(0);
+    //     }
+    // }
 
-    inline CGenNodeStateless::stream_state_t get_state() { return m_state; }
+    // inline CGenNodeStateless::stream_state_t get_state() { return m_state; }
 
-    inline bool is_mask_for_free() { return (m_state == CGenNodeStateless::ss_FREE_RESUSE ? true : false); }
+    // inline bool is_mask_for_free() { return (m_state == CGenNodeStateless::ss_FREE_RESUSE ? true : false); }
 
-    inline void mark_for_free() { m_state = CGenNodeStateless::ss_FREE_RESUSE; }
+    // inline void mark_for_free() { m_state = CGenNodeStateless::ss_FREE_RESUSE; }
 
-    inline uint8_t get_stream_type() { return (m_stream_type); }
+    // inline uint8_t get_stream_type() { return (m_stream_type); }
 
-} __rte_cache_aligned;
+//} __rte_cache_aligned;
+};
+
+// As we observe we need to have m_port_id on the exact position as in CGenNodeStateless
+// static_assert(offsetof(CGenNodeTimesync, m_port_id) == offsetof(CGenNodeStateless, m_port_id), 
+//               "m_port_id in CGenNodeTimesync should be at exact offset as in CGenNodeStateless");
+
+template<int s> struct Wow;
+Wow<sizeof(CGenNodeTimesync)> wow;
+Wow<sizeof(CGenNode)> wow1;
 
 static_assert(sizeof(CGenNodeTimesync) == sizeof(CGenNode), "sizeof(CGenNodeTimesync) != sizeof(CGenNode)");
+
+
 
 #endif /* __TREX_STL_STREAM_NODE_H__ */

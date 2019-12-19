@@ -1447,15 +1447,18 @@ TrexStatelessDpCore::add_timesync_node(PerPortProfile *profile,
                                        double start_at_ts) {
     CGenNodeTimesync *node = reinterpret_cast<CGenNodeTimesync *>(m_core->create_node());
 
+    // Set CGenNode basic info
     node->m_thread_id = m_thread_id;
     node->m_type = CGenNode::TIMESYNC;
     node->m_flags = 0;
     node->m_src_port = 0;
-    node->timesync_last = -1.0 * static_cast<double>(CGlobalInfo::m_options.m_timesync_interval);
+
+    // Set CGenNodeTimesync specific info
     node->m_stream_type = stream->m_type;
     node->m_ref_stream_info = stream->clone();
     node->m_port_id = stream->m_port_id;
     node->m_profile_id = profile_id;
+    
     // We need to figure out what M_nex_time_offset should be,
     // right now we add standard SYNC_TIME_OUT
     // node->m_next_time_offset = 1.0 / stream->get_pps();  // these are latency stream's PPS, could be not frequent enough
