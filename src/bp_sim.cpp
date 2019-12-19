@@ -3808,10 +3808,8 @@ void CNodeGenerator::handle_pcap_pkt(CGenNode *node, CFlowGenListPerThread *thre
 
 void CNodeGenerator::handle_timesync_msg(CGenNodeTimesync *node, CFlowGenListPerThread *thread, bool &exit_scheduler) {
     m_p_queue.pop();
-    if ((m_p_queue.size() == m_parent->m_non_active_nodes) ||  // exit in case this is the last node
-        (node->is_mask_for_free())) {                          // exit in case of stopped traffic (Tx side)
+    if (node->is_mask_for_free()) {
         thread->free_node((CGenNode *)node);
-        exit_scheduler = true;
     } else {
         node->handle(thread);  // do the Tx part of PTP communication
 

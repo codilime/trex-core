@@ -809,6 +809,7 @@ bool PerPortProfile::stop_traffic(uint8_t  port_id,
 
     for (auto& dp_stream : m_active_nodes) {
         CGenNodeStateless * node =dp_stream.m_node;
+        
         assert(node->get_port_id() == port_id);
         if (node->m_type != CGenNode::TIMESYNC) {
             free_node(dp_stream, node);

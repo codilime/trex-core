@@ -116,10 +116,10 @@ private:
     uint16_t             m_vm_program_size; /* up to 64K op codes */
     uint16_t             m_cache_size;   /*RO*/ /* the size of the mbuf array */
     uint8_t              m_batch_size;   /*RO*/ /* the batch size */
-    uint8_t              m_port_id;
+    uint8_t              m_pad5;
     uint32_t             m_profile_id;
 
-    uint16_t             m_pad5; 
+    uint16_t             m_pad6; 
 
     /* End Fast Field VM Section */
 
@@ -131,10 +131,6 @@ private:
 
 
 public:
-
-    uint8_t             get_port_id(){
-        return (m_port_id);
-    }
 
     uint32_t            get_profile_id() {
         return (m_profile_id);
@@ -640,10 +636,6 @@ public:
         return ((pkt_dir_t)( m_flags &1));
     }
 
-    uint8_t get_port_id() {
-        return m_port_id;
-    }
-
     void mark_for_free() {
         m_state = PCAP_MARKED_FOR_FREE;
     }
@@ -691,7 +683,7 @@ private:
     CCapReaderBase      *m_reader;
     CCapPktRaw          *m_raw_packet;
     
-    uint8_t             m_port_id;
+    uint8_t             m_pad5;
 
     bool                m_is_dual;
     
@@ -739,7 +731,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
     uint8_t m_pad_1[7];
     uint64_t m_pad_2[2];
 
-    uint8_t m_port_id;
+    uint8_t m_pad5;
     uint32_t m_profile_id;
 
     PTP::Field::message_type m_last_sent_ptp_packet_type;
@@ -752,7 +744,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
     uint64_t m_pad_3[6];
 
   public:
-    uint8_t get_port_id() { return (m_port_id); }
 
     inline void init() {
         m_timesync_engine = CGlobalInfo::get_timesync_engine();
