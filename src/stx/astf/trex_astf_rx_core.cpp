@@ -132,7 +132,7 @@ int CRxAstfCore::_do_start(void){
             break;
         case CGenNode::FLOW_PKT:
             node->m_time += m_delta_sec;
-            if (!send_pkt_all_ports() && (node->m_pad2==m_epoc) ){
+            if (!send_pkt_all_ports() && (node->m_epoc==m_epoc) ){
             }else{
                 restart=false;
             } 
@@ -141,7 +141,7 @@ int CRxAstfCore::_do_start(void){
         case  CGenNode::TW_SYNC:
             /* not used anymore */
             node->m_time += UPDATE_TIME_SEC;
-            if (m_latency_active && node->m_pad2==m_epoc){
+            if (m_latency_active && node->m_epoc==m_epoc){
                 cp_update_stats();
                 cnt++;
 #ifdef LATENCY_DEBUG
@@ -347,7 +347,7 @@ void CRxAstfCore::start_latency(const lat_start_params_t &args){
     node = new CGenNode();
     node->m_type = CGenNode::FLOW_PKT;   /* general stuff */
     node->m_time = now_sec()+0.01;
-    node->m_pad2 = m_epoc;
+    node->m_epoc = m_epoc;
     m_p_queue.push(node);
 
 #ifdef LATENCY_UPDATE_NODE
@@ -355,7 +355,7 @@ void CRxAstfCore::start_latency(const lat_start_params_t &args){
 
     node->m_type = CGenNode::TW_SYNC;   /* update stats node, every 0.5 sec */
     node->m_time = now_sec()+0.02;
-    node->m_pad2 = m_epoc;
+    node->m_epoc = m_epoc;
     m_p_queue.push(node);
 #endif
 

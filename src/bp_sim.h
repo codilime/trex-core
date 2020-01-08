@@ -554,7 +554,7 @@ public:
     uint8_t             m_type;
     uint8_t             m_thread_id; /* zero base */
     uint8_t             m_socket_id;
-    uint8_t             m_pad2;
+    uint8_t             m_port_id;
 
     uint16_t            m_src_port;
     uint16_t            m_flags; /* BIT 0 - DIR ,
@@ -581,6 +581,14 @@ public:
 
     socket_id_t get_socket_id(){
         return ( m_socket_id );
+    }
+
+    uint8_t get_port_id(){
+        return (m_port_id);
+    }
+
+    void set_port_id(const uint8_t& port_id){
+        m_port_id = port_id;
     }
 
     inline void set_slow_path(bool enable) {
@@ -683,7 +691,9 @@ public:
 
 /* cache line -2 */
     CHTimerObj           m_tmr;
-    uint64_t             m_tmr_pad[4];
+    uint8_t             m_epoc;
+    uint8_t             m_tmr1_pad[7];
+    uint64_t             m_tmr2_pad[3];
 
 /* cache line -3 */
 
