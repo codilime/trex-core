@@ -874,6 +874,27 @@ class OPTIONS_DB_ARGS:
          'default': None,
          'help': "Core mask - only cores responding to the bit mask will be active"})
 
+    SERVICE_BGP_FILTERED = ArgumentPack(
+        ['--bgp'],
+        {'action': 'store_true',
+         'default': False,
+         'dest': 'allow_bgp',
+         'help': 'filter mode with bgp packets forward to rx'})
+
+    SERVICE_NO_TCP_UDP_FILTERED = ArgumentPack(
+        ['--no-tcp-udp'],
+        {'action': 'store_true',
+         'default': False,   
+         'dest': 'allow_no_tcp_udp',
+         'help': 'filter mode with no_tcp_udp packets forward to rx'})
+
+    SERVICE_ALL_FILTERED = ArgumentPack(
+        ['--all'],
+        {'action': 'store_true',
+         'default': False,   
+         'dest': 'allow_all',
+         'help': 'Allow filtering bgp and no tcp udp'})
+
     SERVICE_OFF = ArgumentPack(
         ['--off'],
         {'action': 'store_false',

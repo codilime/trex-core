@@ -33,6 +33,7 @@ class TrexAstfPort;
 class CSyncBarrier;
 class CRxAstfCore;
 class TrexAstf;
+class TrexCpToDpMsgBase;
 
 typedef std::unordered_map<uint8_t, TrexAstfPort*> astf_port_map_t;
 typedef std::string cp_profile_id_t;
@@ -128,6 +129,11 @@ public:
     void    set_duration(double duration) { m_duration = duration; }
     void    set_factor(double mult) { m_factor = mult; }
 
+    /*
+     * clear statistics counter
+     */
+    void    clear_counters(bool epoch_increment=true) { m_stt_cp->clear_counters(epoch_increment); }
+
 private:
     state_e         m_profile_state;
     std::string     m_profile_buffer;
@@ -222,6 +228,8 @@ public:
     void shutdown();
 
     void dp_core_finished(int thread_id, uint32_t dp_profile_id);
+
+    void dp_core_state(int thread_id, int state);
 
     /**
      * async data sent for ASTF
@@ -360,16 +368,19 @@ public:
      * get_profiles_status        : get JSON value list for all profiles id
      */
     void update_astf_state();
-    void publish_astf_state(std::string &err);
+    void publish_astf_state();
     void get_profiles_status(Json::Value &result);
 
     void set_barrier(double timeout_sec);
     void send_message_to_dp(uint8_t core_id, TrexCpToDpMsgBase *msg, bool clone = false);
-    void send_message_to_all_dp(TrexCpToDpMsgBase *msg);
+    void send_message_to_all_dp(TrexCpToDpMsgBase *msg, bool suspend = false);
     bool is_trans_state();
 
     std::string* get_topo_buffer() { return &m_topo_buffer; }
     void         set_topo_parsed(bool topo) { m_topo_parsed = topo; }
+
+    void stop_dp_scheduler();
+    bool is_dp_core_state(int state, bool any = false);
 
 protected:
     void change_state(state_e new_state);
@@ -392,6 +403,11 @@ protected:
     std::string     m_topo_hash;
     bool            m_topo_parsed;
     uint64_t        m_epoch;
+
+public:
+    bool                m_stopping_dp;
+    std::vector<int>    m_dp_states;
+    std::vector<TrexCpToDpMsgBase*> m_suspended_msgs;
 };
 
 static inline TrexAstf * get_astf_object() {

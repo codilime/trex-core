@@ -258,7 +258,7 @@ TrexRpcCmdGetPortStatus::_run(const Json::Value &params, Json::Value &result) {
     }
 
     res["service"]       = port->is_service_mode_on();
-
+    res["service_filtered"] = port->is_service_filtered_mode_on();
     if ( get_is_stateless() ) {
         TrexStatelessPort *stl_port = (TrexStatelessPort*) port;
         result["result"]["profile_count"] = stl_port->get_profile_count();
@@ -1396,13 +1396,6 @@ TrexRpcCmdCapture::parse_cmd_start(const Json::Value &params, Json::Value &resul
         rx_ports.insert(rx_port);
     }
     
-    /* check that all ports are under service mode */
-    for (uint8_t port_id : ports) {
-        TrexPort *port = get_stx()->get_port_by_id(port_id);
-        if (!port->is_service_mode_on()) {
-            generate_parse_err(result, "start_capture is available only under service mode");
-        }
-    }
     
     static MsgReply<TrexCaptureRCStart> reply;
     reply.reset();

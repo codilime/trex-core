@@ -34,19 +34,20 @@ TrexAstfDpCore* astf_core(TrexDpCore *dp_core) {
 /*************************
   start traffic message
  ************************/
-TrexAstfDpStart::TrexAstfDpStart(profile_id_t profile_id, double duration) {
+TrexAstfDpStart::TrexAstfDpStart(profile_id_t profile_id, double duration, bool nc) {
     m_profile_id = profile_id;
     m_duration = duration;
+    m_nc_flow_close = nc;
 }
 
 
 bool TrexAstfDpStart::handle(TrexDpCore *dp_core) {
-    astf_core(dp_core)->start_transmit(m_profile_id, m_duration);
+    astf_core(dp_core)->start_transmit(m_profile_id, m_duration, m_nc_flow_close);
     return true;
 }
 
 TrexCpToDpMsgBase* TrexAstfDpStart::clone() {
-    return new TrexAstfDpStart(m_profile_id, m_duration);
+    return new TrexAstfDpStart(m_profile_id, m_duration, m_nc_flow_close);
 }
 
 /*************************
@@ -72,6 +73,22 @@ void TrexAstfDpStop::on_node_remove() {
 
 TrexCpToDpMsgBase* TrexAstfDpStop::clone() {
     return new TrexAstfDpStop(m_profile_id, m_stop_id);
+}
+
+/*************************
+  control DP scheduler
+ ************************/
+TrexAstfDpScheduler::TrexAstfDpScheduler(bool activate) {
+    m_activate = activate;
+}
+
+bool TrexAstfDpScheduler::handle(TrexDpCore *dp_core) {
+    astf_core(dp_core)->scheduler(m_activate);
+    return true;
+}
+
+TrexCpToDpMsgBase* TrexAstfDpScheduler::clone() {
+    return new TrexAstfDpScheduler(m_activate);
 }
 
 /*************************

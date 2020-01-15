@@ -98,6 +98,73 @@ class CPlatform(object):
 
         self.cmd_link.run_single_command(cache)
 
+    def configure_ospf(self, ospf_num = 1, networks = None, point_to_point = True, unconf = False):
+        assert(type(ospf_num) == int)
+        assert(networks is None or type(networks) == dict)
+        cache = CCommandCache()
+        if unconf:
+            cache.add('CONF', ['no router ospf %s' % ospf_num])
+            return self.cmd_link.run_single_command(cache)
+
+        commands = []
+        if point_to_point:
+            commands = ['int Te0/0/0', 'ip ospf network point-to-point', 'int Te0/0/1', 'ip ospf network point-to-point', 'exit']
+
+        commands.append('router ospf %s' % ospf_num)
+
+        if networks is None:
+            networks = [{'ip': '1.1.1.0', 'wild_card': '0.0.0.255', 'area': 0},
+                         {'ip': '1.1.2.0', 'wild_card': '0.0.0.255', 'area': 0}]
+
+        for network in networks:
+            commands.append('network {ip} {wild_card} area {area} '.format(**network))
+        
+        commands.append('exit')
+        cache.add('CONF', commands)
+        return self.cmd_link.run_single_command(cache)
+
+    def configure_bgp(self, as_num = 65000, neighbors = None, unconf = False):
+        assert(type(as_num) == int)
+        cache = CCommandCache()
+
+        if unconf:
+            cache.add('CONF', ['no router bgp %s' % as_num])
+            return self.cmd_link.run_single_command(cache)
+        commands = ['router bgp %s ' % as_num]
+
+        if neighbors is None:
+            neighbors = [{'ip': '1.1.1.3', 'as': 65000}, {'ip': '1.1.2.3', 'as': 65000}]
+
+        for neighbor in neighbors:
+            commands.append('neighbor {ip} remote-as {as} '.format(**neighbor))
+        
+        commands.append('exit')
+        cache.add('CONF', commands)
+        return self.cmd_link.run_single_command(cache)
+
+    def configure_rip(self, networks = None, ver = 2, unconf = False):
+        assert(type(ver) == int)
+        assert(networks is None or type(networks) == list)
+
+        cache = CCommandCache()
+        if unconf:
+            cache.add('CONF', ['no router rip'])
+            return self.cmd_link.run_single_command(cache)
+
+        if networks is None:
+            networks = ['1.1.1.3', '1.1.2.3']
+
+        commands = []
+        commands.append('router rip')
+
+        commands.append('version %s' % ver)
+
+        for network in networks:
+            commands.append('network %s' % network)
+        
+        commands.append('exit')
+        cache.add('CONF', commands)
+        return self.cmd_link.run_single_command(cache)
 
     def load_clean_config (self, config_filename = "clean_config.cfg", cfg_drive = "bootflash"):
         for i in range(5):
@@ -356,7 +423,6 @@ class CPlatform(object):
             # re-config IPv4 addresses
             self.configure_basic_filtered_interfaces(self.if_mngr.get_duplicated_if())
 
-
     def config_no_static_routing (self, stat_route_obj = None):
 
         if stat_route_obj is None and self.stat_route_config is not None:
@@ -378,8 +444,7 @@ class CPlatform(object):
 
     def config_no_nbar_pd (self):
         self.config_nbar_pd (mode = 'unconfig')
-
-        
+    
     def config_dhcp_server (self, network, subnet, pool_name = 'trex_dhcp', exl_addrs = None):
         '''
             configs a DHCP server
@@ -405,9 +470,7 @@ class CPlatform(object):
         
         cache.add('CONF', config_server_cmds)
         self.cmd_link.run_single_command( cache )
-        
-     
-       
+             
     def config_no_dhcp_server (self):
         '''
             removes any DHCP configuration
@@ -428,10 +491,7 @@ class CPlatform(object):
             cache = CCommandCache()
             cache.add('CONF', unconfig_cmds)
             output = self.cmd_link.run_single_command( cache )
-            
-
-
-        
+                  
     def config_nat_verify (self, mode = 'config'):
 
         # toggle all duplicate interfaces
@@ -723,6 +783,28 @@ class CPlatform(object):
         # (res, res2) = CShowParser.parse_cvla_memory_usage(response)
         return CShowParser.parse_cvla_memory_usage(response)
 
+    def get_rip_routes(self):
+        cache = CCommandCache()
+        cache.add("EXEC", ["show ip rip database"])
+        return self.cmd_link.run_single_command(cache)
+
+    def get_bgp_routing_table(self):
+        cache = CCommandCache()
+        cache.add("EXEC", ["show ip bgp summary"])
+        return self.cmd_link.run_single_command(cache)
+
+    def get_ospf_data(self):
+        cache = CCommandCache()
+        cache.add("EXEC", ["show ip ospf"])
+        return self.cmd_link.run_single_command(cache)
+
+    def get_routing_stats(self, protocol = None):
+        cmd = "show ip route summary"
+        cache = CCommandCache()
+        if protocol is not None:
+            cmd += " | sec %s" % protocol
+        cache.add("EXEC", [cmd])
+        return self.cmd_link.run_single_command(cache)
 
     # clear methods
     def clear_nat_translations(self):
@@ -830,6 +912,14 @@ class CPlatform(object):
         cache.add('CONF', command )
         self.cmd_link.run_single_command(cache)
         self.config_history['tftp_server_config'] = True
+
+    def clear_routes(self, protocol = None):
+        cache = CCommandCache()
+        if protocol is None:
+            cache.add('EXEC', ['clear ip route *'])
+        else: 
+            cache.add('EXEC', ['clear ip %s *' % protocol])
+        self.cmd_link.run_single_command(cache)
 
     def load_platform_image(self, img_filename, external_tftp_config = None):
         """ load_platform_image(self, img_filename, external_tftp_config) -> None
