@@ -26,7 +26,41 @@ ifdef::backend-docbook[]
 
 endif::backend-docbook[]
 
+== Release 2.73 ==
+
+* Support DDP firmware upgrade for XL710/X710 family  to solve #384 (27MPPS limit) 
+
+== Release 2.72 ==
+
+* Add low_end_core option to platform YAML. More info in link:trex_manual.html#_low_end_machines[manual]
+* Fix crash in case of a BPF filter (adding BIRD node)
+* STF add DHCP plugin 
+* ASTF 
+** Add support for tg_name in case of a pcap template 
+** Multi-profile support bug fix 
+
+
+== Release 2.71 ==
+
+* Fix yet another breakage 
+
+== Release 2.70 ==
+
+[NOTE]
+=====================================================================
+This version is broken. ASTF mode does not connect move to v2.71
+=====================================================================
+
+* Fix ASTF API breakage 
+* Support ASTF service mode filter mode 
+
 == Release 2.66 ==
+
+[NOTE]
+=====================================================================
+This version is broken. ASTF mode does not connect move to v2.71
+=====================================================================
+
 
 * BIRD integration see link:trex_stateless.html#bird[bird]. (first release)
 ** Routing protocols support BGP/OSPF/RIP and more on top of IPv6/IPv4 using linux namespace with scale of millions of routes and automation API

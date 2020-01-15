@@ -24,7 +24,7 @@ class STLBird_Test(CBirdGeneral_Test):
 
         self.bird_trex.reset()
         self.bird_trex.set_port_attr(promiscuous = True, multicast = True)
-        self.pybird = PyBirdClient()
+        self.pybird = PyBirdClient(ip = self.configuration.trex['trex_name'])
         self.pybird.connect()
         self.pybird.acquire(force = True)
         self.bird_trex.set_service_mode()
@@ -224,8 +224,10 @@ class STLBird_Test(CBirdGeneral_Test):
                 assert False, "Not all routes got to dut after %s seconds" % SMALL_HANG_TIME
             
             print('Got all the routes, now setting a bad filter for bird')
-            c.set_namespace(0, method = 'set_filter', mac = mac1, bpf_filter = 'not udp and not tcp')
-            c.set_namespace(1, method = 'set_filter', mac = mac2, bpf_filter = 'not udp and not tcp') 
+            self.bird_trex.set_service_mode()
+            c.set_namespace(0, method = 'set_vlan_filter', mac = mac1, is_no_tcp_udp = True)
+            c.set_namespace(1, method = 'set_vlan_filter', mac = mac2, is_no_tcp_udp = True) 
+            self.bird_trex.set_service_mode(enabled = False, filtered = True, mask = 2)
             self._clear_routes(protocol = "bgp")
 
             # check no router do not getting routes from bird
