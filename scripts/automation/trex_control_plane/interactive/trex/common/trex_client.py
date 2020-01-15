@@ -1773,7 +1773,7 @@ class TRexClient(object):
         ports = ports if ports is not None else self.get_acquired_ports()
 
         # validate ports
-        ports = self.psv.validate('set_vlan', ports, (PSV_ACQUIRED, PSV_SERVICE, PSV_IDLE))
+        ports = self.psv.validate('set_vlan', ports, (PSV_ACQUIRED, PSV_IDLE, PSV_SERVICE))
         
         vlan = VLAN(vlan)
     
@@ -2167,12 +2167,6 @@ class TRexClient(object):
             self.ctx.logger.pre_cmd('Enable filtered service mode on port(s) {0} with mask {1}'.format(ports, mask))
         else:
             self.ctx.logger.pre_cmd('Disabling service mode on port(s): {0}'.format(ports))
-            
-        rc = self._for_each_port('set_service_mode', ports, enabled, filtered, mask)
-        self.ctx.logger.post_cmd(rc)
-        
-        if not rc:
-            raise TRexError(rc)
 
 
     @contextmanager
@@ -2832,6 +2826,9 @@ class TRexClient(object):
         if not rc:
             raise TRexError(rc)
 
+    def _is_service_req(self):
+        ''' Return True as service mode check is required in general '''
+        return True
 
     @property
     def any_port(self):

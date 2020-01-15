@@ -690,6 +690,8 @@ if __name__ == "__main__":
         CTRexScenario.modes         = set(CTRexScenario.configuration.trex.get('modes', []))
 
     is_wlc = 'wlc' in CTRexScenario.modes
+    is_bird = 'bird' in CTRexScenario.modes
+
     addplugins = [RedNose(), cfg_plugin]
     result = True
 
@@ -738,13 +740,6 @@ if __name__ == "__main__":
             if xml_arg:
                 additional_args += ['--with-xunit', xml_arg.replace('.xml', '_astf.xml')]
             result = nose.run(argv = nose_argv + additional_args, addplugins = addplugins) and result
-        if CTRexScenario.test_types['bird_tests'] and not is_wlc:
-            additional_args = ['--bird', 'bird_tests/bird_general_test.py:BirdBasic_Test.test_connectivity'] + CTRexScenario.test_types['bird_tests']
-            if attrs:
-                additional_args.extend(['-a', attrs])
-            if xml_arg:
-                additional_args += ['--with-xunit', xml_arg.replace('.xml', '_bird.xml')]
-            result = nose.run(argv = nose_argv + additional_args, addplugins = addplugins) and result
         if CTRexScenario.test_types['stateful_tests'] and not is_wlc:
             additional_args = ['--stf']
             if '--warmup' in sys.argv:
@@ -755,8 +750,14 @@ if __name__ == "__main__":
             if xml_arg:
                 additional_args += ['--with-xunit', xml_arg.replace('.xml', '_stateful.xml')]
             result = nose.run(argv = nose_argv + additional_args, addplugins = addplugins) and result
-
-    
+        if CTRexScenario.test_types['bird_tests'] and not is_wlc and is_bird:
+            additional_args = ['--bird', 'bird_tests/bird_general_test.py:BirdBasic_Test.test_connectivity'] + CTRexScenario.test_types['bird_tests']
+            if attrs:
+                additional_args.extend(['-a', attrs])
+            if xml_arg:
+                additional_args += ['--with-xunit', xml_arg.replace('.xml', '_bird.xml')]
+            result = nose.run(argv = nose_argv + additional_args, addplugins = addplugins) and result
+            CTRexScenario.router.load_clean_config()
     
     #except Exception as e:
     #    result = False

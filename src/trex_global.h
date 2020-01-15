@@ -79,6 +79,11 @@ limitations under the License.
 #define LOWEND_LONG_SLEEP_SEC (1.0 / 1e3)
 #define LOWEND_MEMPOOL_LIMIT_MB (20 * 1e6)
 
+typedef enum {
+        SERVICE_OFF,
+        SERVICE_FILTERED,
+        SERVICE_ON,
+} service_status;
 
 class CGenNode;
 
@@ -550,6 +555,7 @@ public:
         m_astf_mode =OP_ASTF_MODE_NONE;
         m_astf_client_mask=0;
         m_is_lowend           = false;
+        m_lowend_core         = 0;
         m_is_sleepy_scheduler = false;
         m_is_queuefull_retry  = true;
         m_is_vdev             = false;
@@ -563,7 +569,7 @@ public:
     CParserOption(){
         reset();
     }
-
+    /* IMPORTANT! Every new cold member in this class must be added at the bottom, otherwise performance issue may occur */
     CPreviewMode    preview;
     uint16_t        m_tw_buckets;
     uint16_t        m_tw_levels;
@@ -617,6 +623,7 @@ public:
     double          m_tw_bucket_time_sec;
     double          m_tw_bucket_time_sec_level1;
     uint32_t        x710_fdir_reset_threshold;
+    uint32_t        m_lowend_core;
     
 
 
