@@ -5,7 +5,7 @@ import time
 import os
 import shlex
 
-from ..utils.common import get_current_user, user_input
+from ..utils.common import get_current_user, user_input, PassiveTimer
 from ..utils import parsing_opts, text_tables
 
 from ..common.trex_api_annotators import client_api, console_api
@@ -78,7 +78,7 @@ class ASTFClient(TRexClient):
 
         """
 
-        api_ver = {'name': 'ASTF', 'major': 1, 'minor': 7}
+        api_ver = {'name': 'ASTF', 'major': 1, 'minor': 8}
 
         TRexClient.__init__(self,
                             api_ver,
@@ -228,7 +228,10 @@ class ASTFClient(TRexClient):
                 raise TRexError("Cannot have %s as a profile value for start command" % ALL_PROFILE_ID)
             else:
                 self.sync()
-                return list(self.astf_profile_state.keys())
+                # return profiles can be operational only for the requests.
+                # STATE_IDLE is operational for 'profile_clear.'
+                return [pid for pid, state in self.astf_profile_state.items()
+                                if state is not self.STATE_ASTF_DELETE]
 
         for profile_id in profile_list:
             if profile_id not in list(self.astf_profile_state.keys()):
@@ -259,43 +262,28 @@ class ASTFClient(TRexClient):
             port.state = port_state
         return port_state
 
-    def sync(self):
-        self.epoch = None
-        params = {'profile_id': "sync"}
-        rc = self._transmit('sync', params)
-
-        if not rc:
-            raise TRexError(rc.err())
-
-        self.state = rc.data()['state']
-        self.apply_port_states()
-        if self.is_dynamic:
-            self.astf_profile_state = rc.data()['state_profile']
-        else:
-            self.astf_profile_state[DEFAULT_PROFILE_ID] = self.state
-        self.epoch = rc.data()['epoch']
-
-
     def wait_for_steady(self, profile_id=None):
-        time_begin = time.time()
+        timer = PassiveTimer()
         while True:
             state = self._get_profile_state(profile_id) if profile_id else self.state
             if state not in self.transient_states:
                 break
-            if (time.time() - time_begin) > 0.1:
+
+            if timer.has_elapsed(0.1):
                 self.sync()
-                time_begin = time.time()
             else:
                 time.sleep(0.001)
 
-    def wait_for_profile_state(self, profile_id, wait_state):
-        time_begin = time.time()
+    def wait_for_profile_state(self, profile_id, wait_state, timeout = None):
+        timer = PassiveTimer(timeout)
         while self._get_profile_state(profile_id) != wait_state:
-            if (time.time() - time_begin) > 0.1:
+            if timer.has_elapsed(0.1):
                 self.sync()
-                time_begin = time.time()
             else:
                 time.sleep(0.001)
+
+            if timer.has_expired():
+                raise TRexTimeoutError(timeout)
 
     def inc_epoch(self):
         rc = self._transmit('inc_epoch', {'handler': self.handler})
@@ -321,30 +309,34 @@ class ASTFClient(TRexClient):
 
         self.sync_waiting = True
         try:
-            # to prevent from checking with wrong state (e.g. 'start')
-            if ready_state and self._get_profile_state(profile_id) != ready_state:
-                self.wait_for_profile_state(profile_id, ready_state)
-            if bad_states and self._get_profile_state(profile_id) in bad_states:
-                self._set_profile_state(profile_id, self.transient_states[0])
+            if ready_state:
+                assert ready_state not in self.transient_states
+                if self._get_profile_state(profile_id) != ready_state:
+                    self.wait_for_profile_state(profile_id, ready_state)
+            else:
+                self.wait_for_steady(profile_id)
 
             rc = self._transmit(rpc_func, **k)
             if not rc:
                 return rc
-            self.wait_for_steady(profile_id)
 
-            time_begin = time.time()
+            timer = PassiveTimer()
             while True:
                 state = self._get_profile_state(profile_id)
                 if state in ok_states:
                     return RC_OK()
 
-                if self.last_profile_error.get(profile_id) or (bad_states and state in bad_states):
-                    error = self.last_profile_error.pop(profile_id, None)
-                    return RC_ERR(error or 'Unknown error, state: {} {}'.format(state,profile_id))
+                # check transient state transition first to avoid wrong decision (e.g. 'start')
+                if ready_state and state in self.transient_states:
+                    ready_state = None
 
-                if (time.time() - time_begin) > 0.2:
+                if self.last_profile_error.get(profile_id) or (not ready_state and bad_states and state in bad_states):
+                    error = self.last_profile_error.pop(profile_id, None)
+                    general_error = 'Unknown error, state: {}, profile: {}'.format(state, profile_id)
+                    return RC_ERR(error or general_error)
+
+                if timer.has_elapsed(0.2):
                     self.sync() # in case state change lost in async(SUB/PUB) channel
-                    time_begin = time.time()
                 else:
                     time.sleep(0.001)
         finally:
@@ -361,7 +353,10 @@ class ASTFClient(TRexClient):
             else:
                 time.sleep(0.1) # 100ms
         self.sync() # guarantee to update profile states
-
+    
+    def _is_service_req(self):
+        ''' Return False as service mode check is not required in ASTF '''
+        return False
 
 ############################       ASTF     #############################
 ############################       API      #############################
@@ -395,9 +390,11 @@ class ASTFClient(TRexClient):
                 self.stop(False, pid_input=ALL_PROFILE_ID)
                 self.check_states(ok_states=[self.STATE_ASTF_LOADED, self.STATE_IDLE])
                 self.stop_latency()
-                self.clear_stats(ports, pid_input = ALL_PROFILE_ID)
+                self.traffic_stats.reset()
+                self.latency_stats.reset()
                 self.clear_profile(False, pid_input=ALL_PROFILE_ID)
                 self.check_states(ok_states=[self.STATE_IDLE])
+                self.clear_stats(ports, pid_input = ALL_PROFILE_ID)
                 self.set_port_attr(ports,
                                    promiscuous = False if self.any_port.is_prom_supported() else None,
                                    link_up = True if restart else None)
@@ -443,6 +440,26 @@ class ASTFClient(TRexClient):
             self.ports[int(port_id)]._set_handler(port_rc)
 
         self._post_acquire_common(ports)
+
+
+    @client_api('command', True)
+    def sync(self):
+        self.epoch = None
+        params = {'profile_id': "sync"}
+        rc = self._transmit('sync', params)
+
+        if not rc:
+            raise TRexError(rc.err())
+
+        self.state = rc.data()['state']
+        self.apply_port_states()
+        if self.is_dynamic:
+            self.astf_profile_state = rc.data()['state_profile']
+        else:
+            self.astf_profile_state[DEFAULT_PROFILE_ID] = self.state
+        self.epoch = rc.data()['epoch']
+
+        return self.astf_profile_state
 
 
     @client_api('command', True)
@@ -498,6 +515,28 @@ class ASTFClient(TRexClient):
             fragment_length = 500000 # rest of fragments are larger
         return RC_OK()
 
+
+    @client_api('command', True)
+    def set_service_mode (self, ports = None, enabled = True, filtered = False, mask = None):
+        # call the father method
+        super(ASTFClient, self).set_service_mode(ports = ports, enabled = enabled, filtered = filtered, mask = mask)
+        
+        # in ASTF send to all ports with the handler of the ctx
+        params = {"handler": self.handler,
+                    "enabled": enabled,
+                    "filtered": filtered}
+        if filtered:
+            params['mask'] = mask
+        
+        # transmit server once for all the ports
+        rc = self._transmit('service', params)
+
+        self.ctx.logger.post_cmd(rc)
+        if not rc:
+            raise TRexError(rc)
+        else:
+            # sending all ports in order to change their attributes
+            self._for_each_port('set_service_mode', None, enabled, filtered, mask)
 
     @client_api('command', True)
     def load_profile(self, profile, tunables = {}, pid_input = DEFAULT_PROFILE_ID):
@@ -592,7 +631,8 @@ class ASTFClient(TRexClient):
         valid_pids = self.validate_profile_id_input(pid_input)
 
         for profile_id in valid_pids:
-            if self.astf_profile_state.get(profile_id) in ok_states:
+            profile_state = self.astf_profile_state.get(profile_id)
+            if profile_state in ok_states:
                 params = {
                     'handler': self.handler,
                     'profile_id': profile_id
@@ -695,21 +735,35 @@ class ASTFClient(TRexClient):
         valid_pids = self.validate_profile_id_input(pid_input)
 
         for profile_id in valid_pids:
-            params = {
-                'handler': self.handler,
-                'profile_id': profile_id
-                }
-            self.ctx.logger.pre_cmd('Stopping traffic.')
-            if block or is_remove:
-                rc = self._transmit_async('stop', params = params, ok_states = [self.STATE_IDLE, self.STATE_ASTF_LOADED])
-            else:
-                rc = self._transmit('stop', params = params)
-            self.ctx.logger.post_cmd(rc)
+            profile_state = self.astf_profile_state.get(profile_id)
 
-            if not rc:
-                raise TRexError(rc.err())
+            # 'stop' will be silently ignored in server-side PARSE/BUILD state.
+            # So, TX state should be forced to avoid unexpected hanging situation.
+            if profile_state in {self.STATE_ASTF_PARSE, self.STATE_ASTF_BUILD}:
+                self.wait_for_profile_state(profile_id, self.STATE_TX)
+                profile_state = self.astf_profile_state.get(profile_id)
+
+            if profile_state is self.STATE_TX:
+                params = {
+                    'handler': self.handler,
+                    'profile_id': profile_id
+                    }
+                self.ctx.logger.pre_cmd('Stopping traffic.')
+                if block or is_remove:
+                    rc = self._transmit_async('stop', params = params, ok_states = [self.STATE_IDLE, self.STATE_ASTF_LOADED])
+                else:
+                    rc = self._transmit('stop', params = params)
+                self.ctx.logger.post_cmd(rc)
+
+                if not rc:
+                    raise TRexError(rc.err())
+
+                profile_state = self.astf_profile_state.get(profile_id)
 
             if is_remove:
+                if profile_state is self.STATE_ASTF_CLEANUP:
+                    self.wait_for_profile_state(profile_id, self.STATE_ASTF_LOADED)
+
                 self.clear_profile(block = block, pid_input = profile_id)
 
 
@@ -762,7 +816,7 @@ class ASTFClient(TRexClient):
 
 
     @client_api('command', True)
-    def wait_on_traffic(self, timeout = None):
+    def wait_on_traffic(self, timeout = None, profile_id = None):
         """
             Block until traffic stops
 
@@ -771,13 +825,19 @@ class ASTFClient(TRexClient):
                     Timeout in seconds
                     Default is blocking
 
+                profile_id: string
+                    Profile ID
+
             :raises:
                 + :exc:`TRexTimeoutError` - in case timeout has expired
                 + :exc:`TRexError`
         """
 
-        ports = self.get_all_ports()
-        TRexClient.wait_on_traffic(self, ports, timeout)
+        if profile_id is None:
+            ports = self.get_all_ports()
+            TRexClient.wait_on_traffic(self, ports, timeout)
+        else:
+            self.wait_for_profile_state(profile_id, self.STATE_ASTF_LOADED, timeout)
 
 
     # get stats
@@ -838,6 +898,7 @@ class ASTFClient(TRexClient):
         for profile_id in valid_pids:
             if clear_traffic:
                self.clear_traffic_stats(profile_id)
+        self.clear_traffic_stats(is_sum = True)
 
         return self._clear_stats_common(ports, clear_global, clear_xstats)
 
@@ -913,7 +974,7 @@ class ASTFClient(TRexClient):
 
 
     @client_api('getter', True)
-    def clear_traffic_stats(self, pid_input = DEFAULT_PROFILE_ID):
+    def clear_traffic_stats(self, pid_input = DEFAULT_PROFILE_ID, is_sum = False):
         """
             Clears traffic statistics.
 
@@ -922,7 +983,7 @@ class ASTFClient(TRexClient):
                     Input profile ID
 
         """
-        return self.traffic_stats.clear_stats(pid_input)
+        return self.traffic_stats.clear_stats(pid_input, is_sum)
 
 
     @client_api('getter', True)
@@ -1230,6 +1291,42 @@ class ASTFClient(TRexClient):
         self.update(opts.mult, pid_input = opts.profiles)
 
 
+    @console_api('service', 'ASTF', True)
+    def service_line (self, line):
+        '''Configures port for service mode.
+           In service mode ports will reply to ARP, PING
+           and etc.
+           In ASTF, command will apply on all ports.
+        '''
+
+        parser = parsing_opts.gen_parser(self,
+                                         "service",
+                                         self.service_line.__doc__,
+                                         parsing_opts.SERVICE_BGP_FILTERED,
+                                         parsing_opts.SERVICE_NO_TCP_UDP_FILTERED,
+                                         parsing_opts.SERVICE_ALL_FILTERED,
+                                         parsing_opts.SERVICE_OFF)
+
+        opts = parser.parse_args(line.split())
+        # build filter mask
+        filtered = opts.allow_no_tcp_udp or opts.allow_bgp or opts.allow_all
+        if filtered:
+            if opts.allow_all:
+                mask = 3
+            else:
+                mask = 1 if opts.allow_no_tcp_udp else 0
+                mask = mask | 2 if opts.allow_bgp else mask
+        else:
+            mask = None
+        enabled = False if filtered else opts.enabled
+
+        if mask is not None and ((mask & 1) == 0):
+            raise TRexError('Cannot set NO_TCP_UDP off in ASTF!')
+
+        self.set_service_mode(enabled = enabled, filtered = filtered, mask = mask)
+        
+        return True
+
     @staticmethod
     def _calc_port_mask(ports):
         mask =0
@@ -1355,6 +1452,21 @@ class ASTFClient(TRexClient):
             raise TRexError('Unhandled command %s' % opts.command)
 
         return True
+
+
+    @console_api('clear', 'common', False)
+    def clear_stats_line (self, line):
+        '''Clear cached local statistics\n'''
+        # define a parser
+        parser = parsing_opts.gen_parser(self,
+                                         "clear",
+                                         self.clear_stats_line.__doc__,
+                                         parsing_opts.PORT_LIST_WITH_ALL)
+
+        opts = parser.parse_args(line.split())
+        self.clear_stats(opts.ports, pid_input = ALL_PROFILE_ID)
+
+        return RC_OK()
 
 
     @console_api('stats', 'common', True)

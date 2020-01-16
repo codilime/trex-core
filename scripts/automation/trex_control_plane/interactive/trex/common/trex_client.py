@@ -27,7 +27,7 @@ from .trex_exceptions import *
 from .trex_psv import *
 from .trex_vlan import VLAN
 from .trex_api_annotators import client_api, console_api
-from trex.pybird.bird_zmq_client import *
+from ..astf.arg_verify import ArgVerify
 
 from .stats.trex_stats import StatsBatch
 from .stats.trex_global_stats import GlobalStats, UtilStats
@@ -864,6 +864,30 @@ class TRexClient(object):
             return [port_id
                     for port_id, port_obj in self.ports.items()
                     if port_obj.is_service_mode_on()]
+        
+    @client_api('getter', True)
+    def get_service_filtered_ports(self, owned = True):
+        """ 
+
+        :parameters:
+          owned - bool
+            if 'True' apply only-owned filter
+
+        :return:
+            List of all ports at filtered service mode
+
+        :raises:
+          None
+
+        """
+        if owned:
+            return [port_id
+                    for port_id, port_obj in self.ports.items()
+                    if port_obj.is_service_filtered_mode_on() and port_obj.is_acquired()]
+        else:
+            return [port_id
+                    for port_id, port_obj in self.ports.items()
+                    if port_obj.is_service_filtered_mode_on()]
       
         
     @client_api('getter', True)
@@ -1387,7 +1411,7 @@ class TRexClient(object):
 
                      exec_cmds:  total commands executed 
                      total_cmds: total commands in the queue
-                     errs_cmds: number of errros in the last operation
+                     errs_cmds: number of errors in the last operation
                      ticket_id: ticket id
 
                      this will print the progress into the screen::
@@ -1417,7 +1441,7 @@ class TRexClient(object):
         nc = NSCmdResult(rc)
 
         if nc.is_any_error():
-            raise TRexError(str(nc.errors()))
+            raise TRexError(nc.errors())
 
         return rc
 
@@ -1468,42 +1492,62 @@ class TRexClient(object):
     @client_api('command', True)
     def set_bird_node(self, node_port,
                             mac,
-                            ipv4,
-                            ipv6_enabled,
-                            ipv4_subnet,
-                            ipv6_subnet):
+                            ipv4         = None,
+                            ipv4_subnet  = None,
+                            ipv6_enabled = None,
+                            ipv6         = None,
+                            ipv6_subnet  = None,
+                            vlans        = None,
+                            tpids        = None,
+                            mtu          = None):
         """
             a utility function that works on top of :func:`set_namespace_start` and :func:`wait_for_async_results` batch operation API. 
-            it creates a batch of one command and one result.
-            It is good for slow operations that require blocking (such as get API)
+            the function creates a "bird node" using veth's in bird namespace in trex. 
 
             usage example::
 
-                  c.set_bird_node(node_port        = 0,
-                                    mac            = "00:00:00:01:00:07",
-                                    ipv4           = "1.1.2.3",
-                                    default_gw     = "1.1.1.1",
-                                    ipv6_enabled   = True)
+                c.set_bird_node(node_port      = 0,
+                                mac            = "00:00:00:01:00:06",
+                                ipv4           = "1.1.1.3",
+                                ipv4_subnet    = 24,
+                                ipv6_enabled   = True,
+                                ipv6_subnet    = 124,
+                                vlans          = [22],
+                                tpids           = [0x8100])
 
             :parameters:
 
                  node_port: int
-                    port id to set the bird node on.
+                    Port id to set the bird node on
 
                  mac: string
-                    mac address for the new bird node. 
+                    Mac address for the new bird node in format xx:xx:xx:xx:xx:xx
 
                  ipv4: string 
-                    ipv4 address for the new bird node. 
+                    Ipv4 address for the new bird node
  
-                 ipv6_enabled: bool
-                    True/False if ipv6 enabled on the new node. 
-                
                  ipv4_subnet: int
-                    ipv4 subnet for the new bird node
+                    Ipv4 subnet for the new bird node
+                 
+                 ipv6_enabled: bool
+                    True/False if ipv6 enabled on the new node, mandatory for ipv6 config
+                 
+                 ipv6: string
+                    Ipv6 address for the new bird node
 
                  ipv6_subnet: int
-                    ipv6 subnet for the new bird node
+                    Ipv6 subnet for the new bird node
+
+                 vlans: list
+                    Array of up to 2 uint16 tags.
+
+                 tpids: list
+                    Array of tpidss that correspond to vlans.
+                    Default is [0x8100] in case of single VLAN and [0x88a8, 0x8100] in case of QinQ.
+
+                 mtu: int
+                    MTU for bird node.
+
             :raises:
                 + :exc:`TRexError` in case of any error
         """
@@ -1521,13 +1565,22 @@ class TRexClient(object):
         except TRexError:
             # node with mac addres does not exists, create new one
 
-            self.set_port_attr(promiscuous=True)
-            self.namespace_remove_all(ports=[node_port])
+            self.set_port_attr(promiscuous = True)
 
             cmds = NSCmds()
-            cmds.add_node(mac, is_bird=True)
-            cmds.set_ipv4(mac, ipv4, subnet=ipv4_subnet, is_bird=True)
-            cmds.set_ipv6(mac, ipv6_enabled, subnet=ipv6_subnet, is_bird=True)
+            cmds.add_node(mac, is_bird = True)
+            if ipv4 is not None and ipv4_subnet is not None:
+                cmds.set_ipv4(mac, ipv4, subnet = ipv4_subnet, shared_ns = True)
+            if ipv6_enabled is not None:
+                cmds.set_ipv6(mac, ipv6_enabled, src_ipv6 = ipv6 ,subnet = ipv6_subnet, shared_ns = True)
+            if vlans is not None:
+                ver_args = {"types":[{"name": "vlans", 'arg': vlans, "t": list}]}
+                if tpids is not None:
+                    ver_args['types'].append({"name": "tpids", 'arg': tpids, "t": list})
+                ArgVerify.verify(self.__class__.__name__, ver_args)
+                cmds.set_vlan(mac, vlans, tpids)
+            if mtu is not None:
+                cmds.set_mtu(mac, mtu)
 
             self.set_namespace_start(node_port, cmds)
             self.wait_for_async_results(node_port)
@@ -1546,65 +1599,6 @@ class TRexClient(object):
         else:
             return False
         return True
-            
-
-    @client_api('command', False)
-    def wait_for_protocols(self, protocols, timeout=60, poll_rate=1):
-        """
-            waiting for all the bird protocols in 'protocols' list. In case bird protocols are still
-            down after 'timeout' seconds, an exception will be raised. 
-
-            usage example::
-
-                wait_for_protocols(['bgp1', 'rip1', 'rip2'])
-            
-
-            :parameters:
-
-                protocols: list 
-                    list of all protocols names the new bird node will be followed by.
-                    notice the names should be exactly as they appear in bird configuration.
-
-                timeout: int
-                    total time waiting for bird protocols.
-
-                poll_rate: int
-                    polling rate for bird protocols check.
-            
-            :raises:
-                + :exc:`TRexError` in case of any error 
-        """    
-        pybird_c = PyBirdClient()
-        pybird_c.connect()
-        pybird_c.acquire()
-        pybird_c.check_protocols_up(protocols)
-        pybird_c.release()
-        pybird_c.disconnect()
-    
-    @client_api('command', True)
-    def set_bird_config(self, config):
-        """
-            send the given bird config into trex.
-
-            usage example::
-                cfg = "here will be your bird.conf string"
-                set_bird_config(cfg)
-            
-
-            :parameters:
-
-                config: string 
-                    string of the "bird.conf" file contet. Includes the routing protocols and routes.
-
-            :raises:
-                + :exc:`TRexError` in case of any error 
-        """
-        pybird_c = PyBirdClient()
-        pybird_c.connect()
-        pybird_c.acquire()
-        pybird_c.set_config(config)
-        pybird_c.release()
-        pybird_c.disconnect()
 
     @client_api('command', True)
     def is_async_results_ready(self, port):
@@ -1779,7 +1773,7 @@ class TRexClient(object):
         ports = ports if ports is not None else self.get_acquired_ports()
 
         # validate ports
-        ports = self.psv.validate('set_vlan', ports, (PSV_ACQUIRED, PSV_SERVICE, PSV_IDLE))
+        ports = self.psv.validate('set_vlan', ports, (PSV_ACQUIRED, PSV_IDLE, PSV_SERVICE))
         
         vlan = VLAN(vlan)
     
@@ -2128,16 +2122,23 @@ class TRexClient(object):
 
 
     @client_api('command', True)
-    def set_service_mode (self, ports = None, enabled = True):
+    def set_service_mode (self, ports = None, enabled = True, filtered = False, mask = None):
         """
             Set service mode for port(s)
-            In service mode ports will respond to ARP, PING and etc.
+            In service mode ports will respond to ARP, PING and etc. "enable" and "filtered" are mutual exclusive,
+            choose 1 of them or none
 
             :parameters:
                 ports: list
-                    for which ports to configure service mode on/off
+                    For which ports to configure service mode on/off
                 enabled: bool
-                    True for activating service mode, False for disabling
+                    True for activating service mode, False for disabling. Mutual exclusive with "filtered"
+                filtered: bool
+                    True for activating service filtered mode, False for disabling. Mutual exclusive with "enabled"
+                mask: int
+                    mask to apply on each port in ports while filtered mode is on. Only packets that are correspond
+                    to the port mask will be transferred
+
             :raises:
                 + :exe:'TRexError'
 
@@ -2147,16 +2148,25 @@ class TRexClient(object):
 
         ports = self.psv.validate('set_service_mode', ports, PSV_ACQUIRED)
         
+        # verifying
+        ver_args = {"types":[
+            {"name": "enabled", 'arg': enabled, "t": bool},
+            {"name": "filtered", 'arg': filtered, "t": bool},
+            ]}
+        if mask is not None:
+            ver_args['types'].append({"name": "mask", 'arg': mask, 't': int})
+        ArgVerify.verify(self.__class__.__name__, ver_args)
+        if enabled and filtered:
+            raise TRexError("Cannot set service mode and filtered, choose one of them")
+        if (not filtered and not (mask is None)) or (filtered and (mask is None)):
+            raise TRexError("Cannot set mask with filtered = False or the opposite , please supply both or neither")
+
         if enabled:
-            self.ctx.logger.pre_cmd('Enabling service mode on port(s) {0}:'.format(ports))
+            self.ctx.logger.pre_cmd('Enabling service mode on port(s): {0}'.format(ports))
+        elif filtered:
+            self.ctx.logger.pre_cmd('Enable filtered service mode on port(s) {0} with mask {1}'.format(ports, mask))
         else:
-            self.ctx.logger.pre_cmd('Disabling service mode on port(s) {0}:'.format(ports))
-            
-        rc = self._for_each_port('set_service_mode', ports, enabled)
-        self.ctx.logger.post_cmd(rc)
-        
-        if not rc:
-            raise TRexError(rc)
+            self.ctx.logger.pre_cmd('Disabling service mode on port(s): {0}'.format(ports))
 
 
     @contextmanager
@@ -2360,7 +2370,7 @@ class TRexClient(object):
         rx_ports = listify_if_int(rx_ports)
 
         # check arguments
-        self.psv.validate('start_capture', list_remove_dup(tx_ports + rx_ports), [PSV_SERVICE])
+        self.psv.validate('start_capture', list_remove_dup(tx_ports + rx_ports) )
 
         validate_type('limit', limit, (int))
         if limit < 0:
@@ -2816,6 +2826,9 @@ class TRexClient(object):
         if not rc:
             raise TRexError(rc)
 
+    def _is_service_req(self):
+        ''' Return True as service mode check is required in general '''
+        return True
 
     @property
     def any_port(self):

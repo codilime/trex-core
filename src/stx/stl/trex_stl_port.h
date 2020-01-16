@@ -295,9 +295,6 @@ private:
 
     /* holds a graph of streams rate*/
     const TrexStreamsGraphObj  *m_graph_obj;
-
-    bool  m_is_service_mode_on;
-    
     static const uint32_t MAX_STREAMS = 20000;
 
 };
@@ -455,11 +452,8 @@ public:
      * 
      * @param enabled 
      */
-    void set_service_mode(bool enabled);
-    
-    bool is_service_mode_on() const {
-        return m_is_service_mode_on;
-    }
+    void set_service_mode(bool enabled); // wraps for backwards compatibility
+    void set_service_mode(bool enabled, bool filtered, uint8_t mask);
 
     bool is_running_flow_stats();
     bool has_flow_stats(string profile_id);
@@ -601,8 +595,6 @@ private:
      * @author imarom (26-Nov-15)
      */
     void delete_streams_graph();
-
-    bool  m_is_service_mode_on;
 
     TrexProfileTable    m_profile_table;
 

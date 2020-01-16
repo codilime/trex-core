@@ -115,7 +115,7 @@ class STLClient(TRexClient):
 
         """
 
-        api_ver = {'name': 'STL', 'major': 4, 'minor': 6}
+        api_ver = {'name': 'STL', 'major': 4, 'minor': 7}
 
         TRexClient.__init__(self,
                             api_ver,
@@ -425,6 +425,16 @@ class STLClient(TRexClient):
         if not rc:
             raise TRexError(rc)
 
+
+    @client_api('command', True)
+    def set_service_mode (self, ports = None, enabled = True, filtered = False, mask = None):
+        # call the father method
+        super(STLClient, self).set_service_mode(ports, enabled, filtered, mask)
+        rc = self._for_each_port('set_service_mode', ports, enabled, filtered, mask)
+        self.ctx.logger.post_cmd(rc)
+        
+        if not rc:
+            raise TRexError(rc)
 
     @client_api('command', True)
     @validate_port_input("ports")
@@ -1934,11 +1944,24 @@ class STLClient(TRexClient):
                                          "service",
                                          self.service_line.__doc__,
                                          parsing_opts.PORT_LIST_WITH_ALL,
+                                         parsing_opts.SERVICE_BGP_FILTERED,
+                                         parsing_opts.SERVICE_NO_TCP_UDP_FILTERED,
+                                         parsing_opts.SERVICE_ALL_FILTERED,
                                          parsing_opts.SERVICE_OFF)
 
         opts = parser.parse_args(line.split())
-            
-        self.set_service_mode(ports = opts.ports, enabled = opts.enabled)
+        filtered = opts.allow_no_tcp_udp or opts.allow_bgp or opts.allow_all
+        # build filter mask
+        if filtered:
+            if opts.allow_all:
+                mask = 3
+            else:
+                mask = 1 if opts.allow_no_tcp_udp else 0
+                mask = mask | 2 if opts.allow_bgp else mask
+        else:
+            mask = None
+        enabled = False if filtered else opts.enabled
+        self.set_service_mode(ports = opts.ports, enabled = enabled, filtered = filtered, mask = mask)
         
         return True
 

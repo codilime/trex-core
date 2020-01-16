@@ -41,20 +41,37 @@ void CRpcTunnelCStackBase::init(CStackBase * obj){
 
 trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_add_node(const Json::Value &params, Json::Value &result){
     debug({"rpc_add_node",pretty_json_str(params)});
-    string mac   = parse_string(params, "mac", result);
-    bool is_bird = parse_bool(params, "is_bird", result);
+    string mac       = parse_string(params, "mac", result);
+    bool is_bird     = parse_bool(params, "is_bird", result, false);
+    string shared_ns = parse_string(params, "shared_ns", result, "");
 
-    if ( is_bird ) {
-        return (m_obj->rpc_add_bird_node(mac));
-    } else {
-        return (m_obj->rpc_add_node(mac));  
+    if ( is_bird && !shared_ns.empty() ) {
+        throw TrexException("Cannot add node with bird option and shared namespace!");
     }
+
+    if ( is_bird || !shared_ns.empty() ) {
+        return (m_obj->rpc_add_shared_ns_node(mac, is_bird, shared_ns));
+    } else {
+        return (m_obj->rpc_add_node(mac));
+    }
+}
+
+trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_add_shared_ns(const Json::Value &params, Json::Value &result){
+    debug({"rpc_add_shared_ns",pretty_json_str(params)});
+    return (m_obj->rpc_add_shared_ns(result));
 }
 
 trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_remove_node(const Json::Value &params, Json::Value &result){
     debug({"rpc_remove_node",pretty_json_str(params)});
     string mac   = parse_string(params, "mac", result);
     return (m_obj->rpc_remove_node(mac));
+}
+
+trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_remove_shared_ns(const Json::Value &params, Json::Value &result){
+    debug({"rpc_remove_shared_ns", pretty_json_str(params)});
+    string shared_ns = parse_string(params, "shared_ns", result);
+
+    return m_obj->rpc_remove_shared_ns(shared_ns);
 }
 
 trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_set_vlans(const Json::Value &params, Json::Value &result){
@@ -80,7 +97,7 @@ trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_set_vlans(const Json::Value &params,
     if ( params["tpids"].isArray() ) {
         const Json::Value &tpids = parse_array(params, "tpids", result);
         if ( tpids.size() != vlans.size() ) {
-            generate_parse_err(result, "mismatch between size of vlan tags and pgids");
+            generate_parse_err(result, "mismatch between size of vlan tags and tpids");
         }
         for (int i=0; i<tpids.size(); i++) {
             uint16_t tpid = parse_uint16(tpids, i, result);
@@ -93,16 +110,47 @@ trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_set_vlans(const Json::Value &params,
 
 trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_set_ipv4(const Json::Value &params, Json::Value &result){
     debug({"rpc_set_ipv4",pretty_json_str(params)});
-    string mac     = parse_string(params, "mac", result);
-    string ip4_buf = parse_ipv4(params, "ipv4", result);
-    bool is_bird   = parse_bool(params, "is_bird", result, false);
-    if ( is_bird ) {
+    string mac        = parse_string(params, "mac", result);
+    string ip4_buf    = parse_ipv4(params, "ipv4", result);
+    bool shared_ns = parse_bool(params, "shared_ns", result, false);
+
+    if ( shared_ns ) {
         uint8_t subnet = parse_int(params, "subnet", result);
-        return m_obj->rpc_set_ipv4_bird(mac, ip4_buf, subnet);
+        return m_obj->rpc_set_shared_ns_ipv4(mac, ip4_buf, subnet);
     } else {
         string gw4_buf = parse_ipv4(params, "dg", result);
         return m_obj->rpc_set_ipv4(mac, ip4_buf, gw4_buf);
     }
+}
+
+trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_set_filter(const Json::Value &params, Json::Value &result) {
+    /* deprecated */
+    debug({"rpc_set_filter", pretty_json_str(params)});
+    return TREX_RPC_CMD_OK;
+}
+
+trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_set_vlan_filter(const Json::Value &params, Json::Value &result) {
+    debug({"rpc_set_vlan_filter", pretty_json_str(params)});
+    string mac     = parse_string(params, "mac", result);
+    uint8_t filter = parse_byte(params, "filter_mask", result);
+
+    return m_obj->rpc_set_vlan_filter(mac, filter);
+}
+
+trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_set_dg(const Json::Value &params, Json::Value &result) {
+    debug({"rpc_set_dg", pretty_json_str(params)});
+    string shared_ns  = parse_string(params, "shared_ns", result);
+    string dg         = parse_string(params, "dg", result);
+
+    return m_obj->rpc_set_dg(shared_ns, dg);
+}
+
+trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_set_mtu(const Json::Value &params, Json::Value &result) {
+    debug({"rpc_set_mtu", pretty_json_str(params)});
+    string mac  = parse_string(params, "mac", result);
+    int mtu     = parse_int(params, "mtu", result);
+
+    return m_obj->rpc_set_mtu(mac, std::to_string(mtu));
 }
 
 trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_clear_ipv4(const Json::Value &params, Json::Value &result){
@@ -115,7 +163,7 @@ trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_set_ipv6(const Json::Value &params, 
     debug({"rpc_set_ipv6",pretty_json_str(params)});
     string mac     = parse_string(params, "mac", result);
     bool enable    = parse_bool(params, "enable", result);
-    bool is_bird   = parse_bool(params, "is_bird", result, false);
+    bool shared_ns = parse_bool(params, "shared_ns", result, false);
 
     string src_ipv6 = "";
     if ( enable ) {
@@ -124,10 +172,11 @@ trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_set_ipv6(const Json::Value &params, 
             src_ipv6 = parse_ipv6(params, "src_ipv6", result);
         }
     }
-    if ( is_bird ) {
-        uint8_t subnet = parse_int(params, "subnet", result);
-        return m_obj->rpc_set_ipv6_bird(mac, enable, src_ipv6, subnet);
+    if ( shared_ns ) {
+        uint8_t subnet = parse_int(params, "subnet", result, 0);
+        return m_obj->rpc_set_shared_ns_ipv6(mac, enable, src_ipv6, subnet);
     } else {
+        string shared_ns = parse_string(params, "shared_ns", result, "");
         return m_obj->rpc_set_ipv6(mac, enable, src_ipv6);
     }
 }
@@ -139,7 +188,9 @@ trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_remove_all(const Json::Value &params
 
 trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_get_nodes(const Json::Value &params, Json::Value &result){
     debug({"rpc_get_nodes",pretty_json_str(params)});
-    return (m_obj->rpc_get_nodes(result));
+    bool only_bird = parse_bool(params, "only_bird", result, false);
+
+    return (m_obj->rpc_get_nodes(result, only_bird));
 }
 
 trex_rpc_cmd_rc_e CRpcTunnelCStackBase::rpc_get_nodes_info(const Json::Value &params, Json::Value &result){
@@ -197,9 +248,15 @@ void CRpcTunnelCStackBase::register_rpc_functions(){
     using namespace std::placeholders;
 
     register_func("add_node",std::bind(&CRpcTunnelCStackBase::rpc_add_node, this, _1, _2));
+    register_func("add_shared_ns",std::bind(&CRpcTunnelCStackBase::rpc_add_shared_ns, this, _1, _2));
     register_func("remove_node",std::bind(&CRpcTunnelCStackBase::rpc_remove_node, this, _1, _2));
+    register_func("remove_shared_ns",std::bind(&CRpcTunnelCStackBase::rpc_remove_shared_ns, this, _1, _2));
     register_func("set_vlans",std::bind(&CRpcTunnelCStackBase::rpc_set_vlans, this, _1, _2));
     register_func("set_ipv4",std::bind(&CRpcTunnelCStackBase::rpc_set_ipv4, this, _1, _2));
+    register_func("set_filter",std::bind(&CRpcTunnelCStackBase::rpc_set_filter, this, _1, _2));
+    register_func("set_vlan_filter",std::bind(&CRpcTunnelCStackBase::rpc_set_vlan_filter, this, _1, _2));
+    register_func("set_dg",std::bind(&CRpcTunnelCStackBase::rpc_set_dg, this, _1, _2));
+    register_func("set_mtu",std::bind(&CRpcTunnelCStackBase::rpc_set_mtu, this, _1, _2));
     register_func("clear_ipv4",std::bind(&CRpcTunnelCStackBase::rpc_clear_ipv4, this, _1, _2));
     register_func("set_ipv6",std::bind(&CRpcTunnelCStackBase::rpc_set_ipv6, this, _1, _2));
     register_func("remove_all",std::bind(&CRpcTunnelCStackBase::rpc_remove_all, this, _1, _2));

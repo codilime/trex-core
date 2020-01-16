@@ -21,6 +21,7 @@ limitations under the License.
 */
 #include "bp_sim.h"
 
+#include "trex_port.h"
 #include "trex_stl_dp_core.h"
 #include "trex_stl_stream_node.h"
 #include "trex_stl_stream.h"
@@ -935,7 +936,9 @@ void TrexStatelessDpPerPort::update_paused(int cnt) {
 TrexStatelessDpCore::TrexStatelessDpCore(uint8_t thread_id, CFlowGenListPerThread *core) : TrexDpCore(thread_id, core, STATE_IDLE) {
 
     m_duration        = -1;
-    m_is_service_mode = NULL;
+    m_is_service_mode        = false;
+    m_is_service_mode_filter = false;
+    m_service_mask           = 0;
     m_wrapper         = new ServiceModeWrapper();
     m_need_to_rx = false;
 
@@ -1059,16 +1062,14 @@ void TrexStatelessDpCore::_rx_handle_packet(int dir,
             // try updating latency statistics for unknown ether type packets
             m_ports[dir].m_fs_latency.handle_pkt(m,0);
         }
-        drop=false;
+        if ( m_is_service_mode || (m_is_service_mode_filter && (m_service_mask & TrexPort::NO_TCP_UDP)) ) {
+            drop = false;
+        }
         return;
     }
 
     uint8_t proto = m_parser->get_protocol();
     bool tcp_udp=false;
-
-    if ((proto == IPPROTO_TCP) || (proto == IPPROTO_UDP)){
-        tcp_udp = true;
-    }
 
     if (m_parser->is_fs_latency()) {
         m_ports[dir].m_fs_latency.handle_pkt(m,0);
@@ -1079,10 +1080,43 @@ void TrexStatelessDpCore::_rx_handle_packet(int dir,
         return;
     }
 
-    if ( !tcp_udp && (is_idle==false)){
+    if ((proto == IPPROTO_TCP) || (proto == IPPROTO_UDP)){
+        tcp_udp = true;
+    }
+
+    if ( !tcp_udp && (!is_idle)){
         drop=false;
     }
 
+    if ( m_is_service_mode_filter && check_service_filter(drop) ) {
+        return;
+    }
+}
+
+/* return true if packet passed through service filter */
+bool TrexStatelessDpCore::check_service_filter(bool &drop) {
+    
+    uint8_t proto = m_parser->get_protocol();
+
+    // BGP check
+    if ( (m_service_mask & TrexPort::BGP) && (proto == IPPROTO_TCP) ) {
+
+        TCPHeader *l4_header = (TCPHeader *)m_parser->get_l4();
+        uint16_t src_port = l4_header->getSourcePort();
+        uint16_t dst_port = l4_header->getDestPort();
+
+        if ( src_port == BGP_PORT || dst_port == BGP_PORT ) {
+            drop = false;
+            return true;
+        }
+    }
+
+    // OSPF check
+    if ( (m_service_mask & TrexPort::NO_TCP_UDP) && (! ( (proto == IPPROTO_TCP) || (proto == IPPROTO_UDP)) ) ) {
+        drop = false;
+        return true;
+    }
+    return false;
 }
 
 void TrexStatelessDpCore::set_need_to_rx(bool enable){
@@ -1685,32 +1719,45 @@ TrexStatelessDpCore::stop_traffic(uint8_t  port_id,
     ring->SecureEnqueue((CGenNode *)event_msg, true);
 }
 
-
-
 void
 TrexStatelessDpCore::set_service_mode(uint8_t port_id, bool enabled) {
+    set_service_mode(port_id, enabled, false, 0);
+}
+
+void
+TrexStatelessDpCore::set_service_mode(uint8_t port_id, bool enabled, bool filtered, uint8_t mask) {
     /* ignore the same message */
-    if (enabled == m_is_service_mode) {
+    if ( enabled == m_is_service_mode &&
+        m_is_service_mode_filter == filtered &&
+        m_service_mask == mask ) {
         return;
     }
 
-    if (enabled) {
-        /* sanity */
-        assert(m_core->m_node_gen.m_v_if != m_wrapper);
+    if ( enabled || filtered ) {
+        if ( !m_is_service_mode && !m_is_service_mode_filter ) {
+            /* sanity */
+            assert(m_core->m_node_gen.m_v_if != m_wrapper);
 
-        /* set the wrapper object and make the VIF point to it */
-        m_wrapper->set_wrapped_object(m_core->m_node_gen.m_v_if);
-        m_core->m_node_gen.m_v_if = m_wrapper;
-        m_is_service_mode = true;
+            /* set the wrapper object and make the VIF point to it */
+            m_wrapper->set_wrapped_object(m_core->m_node_gen.m_v_if);
+            m_core->m_node_gen.m_v_if = m_wrapper;
+        }
+        m_is_service_mode = enabled;
+        m_is_service_mode_filter = filtered;
+        m_service_mask = filtered ? mask : m_service_mask;
 
     } else {
-        /* sanity */
-        assert(m_core->m_node_gen.m_v_if == m_wrapper);
+        if ( m_is_service_mode || m_is_service_mode_filter ) {
+            /* sanity */
+            assert(m_core->m_node_gen.m_v_if == m_wrapper);
 
-        /* restore the wrapped object and make the VIF point to it */
-        m_core->m_node_gen.m_v_if = m_wrapper->get_wrapped_object();
+            /* restore the wrapped object and make the VIF point to it */
+            m_core->m_node_gen.m_v_if = m_wrapper->get_wrapped_object();
+        }
         m_is_service_mode = false;
+        m_is_service_mode_filter = false;
     }
+    
 }
 
 void

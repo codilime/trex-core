@@ -103,7 +103,7 @@ public:
     /**
      * shutdown the server 
      */
-    virtual void shutdown() = 0;
+    virtual void shutdown(bool post_shutdown) = 0;
     
 
     /**
@@ -151,6 +151,11 @@ public:
      * DP core encountered error
      */
     virtual void dp_core_error(int thread_id, uint32_t profile_id, const std::string &err);
+
+    /**
+     * DP core state changed
+     */
+    virtual void dp_core_state(int thread_id, int state);
 
     virtual void set_capture_feature(const std::set<uint8_t>& rx_cores) {};
 

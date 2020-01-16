@@ -586,6 +586,7 @@ stx_src = SrcGroup(dir='src/stx/common/',
         'trex_stack_linux_based.cpp',
         'trex_stx.cpp',
         'trex_rx_timesync.cpp',
+        'trex_vlan_filter.cpp',
     ])
 
 
@@ -1956,7 +1957,7 @@ files_list=[
             'daemon_server'
             ];
 
-pkg_include = ['cap2','avl','cfg','ko','automation', 'external_libs', 'stl','exp','astf']
+pkg_include = ['cap2','avl','cfg','ko','automation', 'external_libs', 'stl','exp','astf','x710_ddp']
 pkg_exclude = ['*.pyc', '__pycache__']
 pkg_make_dirs = ['generated', 'trex_client/external_libs', 'trex_client/interactive/profiles']
 

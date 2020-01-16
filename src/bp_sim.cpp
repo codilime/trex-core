@@ -55,6 +55,18 @@ uint32_t getDualPortId(uint32_t thread_id){
 
 
 
+CFlowYamlInfo::CFlowYamlInfo() {
+    m_dpPkt=0;
+    m_server_addr=0;
+    m_client_pool_idx = 0;
+    m_server_pool_idx = 0;
+    m_cap_mode=false;
+    m_ipg_sec=0.01;
+    m_rtt_sec=0.01;
+    m_multi_flow_was_set = false;
+    m_keep_src_port = false;
+    m_plugin_id = 0;
+}
 
 void CFlowYamlInfo::Dump(FILE *fd){
     fprintf(fd,"name        : %s \n",m_name.c_str());
@@ -76,6 +88,7 @@ void CFlowYamlInfo::Dump(FILE *fd){
     fprintf(fd,"]\n");
     fprintf(fd,"one_server_was_set  : %d \n",m_one_app_server_was_set?1:0);
     fprintf(fd,"multi_flow_enabled  : %d \n",m_multi_flow_was_set);
+    fprintf(fd,"keep_src_port       : %d \n",m_keep_src_port);
 
     if (m_dpPkt) {
         m_dpPkt->Dump(fd);
@@ -1596,6 +1609,7 @@ enum CCapFileFlowInfo::load_cap_file_err CCapFileFlowInfo::load_cap_file(std::st
     bool is_plugin_enabled = (flow_info.m_plugin_id != 0);
     bool is_multi_flow_enabled = flow_info.m_multi_flow_was_set;
     bool is_custom_dirs = (flow_info.m_flows_dirs.size() > 0);
+    bool keep_src_port = flow_info.m_keep_src_port;
 
 
     CFlowTableMap flow;
@@ -1722,6 +1736,7 @@ enum CCapFileFlowInfo::load_cap_file_err CCapFileFlowInfo::load_cap_file(std::st
                 return kPktNotSupp;
             }
             pkt_indication.m_desc.SetInitSide(is_init_side);
+            pkt_indication.m_desc.setKeepSrcPort(keep_src_port);
             Append(&pkt_indication);
         }else{
             fprintf(stderr, "ERROR packet %d is not supported, should be Ethernet/IP(0x0800)/(TCP|UDP) format try to convert it using Wireshark !\n",cnt);
@@ -2023,13 +2038,19 @@ void operator >> (const YAML::Node& node, CFlowYamlInfo & fi) {
        fi.m_plugin_id=0;
    }
 
-    if ( node.FindValue("multi_flow_enabled") ){
+    if ( node.FindValue("multi_flow_enabled") ) {
         node["multi_flow_enabled"] >> fi.m_multi_flow_was_set;
     }else{
         fi.m_multi_flow_was_set = 0;
     }
 
-    if ( node.FindValue("flows_dirs") ){
+    if ( node.FindValue("keep_src_port") ) {
+        node["keep_src_port"] >> fi.m_keep_src_port;
+    }else{
+        fi.m_keep_src_port = 0;
+    }
+
+    if ( node.FindValue("flows_dirs") ) {
         const YAML::Node& flows_dirs = node["flows_dirs"];
         if ( flows_dirs.Type() != YAML::NodeType::Sequence ) {
             fprintf(stderr, " flow_dirs must be array\n");
@@ -2053,6 +2074,10 @@ void operator >> (const YAML::Node& node, CFlowYamlInfo & fi) {
     if ( fi.m_plugin_id ) {
         if ( fi.m_multi_flow_was_set ) {
             fprintf(stderr, " plugin_id and multi_flow_enabled are mutual exclusive\n");
+            exit(-1);
+        }
+        if ( fi.m_keep_src_port ) {
+            fprintf(stderr, " plugin_id and keep_src_port are mutual exclusive\n");
             exit(-1);
         }
         if ( fi.m_flows_dirs.size() ) {
@@ -2564,6 +2589,11 @@ bool CFlowGeneratorRecPerThread::Create(CTupleGeneratorSmart  * global_gen,
 
 void CFlowGeneratorRecPerThread::Delete(){
     tuple_gen.Delete();
+    if ( m_info->m_dpPkt ) {
+        delete m_info->m_dpPkt;
+        m_info->m_dpPkt = 0;
+    }
+    delete m_info;
 }
 
 
@@ -3046,7 +3076,7 @@ void CFlowGenListPerThread::init_from_global(){
     for (i=0; i<(int)m_flow_list->m_cap_gen.size(); i++) {
         CFlowGeneratorRec * lp=m_flow_list->m_cap_gen[i];
         CFlowGeneratorRecPerThread * lp_thread=new CFlowGeneratorRecPerThread();
-        /* TBD leak of memory */
+
         CFlowYamlInfo *         yaml_info =new CFlowYamlInfo();
 
         yaml_info->m_name    = lp->m_info->m_name;
@@ -3056,6 +3086,7 @@ void CFlowGenListPerThread::init_from_global(){
         yaml_info->m_w   = lp->m_info->m_w;
         yaml_info->m_cap_mode =lp->m_info->m_cap_mode;
         yaml_info->m_plugin_id = lp->m_info->m_plugin_id;
+        yaml_info->m_keep_src_port = lp->m_info->m_keep_src_port;
         yaml_info->m_one_app_server = lp->m_info->m_one_app_server;
         yaml_info->m_server_addr = lp->m_info->m_server_addr;
         yaml_info->m_dpPkt          =lp->m_info->m_dpPkt;
@@ -5042,8 +5073,6 @@ void CPluginCallbackSimple::on_node_first(uint8_t plugin_id,
                                           CFlowYamlInfo *  template_info,
                                           CTupleTemplateGeneratorSmart * tuple_gen,
                                           CFlowGenListPerThread  * flow_gen ){
-    //printf(" on on_node_first callback  %d  node %x! \n",(int)plugin_id,node);
-    /* generate 2 ports from client side */
 
     if ( (plugin_id == mpRTSP) || (plugin_id == mpSIP_VOICE) ) {
         CPlugin_rtsp * lpP=new CPlugin_rtsp();
@@ -5062,16 +5091,20 @@ void CPluginCallbackSimple::on_node_first(uint8_t plugin_id,
                 CTcpSeq * lpP=new CTcpSeq();
                 assert(lpP);
                 node->m_plugin_info = (void *)lpP;
-            }else{
-                /* do not support this */
-                assert(0);
+            } else {
+                if (plugin_id == mpDHCP_REQ_ACK) {
+                    /* nothing to do */
+                } else {
+                    /* do not support this */
+                    assert(0);
+                }
             }
         }
     }
 }
 
 void CPluginCallbackSimple::on_node_last(uint8_t plugin_id,CGenNode *     node){
-    //printf(" on on_node_last callback  %d  %x! \n",(int)plugin_id,node);
+
     if ( (plugin_id == mpRTSP) || (plugin_id == mpSIP_VOICE) ) {
         CPlugin_rtsp * lpP=(CPlugin_rtsp * )node->m_plugin_info;
         /* free the ports */
@@ -5094,9 +5127,13 @@ void CPluginCallbackSimple::on_node_last(uint8_t plugin_id,CGenNode *     node){
                 CTcpSeq * lpP=(CTcpSeq * )node->m_plugin_info;
                 delete lpP;
                 node->m_plugin_info=0;
-            }else{
-                /* do not support this */
-                assert(0);
+            } else{
+                if (plugin_id == mpDHCP_REQ_ACK) {
+                    /* nothing to do */
+                } else {
+                    /* do not support this */
+                    assert(0);
+                }
             }
         }
     }
@@ -5179,6 +5216,67 @@ rte_mbuf_t * CPluginCallbackSimple::http_plugin(uint8_t plugin_id,
     lpP->update(p, pkt_info, s_size);
 
     return(mbuf);
+}
+
+rte_mbuf_t * CPluginCallbackSimple::dhcp_plugin(uint8_t       plugin_id,
+                                                CGenNode*     node,
+                                                CFlowPktInfo* pkt_info) {
+    CMiniVMCmdBase*    program[2];
+    CMiniVMDHCPPayload dhcp_cmd;
+    CMiniVMCmdBase     eop_cmd;
+
+    CPacketDescriptor* lpd = &pkt_info->m_pkt_indication.m_desc;
+    CFlowInfo flow_info;
+    flow_info.vm_program = 0;
+    int16_t s_size = 0;
+
+    // IPv6 packets are not supported
+    if (CGlobalInfo::is_ipv6_enable() ) {
+         fprintf (stderr," IPv6 is not supported for the DHCP Request-Acknowledge plugin.\n");
+         exit(-1);
+    }
+
+    flow_info.client_ip           = node->m_src_ip;
+    flow_info.server_ip           = node->m_dest_ip;
+    flow_info.client_port         = dhcp_cmd.get_dhcp_client_port();
+    flow_info.replace_server_port = false;
+
+
+    if (lpd->getFlowId() == 0) {
+        // The first flow is a broadcast from C to S
+        flow_info.is_init_ip_dir      = (node->cur_pkt_ip_addr_dir() == CLIENT_SIDE ? true : false);
+        flow_info.is_init_port_dir    = (node->cur_pkt_port_addr_dir() == CLIENT_SIDE ? true : false);
+        node->set_dest_mac_broadcast(true);
+    } else if (lpd->getFlowId() == 1) {
+        // Second flow starts with a unicast from S to C
+        flow_info.is_init_ip_dir      = (node->cur_pkt_ip_addr_dir() == SERVER_SIDE ? true : false);
+        flow_info.is_init_port_dir    = (node->cur_pkt_port_addr_dir() == SERVER_SIDE ? true : false);
+        node->set_initiator_start_from_server(true);
+        node->set_dest_mac_broadcast(false);
+        /* Set Client IP address in L7 DHCP payload */
+        dhcp_cmd.m_client_ip.v4 = PKT_NTOHL(node->m_src_ip);;
+    } else {
+        fprintf (stderr," Too many flows for this plugin.\n");
+        exit(-1);
+    }
+
+    /* First get the src mac of the hardware for the first two bytes, the last 4 bytes are ovewritten,
+    hence the direction is not really important. */
+    dhcp_cmd.m_client_mac.set(CGlobalInfo::m_options.get_src_mac_addr(0)); 
+    /* Override the last 4 bytes of the MAC address with the Client IP after changing the Endianness */
+    uint8_t* mac_add_ptr = dhcp_cmd.m_client_mac.GetBuffer();
+    *(uint32_t*)(mac_add_ptr + 2) = PKT_NTOHL(node->m_src_ip);
+
+    dhcp_cmd.m_cmd     = VM_DHCP_PAYLOAD;
+    eop_cmd.m_cmd      = VM_EOP;
+
+    program[0] = &dhcp_cmd;
+    program[1] = &eop_cmd;
+
+    flow_info.vm_program = program;
+
+    return pkt_info->do_generate_new_mbuf_ex_vm(node,&flow_info, &s_size);
+
 }
 
 rte_mbuf_t * CPluginCallbackSimple::dyn_pyload_plugin(uint8_t plugin_id,
@@ -5876,6 +5974,9 @@ rte_mbuf_t * CPluginCallbackSimple::on_node_generate_mbuf(uint8_t plugin_id,CGen
     case mpAVL_HTTP_BROWSIN:
         m=http_plugin(plugin_id,node,pkt_info);
         break;
+    case mpDHCP_REQ_ACK:
+        m=dhcp_plugin(plugin_id, node, pkt_info);
+        break;
     default:
         assert(0);
     }
@@ -5912,6 +6013,10 @@ int CMiniVM::mini_vm_run(CMiniVMCmdBase * cmds[]){
 
         case VM_DYN_PYLOAD:
             mini_vm_dyn_payload((CMiniVMDynPyload *)cmd);
+            break;
+
+        case VM_DHCP_PAYLOAD:
+            mini_vm_dhcp_payload((CMiniVMDHCPPayload*)cmd);
             break;
 
         case VM_EOP:
@@ -6144,7 +6249,29 @@ int CMiniVM::mini_vm_replace_ip(CMiniVMReplaceIP * cmd){
 
     return (0);
 }
+int CMiniVM::mini_vm_dhcp_payload(CMiniVMDHCPPayload* cmd) {
 
+    uint16_t l7_offset      = m_pkt_info->m_pkt_indication.getFastPayloadOffset();
+    uint16_t packet_len     = m_pkt_info->m_packet->pkt_len;
+    uint16_t len            = packet_len - l7_offset;
+    char * original_l7_ptr  = m_pkt_info->m_packet->raw + l7_offset;
+
+    memcpy(m_pyload_mbuf_ptr, original_l7_ptr, cmd->get_client_ip_start_offset()); // Copy the first part of the payload (unchanged).
+    char* p = m_pyload_mbuf_ptr + cmd->get_client_ip_start_offset(); // Pointer to the Client IP address that will be changed
+    int ipv4_size = cmd->get_client_ip_end_offset() - cmd->get_client_ip_start_offset();
+    *(uint32_t*)p = cmd->m_client_ip.v4; //Copy IPv4
+    p += ipv4_size;
+    uint16_t offset_between_writes = cmd->get_offset_between_client_addresses();
+    memcpy(p, original_l7_ptr + cmd->get_client_ip_end_offset(), offset_between_writes); // Copy the space inbetween the addresses to change.
+    p += offset_between_writes;
+    cmd->m_client_mac.copyToArray((uint8_t*)p); // Change the Client MAC Address in the DHCP Payload
+    p += ETHER_ADDR_LEN;
+    memcpy(p, original_l7_ptr + cmd->get_client_mac_end_offset(), len - cmd->get_client_mac_end_offset()); // Copy the remaining part of the payload (unchanged).
+
+    m_new_pkt_size = packet_len; // Packet size hasn't changed
+
+    return 0;
+}
 
 void CFlowYamlDpPkt::Dump(FILE *fd){
     fprintf(fd," pkt_id   : %d \n",(int)m_pkt_id);

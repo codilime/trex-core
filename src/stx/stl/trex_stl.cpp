@@ -163,7 +163,7 @@ TrexStatelessMulticoreSoftwareFSLatencyStats::reset_rx_stats(uint8_t port_id, co
 TrexStateless::TrexStateless(const TrexSTXCfg &cfg) : TrexSTX(cfg) {
     /* API core version */
     const int API_VER_MAJOR = 4;
-    const int API_VER_MINOR = 6;
+    const int API_VER_MINOR = 7;
     
     /* init the RPC table */
     TrexRpcCommandsTable::get_instance().init("STL", API_VER_MAJOR, API_VER_MINOR);
@@ -218,21 +218,23 @@ void TrexStateless::launch_control_plane() {
 /**
 * shutdown the server
 */
-void TrexStateless::shutdown() {
-    /* stop ports */
-    for (auto &port : get_port_map()) {
-        /* safe to call stop even if not active */
-        port.second->stop_traffic("*");
+void TrexStateless::shutdown(bool post_shutdown) {
+    if ( !post_shutdown ) {
+        /* stop ports */
+        for (auto &port : get_port_map()) {
+            /* safe to call stop even if not active */
+            port.second->stop_traffic("*");
+        }
+        
+        /* shutdown the RPC server */
+        m_rpc_server.stop();
+        
+        /* shutdown all DP cores */
+        send_msg_to_all_dp(new TrexDpQuit());
+        
+        /* shutdown RX */
+        send_msg_to_rx(new TrexRxQuit());
     }
-    
-    /* shutdown the RPC server */
-    m_rpc_server.stop();
-    
-    /* shutdown all DP cores */
-    send_msg_to_all_dp(new TrexDpQuit());
-    
-    /* shutdown RX */
-    send_msg_to_rx(new TrexRxQuit());
 }
 
 

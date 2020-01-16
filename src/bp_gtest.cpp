@@ -23,6 +23,7 @@ limitations under the License.
 #include <stdlib.h>
 #include <common/gtest.h>
 #include <common/basic_utils.h>
+#include <common/trex_vlan_filter.h>
 #include "utl_cpuu.h"
 #include "timer_wheel_pq.h"
 #include "rx_check.h"
@@ -622,9 +623,205 @@ test_latency_pkt_rcv(rte_mbuf_t *m, uint8_t l_pkt_mode, uint8_t port_num, uint16
     // if packet is bad, check_packet raise the error counter
     EXPECT_EQ_UINT32(port.m_unsup_prot, exp_pkt_ok?0:1)<<  "Failed unsupported packets count";
 
+    delete c_l_pkt_mode;
+    info.Delete();
+    rte_pktmbuf_free(m);
     return true;
 }
 
+const uint8_t icmp_pkt_no_vlan[]={
+    0x00,0x04,0x96,0x08,0xe0,0x40,
+    0x00,0x0e,0x2e,0x24,0x37,0x5f,
+    0x08,0x00,
+
+    0x45,0x03,0x00,0x30,
+    0x00,0x00,0x40,0x00,
+    0xff,0x01,0xbd,0x04,
+    0x9b,0xe6,0x18,0x9b, //SIP
+    0xcb,0xff,0xfc,0xc2, //DIP
+
+    0x08, 0x00,
+    0x01, 0x02,  //checksum
+    0xaa, 0xbb,  // id
+    0x00, 0x00,  // Sequence number
+
+    0x11,0x22,0x33,0x44, // magic
+    0x00,0x00,0x00,0x00, //64 bit counter
+    0x00,0x00,0x00,0x00,
+    0x00,0x01,0xa0,0x00, //seq
+    0x00,0x00,0x00,0x00,
+};
+   
+const uint8_t icmp_pkt_10_vlan[]={
+    0x00,0x04,0x96,0x08,0xe0,0x40,
+    0x00,0x0e,0x2e,0x24,0x37,0x5f,
+    0x81,0x00,
+
+    0x00, 0x0A, 0x08, 0x00, // 802.1Q, 10 tag
+
+    0x45,0x03,0x00,0x30,
+    0x00,0x00,0x40,0x00,
+    0xff,0x01,0xbd,0x04,
+    0x9b,0xe6,0x18,0x9b, //SIP
+    0xcb,0xff,0xfc,0xc2, //DIP
+
+    0x08, 0x00,
+    0x01, 0x02,  //checksum
+    0xaa, 0xbb,  // id
+    0x00, 0x00,  // Sequence number
+
+    0x11,0x22,0x33,0x44, // magic
+    0x00,0x00,0x00,0x00, //64 bit counter
+    0x00,0x00,0x00,0x00,
+    0x00,0x01,0xa0,0x00, //seq
+    0x00,0x00,0x00,0x00,
+
+};
+
+const uint8_t icmp_pkt_10_11_vlans[]={
+    0x00,0x04,0x96,0x08,0xe0,0x40,
+    0x00,0x0e,0x2e,0x24,0x37,0x5f,
+    0x81,0x00,
+
+    0x00, 0x0A, 0x81, 0x00, // 802.1Q, 10 tag
+    0x00, 0x0B, 0x08, 0x00, // 802.1Q, 11 tag
+
+    0x45,0x03,0x00,0x30,
+    0x00,0x00,0x40,0x00,
+    0xff,0x01,0xbd,0x04,
+    0x9b,0xe6,0x18,0x9b, //SIP
+    0xcb,0xff,0xfc,0xc2, //DIP
+
+    0x08, 0x00,
+    0x01, 0x02,  //checksum
+    0xaa, 0xbb,  // id
+    0x00, 0x00,  // Sequence number
+
+    0x11,0x22,0x33,0x44, // magic
+    0x00,0x00,0x00,0x00, //64 bit counter
+    0x00,0x00,0x00,0x00,
+    0x00,0x01,0xa0,0x00, //seq
+    0x00,0x00,0x00,0x00,
+
+};
+
+const uint8_t tcp_pkt_10_11_vlans[] = {
+    0x00, 0x26, 0x62, 0x2f, 0x47, 0x87,
+    0x00, 0x1d, 0x60, 0xb3, 0x01, 0x84,
+    0x81, 0x00,
+
+    0x00, 0x0A, 0x81, 0x00,  // 801.1Q 10 tag
+    0x00, 0x0B, 0x08, 0x00,  // 801.1Q 11 tag
+    0x45, 0x00, 0x00, 0x3c, 0xa8, 0xcf, 0x40, 0x00, 0x40, 0x06, 0x9d, 0x6b, 0xc0, 0xa8, 0x01, 0x03,
+    0x3f, 0x74, 0xf3, 0x61, 0xe5, 0xc0, 0x00, 0x50, 0xe5, 0x94, 0x3d, 0xaa, 0x00, 0x00, 0x00, 0x00,
+    0xa0, 0x02, 0x16, 0xd0, 0x9d, 0xe2, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4, 0x04, 0x02, 0x08, 0x0a,
+    0x00, 0x17, 0x95, 0x65, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x07,
+};
+
+const uint8_t tcp_ipv6_pkt_10_11_vlans[] = {
+    0x33, 0x33, 0x00, 0x01, 0x00, 0x02,
+    0x08, 0x00 ,0x27, 0xfe, 0x8f, 0x95,
+    0x81, 0x00,
+
+    0x00, 0x0A, 0x81, 0x00,  // 801.1Q 10 tag
+    0x00, 0x0B, 0x86, 0xdd,  // 801.1Q 11 tag
+
+    0x60, 0x00, 0x00, 0x00, 0x00, 0x3c, 0x11, 0x01, 0xfe, 0x80 ,0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x0a, 0x00, 0x27, 0xff, 0xfe, 0xfe, 0x8f, 0x95, 0xff, 0x02 ,0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x02, 0x02, 0x22 ,0x02, 0x23, 0x00, 0x3c, 0xad, 0x08,
+};
+
+const uint8_t arp_10_11_vlans_pkt[] = {
+    0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+    0xca, 0x03, 0x0d, 0xb4, 0x00, 0x1c,
+    0x81, 0x00,
+    0x00, 0x0A, 0x81, 0x00, // 801.1Q 10 tag
+    0x00, 0x0B, 0x08, 0x06, // 801.1Q 11 tag
+    0x00, 0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x01, 0xca, 0x03, // ARP
+    0x0d, 0xb4, 0x00, 0x1c, 0xc0, 0xa8, 0x02, 0xc8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc0, 0xa8,
+    0x02, 0xfe, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
+void vlans_pass_all_none_test() {
+    uint8_t none_flag = VlanFilter::FilterFlags::None;
+    uint8_t all_flag = VlanFilter::FilterFlags::ALL;
+
+    VlanFilter filter;
+    VlanFilterCFG cfg;
+
+    /* Pass all filter */
+    cfg.m_wanted_flags = all_flag;
+    filter.set_cfg(cfg);
+    EXPECT_TRUE(filter.is_pkt_pass(icmp_pkt_10_11_vlans));
+    EXPECT_TRUE(filter.is_pkt_pass(icmp_pkt_10_vlan));
+    EXPECT_TRUE(filter.is_pkt_pass(icmp_pkt_no_vlan));
+    EXPECT_TRUE(filter.is_pkt_pass(tcp_pkt_10_11_vlans));
+    EXPECT_TRUE(filter.is_pkt_pass(tcp_ipv6_pkt_10_11_vlans));
+    EXPECT_TRUE(filter.is_pkt_pass(arp_10_11_vlans_pkt));
+
+    /* Pass none filter */
+    cfg.m_wanted_flags = none_flag;
+    filter.set_cfg(cfg);
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_10_vlan));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_no_vlan));
+    EXPECT_FALSE(filter.is_pkt_pass(tcp_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(tcp_ipv6_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(arp_10_11_vlans_pkt));
+}
+
+TEST_F(basic, vlans) {
+    uint8_t no_tcp_udp_flag = VlanFilter::FilterFlags::NO_TCP_UDP;
+    uint8_t tcp_udp_flag    = VlanFilter::FilterFlags::TCP_UDP;
+    uint32_t vlan10 = 0x8100000A, vlan11 = 0x8100000B;
+
+    vlans_pass_all_none_test();
+
+    VlanFilter filter;
+    VlanFilterCFG cfg;
+
+    /* 10, 11 vlans TCP_UDP filter*/
+    cfg.m_vlans[0] = vlan10;
+    cfg.m_vlans[1] = vlan11;
+    cfg.m_wanted_flags = tcp_udp_flag;
+    filter.set_cfg(cfg);
+    EXPECT_TRUE(filter.is_pkt_pass(tcp_pkt_10_11_vlans));
+    EXPECT_TRUE(filter.is_pkt_pass(tcp_ipv6_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(arp_10_11_vlans_pkt));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_10_vlan));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_no_vlan));
+
+    /* 10,11 vlans NO_TCP_UDP filter */
+    cfg.m_wanted_flags = no_tcp_udp_flag;
+    filter.set_cfg(cfg);
+    EXPECT_FALSE(filter.is_pkt_pass(tcp_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(tcp_ipv6_pkt_10_11_vlans));
+    EXPECT_TRUE(filter.is_pkt_pass(arp_10_11_vlans_pkt));
+    EXPECT_TRUE(filter.is_pkt_pass(icmp_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_10_vlan));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_no_vlan));
+    
+    /* 10 vlan, NO_TCP_UDP filter */
+    cfg.m_vlans[1] = 0;
+    filter.set_cfg(cfg);
+    EXPECT_FALSE(filter.is_pkt_pass(tcp_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(tcp_ipv6_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(arp_10_11_vlans_pkt));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_10_11_vlans));
+    EXPECT_TRUE(filter.is_pkt_pass(icmp_pkt_10_vlan));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_no_vlan));
+
+    /* No vlans, NO_TCP_UDP */
+    cfg.m_vlans[0] = 0;
+    filter.set_cfg(cfg);
+    EXPECT_FALSE(filter.is_pkt_pass(tcp_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(tcp_ipv6_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(arp_10_11_vlans_pkt));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_10_11_vlans));
+    EXPECT_FALSE(filter.is_pkt_pass(icmp_pkt_10_vlan));
+    EXPECT_TRUE(filter.is_pkt_pass(icmp_pkt_no_vlan));
+}
 
 // Testing latency packet generation
 TEST_F(basic, latency1) {
@@ -1252,8 +1449,10 @@ TEST_F(timerwl, many_timers) {
     CTimerWheel  my_tw;
 
     int i;
+    std::vector<CTestFlow*> flows_list;
     for (i=0; i<100; i++) {
         CTestFlow * f= new CTestFlow();
+        flows_list.push_back(f);
         f->m_timer_handle.m_callback=many_timers_flow_callback;
         f->flow_id=(uint32_t)i;
         my_tw.restart_timer(&f->m_timer_handle,100.0-(double)i);
@@ -1280,6 +1479,9 @@ TEST_F(timerwl, many_timers) {
     EXPECT_EQ(my_tw.m_st_free ,100);
     EXPECT_EQ(my_tw.m_st_start ,100);
 
+    for ( auto &flow : flows_list ) {
+        delete flow;
+    }
 }
 
 void  many_timers_stop_flow_callback(CFlowTimerHandle * t){
@@ -1293,8 +1495,10 @@ TEST_F(timerwl, many_timers_with_stop) {
     CTimerWheel  my_tw;
 
     int i;
+    std::vector<CTestFlow*> flows_list;
     for (i=0; i<100; i++) {
         CTestFlow * f= new CTestFlow();
+        flows_list.push_back(f);
         f->m_timer_handle.m_callback=many_timers_stop_flow_callback;
         f->flow_id=(uint32_t)i;
         my_tw.restart_timer(&f->m_timer_handle, 500.0 - (double)i);
@@ -1320,6 +1524,10 @@ TEST_F(timerwl, many_timers_with_stop) {
     EXPECT_EQ(my_tw.m_st_handle ,0);
     EXPECT_EQ(my_tw.m_st_alloc-my_tw.m_st_free ,0);
     EXPECT_EQ(my_tw.m_st_start ,300);
+
+    for ( auto &flow : flows_list ) {
+        delete flow;
+    }
 }
 
 //////////////////////////////////////////////
@@ -1363,6 +1571,7 @@ TEST_F(rx_check, rx_check_normal) {
     EXPECT_EQ(m_rx_check.m_stats.m_add,1);
     EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
     m_rx_check.Dump(stdout);
+    m_rx_check.tw_drain();
 }
 
 
@@ -1551,6 +1760,7 @@ TEST_F(rx_check, rx_check_normal_two_dir) {
     EXPECT_EQ(m_rx_check.m_stats.m_add,1);
     EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
     m_rx_check.Dump(stdout);
+    m_rx_check.tw_drain();
 }
 
 
@@ -1581,6 +1791,7 @@ TEST_F(rx_check, rx_check_normal_two_dir_fails) {
     EXPECT_EQ(m_rx_check.m_stats.m_add,1);
     EXPECT_EQ(m_rx_check.m_stats.m_remove,0);
     m_rx_check.Dump(stdout);
+    m_rx_check.tw_drain();
 }
 
 TEST_F(rx_check, rx_check_normal_two_dir_ok) {
@@ -1617,6 +1828,7 @@ TEST_F(rx_check, rx_check_normal_two_dir_ok) {
     EXPECT_EQ(m_rx_check.m_stats.m_add,1);
     EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
     m_rx_check.Dump(stdout);
+    m_rx_check.tw_drain();
 }
 
 TEST_F(rx_check, rx_check_normal_one_pkt_one_dir) {
@@ -1645,6 +1857,7 @@ TEST_F(rx_check, rx_check_normal_one_pkt_one_dir) {
     EXPECT_EQ(m_rx_check.m_stats.m_add,1);
     EXPECT_EQ(m_rx_check.m_stats.m_remove,0);
     m_rx_check.Dump(stdout);
+    m_rx_check.tw_drain();
 }
 
 TEST_F(rx_check, rx_check_normal_one_pkt_one_dir_0) {
@@ -1672,6 +1885,7 @@ TEST_F(rx_check, rx_check_normal_one_pkt_one_dir_0) {
     EXPECT_EQ(m_rx_check.m_stats.m_add,1);
     EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
     m_rx_check.Dump(stdout);
+    m_rx_check.tw_drain();
 }
 
 TEST_F(rx_check, rx_check_normal_one_pkt_two_dir_0) {
@@ -1706,6 +1920,7 @@ TEST_F(rx_check, rx_check_normal_one_pkt_two_dir_0) {
     EXPECT_EQ(m_rx_check.m_stats.m_add,1);
     EXPECT_EQ(m_rx_check.m_stats.m_remove,1);
     m_rx_check.Dump(stdout);
+    m_rx_check.tw_drain();
 }
 
 TEST_F(rx_check, rx_check_normal_one_pkt_two_dir_err1) {
@@ -1750,6 +1965,7 @@ TEST_F(rx_check, rx_check_normal_one_pkt_two_dir_err1) {
     EXPECT_EQ(m_rx_check.m_stats.m_add,1);
     EXPECT_EQ(m_rx_check.m_stats.m_remove,0);
     m_rx_check.Dump(stdout);
+    m_rx_check.tw_drain();
 }
 
 
@@ -1797,6 +2013,7 @@ TEST_F(rx_check, rx_check_normal_two_dir_oo) {
     EXPECT_EQ(m_rx_check.m_stats.m_add,1);
     EXPECT_EQ(m_rx_check.m_stats.m_remove,0);
     m_rx_check.Dump(stdout);
+    m_rx_check.tw_drain();
 }
 
 TEST_F(rx_check, rx_check_normal_aging) {
@@ -1833,6 +2050,7 @@ TEST_F(rx_check, rx_check_normal_aging) {
     EXPECT_EQ(m_rx_check.m_stats.m_err_oo_late,1);
 
     m_rx_check.Dump(stdout);
+    m_rx_check.tw_drain();
 }
 
 TEST_F(rx_check, rx_check_normal_no_aging) {
@@ -1861,6 +2079,7 @@ TEST_F(rx_check, rx_check_normal_no_aging) {
     EXPECT_EQ(m_rx_check.m_stats.get_total_err(),0);
     EXPECT_EQ(m_rx_check.m_stats.m_add,1);
     EXPECT_EQ(m_rx_check.m_stats.m_remove,0);
+    m_rx_check.tw_drain();
 }
 
 ///////////////////////////////////////////////////////////////
@@ -1892,11 +2111,10 @@ public:
 
     virtual int close_file(void){
         if (m_raw) {
-            m_raw->raw=0;
             delete m_raw;
             m_raw = nullptr;
         }
-        
+
         return (0);
     }
 

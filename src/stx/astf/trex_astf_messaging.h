@@ -56,13 +56,14 @@ private:
  */
 class TrexAstfDpStart : public TrexCpToDpMsgBase {
 public:
-    TrexAstfDpStart(profile_id_t profile_id, double duration);
-    TrexAstfDpStart() : TrexAstfDpStart(0, -1) {}
+    TrexAstfDpStart(profile_id_t profile_id, double duration, bool nc);
+    TrexAstfDpStart() : TrexAstfDpStart(0, -1, false) {}
     virtual TrexCpToDpMsgBase* clone();
     virtual bool handle(TrexDpCore *dp_core);
 private:
     profile_id_t m_profile_id;
     double m_duration;
+    bool m_nc_flow_close;
 };
 
 /**
@@ -82,6 +83,19 @@ private:
     CFlowGenListPerThread* m_core;
     profile_id_t m_profile_id;
     uint32_t m_stop_id;
+};
+
+/**
+ * a message to stop DP scheduler
+ *
+ */
+class TrexAstfDpScheduler : public TrexCpToDpMsgBase {
+public:
+    TrexAstfDpScheduler(bool activate);
+    virtual TrexCpToDpMsgBase* clone();
+    virtual bool handle(TrexDpCore *dp_core);
+private:
+    bool m_activate;    // DP scheduler activate(true) or deactivate(false)
 };
 
 /**
@@ -128,6 +142,23 @@ private:
     profile_id_t m_profile_id;
 };
 
+/**
+* a message to set service mode on / filtered with mask
+*/
+class TrexAstfDpServiceMode : public TrexCpToDpMsgBase {
+public:
+    TrexAstfDpServiceMode(bool enabled, bool filtered = false, uint8_t mask = 0) {
+        m_enabled  = enabled;
+        m_filtered = filtered;
+        m_mask     = mask;
+    }
+    virtual TrexCpToDpMsgBase* clone();
+    virtual bool handle(TrexDpCore *dp_core);
+private:
+    bool      m_enabled;
+    bool      m_filtered;
+    uint8_t   m_mask;
+};
 
 
 #endif /* __TREX_STL_MESSAGING_H__ */

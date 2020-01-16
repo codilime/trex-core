@@ -294,10 +294,10 @@ public:
     }
 
     /**
-     * enabled/disable service mode
+     * enabled/disable service mode, if filtered is true enable filtered service mode according to mask.
      */
-    void set_service_mode(uint8_t port_id, bool enabled);
-
+    void set_service_mode(uint8_t port_id, bool enabled, bool filtered, uint8_t mask);
+    void set_service_mode(uint8_t port_id, bool enabled); // wraps for backwards compatibility
 
 
     void rx_handle_packet(int dir,
@@ -401,6 +401,7 @@ private:
         m_features &= (~feature);
     }
 
+    bool check_service_filter(bool &drop);
 
     uint8_t                    m_need_to_rx;
     uint8_t                    m_local_port_offset;
@@ -411,6 +412,8 @@ private:
 
     ServiceModeWrapper        *m_wrapper;
     bool                       m_is_service_mode;
+    bool                       m_is_service_mode_filter;
+    uint8_t                    m_service_mask;
     CFlowStatParser *          m_parser;
 
     uint8_t                    m_features;

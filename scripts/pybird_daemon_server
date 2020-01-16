@@ -103,7 +103,7 @@ def start_pybird():
         return
 
     server_path = os.path.join(cur_dir, 'automation', 'trex_control_plane', 'interactive')
-    cmd = 'sudo taskset -c {core} {python} -m trex.pybird_server.bird_zmq_server -p {port}'.format(core = args.core, python = sys.executable, port = args.port)
+    cmd = 'sudo taskset -c {core} {python} -m trex.pybird_server.bird_zmq_server -p {port} -l'.format(core = args.core, python = sys.executable, port = args.port)
     proc, stdout_file = run_command(cmd, is_daemon = True, cwd = server_path)
     ret = progress(is_pybird_running, 'Starting PyBird server', 'PyBird server is started', 'PyBird server failed to run', fail_check = proc.poll)
     if proc.poll():
