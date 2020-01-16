@@ -356,7 +356,7 @@ static_assert(sizeof(FollowUpPacket) == PTP_MSG_FOLLOWUP_LEN,
 
 struct DelayedReqPacket : BasePacket {
     static constexpr size_t size = PTP_MSG_DELAYREQ_LEN;
-    static constexpr Field::message_type type = Field::message_type::DELAY_REQ;
+    static constexpr Field::message_type type = Field::message_type::PDELAY_REQ;
 };
 static_assert(std::is_standard_layout<DelayedReqPacket>::value,
               "PTP::DelayedReqPacket must be a simple linear data structure.");

@@ -1972,12 +1972,13 @@ HOT_FUNC int CCoreEthIFStateless::send_node_flow_stat(rte_mbuf *m, CGenNodeState
     lp_s->add_bytes(mi->pkt_len + 4); // We add 4 because of ethernet CRC
 
     if (hw_id >= MAX_FLOW_STATS) {
-        fsp_head->time_stamp = CGlobalInfo::m_options.get_latency_timestamp();
+        // do not send latency packets unless we are synchronized
+        if (!CGlobalInfo::m_timesync_engine.isSlaveSynchronized())
+            return -1;
+        uint8_t m_port_id = lp_port->m_port->get_tvpid();
+        fsp_head->time_stamp = CGlobalInfo::m_options.get_latency_timestamp(m_port_id);
         if (CGlobalInfo::m_options.is_timesync_enabled()) {
-            // do not send latency packets unless we are synchronized
-            if (!CGlobalInfo::m_timesync_engine.isSlaveSynchronized())
-                return -1;
-            fsp_head->time_stamp += CGlobalInfo::get_timesync_engine()->getDelta(lp_port->m_port->get_tvpid());
+            fsp_head->time_stamp += CGlobalInfo::get_timesync_engine()->getDelta(m_port_id);
         }
         send_pkt_lat(lp_port, mi, lp_stats);
     } else {
@@ -3590,7 +3591,10 @@ COLD_FUNC int  CGlobalTRex::device_start(void){
             _if->get_port_attr()->set_multicast(true);
         }
         if (CGlobalInfo::m_options.m_timesync_method == TimesyncMethod::PTP) {
-            _if->get_port_attr()->set_hardware_timesync(true);
+            if ((_if->get_port_attr()->set_hardware_timesync(true) == 0) &&
+                (CGlobalInfo::m_options.m_latency_measurement == CParserOption::LATENCY_METHOD_NANOS)) {
+                CGlobalInfo::m_options.get_latency_timestamp = &get_rte_epoch_nanoseconds;
+            }
         }
 
         _if->configure_rx_duplicate_rules();
@@ -6516,7 +6520,7 @@ COLD_FUNC int main_test(int argc , char * argv[]){
         CGlobalInfo::m_options.timestamp_diff_to_dsec = &ptime_convert_ns_dsec;
         printf("Using realtime (nanoseconds) timestamps in latency stream.\n");
     } else {
-        CGlobalInfo::m_options.get_latency_timestamp = &os_get_hr_tick_64;
+        CGlobalInfo::m_options.get_latency_timestamp = &os_get_hr_tick_64_port;
         CGlobalInfo::m_options.timestamp_diff_to_dsec = &ptime_convert_hr_dsec;
         printf("Using cpu ticks timestamps in latency stream.\n");
     }

@@ -60,7 +60,7 @@ void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timesp
     if ((data == nullptr) || (data->masters_source_port_id != source_port_id))
         return;
     data->t1 = t;
-    pushNextMessage(port, sequence_id, PTP::Field::message_type::DELAY_REQ, {0, 0});
+    pushNextMessage(port, sequence_id, PTP::Field::message_type::PDELAY_REQ, {0, 0});
 }
 
 void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t,
@@ -152,7 +152,7 @@ void CTimesyncEngine::setDelta(int port, int64_t delta) {
 bool CTimesyncEngine::isPacketTypeAllowed(PTP::Field::message_type type) {
     return (m_is_master && ((type == PTP::Field::message_type::SYNC) || (type == PTP::Field::message_type::FOLLOW_UP) ||
                             (type == PTP::Field::message_type::DELAY_RESP))) ||
-           (!m_is_master && (type == PTP::Field::message_type::DELAY_REQ));
+           (!m_is_master && (type == PTP::Field::message_type::PDELAY_REQ));
 }
 
 void CTimesyncEngine::pushNextMessage(int port, uint16_t sequence_id, PTP::Field::message_type type, timespec ts,

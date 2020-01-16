@@ -67,7 +67,7 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
         parse_fup(followup, &t);
         m_timesync_engine->receivedPTPFollowUp(port, *(header->seq_id), t, header->source_port_id);
     } break;
-    case PTP::Field::message_type::DELAY_REQ: {
+    case PTP::Field::message_type::PDELAY_REQ: {
         // PTP::DelayedReqPacket *delay_req = reinterpret_cast<PTP::DelayedReqPacket *>(pkt + PTP_HDR_LEN);
         timespec t;
         parse_delay_request(rx_tstamp_idx, &t, port);
@@ -90,11 +90,16 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
 Json::Value RXTimesync::to_json() const { return Json::objectValue; }
 
 void RXTimesync::parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port) {
+    int i;
     if (hardware_timestamping_enabled) {
-        rte_eth_timesync_read_rx_timestamp(port,
+        i = rte_eth_timesync_read_rx_timestamp(port,
             t, rx_tstamp_idx); 
     } else {
-        clock_gettime(CLOCK_REALTIME, t);
+        i = clock_gettime(CLOCK_REALTIME, t);
+    }
+    if (i != 0) {
+        printf("Error in PTP synchronization - failed to read tx timestamp, error code: %i\n", i);
+        return;
     }
 }
 

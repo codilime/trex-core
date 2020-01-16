@@ -224,6 +224,7 @@ int DpdkTRexPortAttr::set_multicast(bool enable){
 
 int DpdkTRexPortAttr::set_hardware_timesync(bool enable){
     int ret;
+    struct timespec sys_time;
     if (enable) {
         ret = rte_eth_timesync_enable(m_repid);
         if (ret < 0) {
@@ -231,6 +232,10 @@ int DpdkTRexPortAttr::set_hardware_timesync(bool enable){
             printf("Hardware timesync enable failed: %d\n", ret);
         } else {
             hardware_timesync_enabled = true;
+
+            // Set current time to card
+            clock_gettime(CLOCK_REALTIME, &sys_time);
+            rte_eth_timesync_write_time(m_repid, &sys_time);
         }
     } else {
         ret = rte_eth_timesync_disable(m_repid);
