@@ -637,7 +637,7 @@ public:
     uint32_t        x710_fdir_reset_threshold;
     uint32_t        m_lowend_core;
     uint8_t         m_latency_measurement;
-    uint64_t        (*get_latency_timestamp)();
+    uint64_t        (*get_latency_timestamp)(uint8_t);
     double          (*timestamp_diff_to_dsec)(uint64_t);
     TimesyncMethod  m_timesync_method;
     TimesyncTransport m_timesync_transport;
