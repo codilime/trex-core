@@ -47,7 +47,7 @@ struct COsTimeGlobalData {
 
 #ifdef LINUX
 
-static inline uint64_t get_time_epoch_nanoseconds() {
+static inline uint64_t get_time_epoch_nanoseconds(uint8_t) {
     struct timespec res{0, 0};
     if(clock_gettime(CLOCK_REALTIME, &res) == 0) {
         return res.tv_sec * 1000 * 1000 * 1000 + res.tv_nsec;
@@ -62,8 +62,13 @@ static inline uint64_t get_time_epoch_nanoseconds() {
 //extern "C" uint64_t rte_get_hpet_hz(void);
 
 #include "rte_cycles.h"
+#include "rte_ethdev.h"
 
 static inline hr_time_t    os_get_hr_tick_64(void){
+    return (rte_rdtsc());
+}
+
+static inline hr_time_t    os_get_hr_tick_64_port(uint8_t){
     return (rte_rdtsc());
 }
 
@@ -73,6 +78,15 @@ static inline hr_time_32_t os_get_hr_tick_32(void){
 
 static inline hr_time_t    os_get_hr_freq(void){
     return (rte_get_tsc_hz() );
+}
+
+static inline hr_time_t get_rte_epoch_nanoseconds(uint8_t port) {
+    struct timespec res{0, 0};
+    if(rte_eth_timesync_read_time(port, &res) == 0) {
+        return res.tv_sec * 1000 * 1000 * 1000 + res.tv_nsec;
+    } else {
+        return 0;
+    }
 }
 
 
@@ -155,6 +169,12 @@ static inline hr_time_t os_get_hr_tick_64(void) {
  return (res);
 }
 
+static inline hr_time_t os_get_hr_tick_64_port(uint8_t port) {
+ hr_time_t res;
+ platform_time_get_highres_tick_64(&res);
+ return (res);
+}
+
 static inline uint32_t os_get_hr_tick_32(void) {
 	return (platform_time_get_highres_tick_32());
 }
@@ -164,6 +184,7 @@ static inline uint32_t os_get_hr_tick_32(void) {
 #else
 
 hr_time_t    os_get_hr_tick_64(void);
+hr_time_t    os_get_hr_tick_64_port(uint8_t);
 hr_time_32_t os_get_hr_tick_32(void);
 hr_time_t    os_get_hr_freq(void);
 #endif

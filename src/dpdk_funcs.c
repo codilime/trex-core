@@ -17,6 +17,7 @@
 #include <stdint.h>
 #include <rte_byteorder.h>
 #include <rte_ethdev.h>
+#include <rte_cycles.h>
 #include "dpdk/drivers/net/i40e/base/i40e_register.h"
 #include "dpdk/drivers/net/i40e/base/i40e_status.h"
 #include "dpdk/drivers/net/i40e/base/i40e_osdep.h"

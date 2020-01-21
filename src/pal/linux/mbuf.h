@@ -26,6 +26,7 @@ limitations under the License.
 #include <string.h>
 #include <assert.h>
 #include <time.h>
+#include <unistd.h>
 
 typedef struct rte_mbuf  rte_mbuf_t;
 
@@ -279,6 +280,10 @@ static inline int rte_eth_timesync_read_rx_timestamp(uint16_t port_id,
 static inline int rte_eth_timesync_read_tx_timestamp(uint16_t port_id,
         struct timespec *timestamp) {
     return clock_gettime(CLOCK_REALTIME, timestamp);
+}
+
+static inline int rte_delay_us(unsigned int us) {
+    return usleep(us);
 }
 
 /**

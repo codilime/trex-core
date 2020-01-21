@@ -765,6 +765,11 @@ struct CGenNodeTimesync : public CGenNodeBase {
     }
 
     inline void handle(CFlowGenListPerThread *thread) {
+        if (hardware_timestamping_enabled) {
+            /*Read value from NIC to prevent latching with old value. */
+            timespec ts_temp;
+            rte_eth_timesync_read_tx_timestamp(m_port_id, &ts_temp);
+        }
 
         if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
             m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
@@ -775,12 +780,23 @@ struct CGenNodeTimesync : public CGenNodeBase {
         if (m_timesync_engine->hasNextMessage(m_port_id)) {
             timespec ts;
             thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
+            int i;
             if (hardware_timestamping_enabled) {
-                if (rte_eth_timesync_read_tx_timestamp(m_port_id, &ts) != 0)
-                    return;
+                /* Wait at least 1 us to read TX timestamp. */
+                int wait_us = 0;
+
+                i = rte_eth_timesync_read_tx_timestamp(m_port_id, &ts);
+                while ((i < 0) && (wait_us < 1000)) {
+                    rte_delay_us(1);
+                    wait_us++;
+                    i = rte_eth_timesync_read_tx_timestamp(m_port_id, &ts);
+                }
             } else {
-                if (clock_gettime(CLOCK_REALTIME, &ts) != 0)
-                    return;
+                i = clock_gettime(CLOCK_REALTIME, &ts);
+            }
+            if (i != 0) {
+                printf("Error in PTP synchronization - failed to read tx timestamp, error code: %i\n", i);
+                return;
             }
 
             switch (m_last_sent_ptp_packet_type)
@@ -788,7 +804,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             case PTP::Field::message_type::SYNC:
                 m_timesync_engine->sentPTPSync(m_port_id, m_last_sent_sequence_id, ts);
                 break;
-            case PTP::Field::message_type::DELAY_REQ:
+            case PTP::Field::message_type::PDELAY_REQ:
                 m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts, m_last_sent_ptp_src_port);
                 break;
             
@@ -810,10 +826,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
         UDPHeader* udp_hdr = nullptr;
 
         if (CGlobalInfo::m_options.is_timesync_L2()) {
-            // "Two multicast MAC addresses are used for PTP over Ethernet: 01-1B-19-00-00-00 and 01-80-C2-00-00-0E."
-            // Source: https://www.juniper.net/documentation/en_US/junos/topics/concept/ptp-over-ethernet-configuration-guidelines.html
-            // Source: http://www.ieee802.org/1/files/public/docs2006/as-garner-multicast-address-ptp-msgs-r2-060517.pdf
-            eth_hdr->myDestination = { 0x01, 0x1B, 0x19, 0x00, 0x00, 0x00 };
             eth_hdr->setNextProtocol(EthernetHeader::Protocol::PTP);
 
         } else { // If UDP
@@ -873,8 +885,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 }
                 break;
 
-            case PTP::Field::message_type::DELAY_REQ:
-                ptp_hdr->trn_and_msg = PTP::Field::message_type::DELAY_REQ;
+            case PTP::Field::message_type::PDELAY_REQ:
+                ptp_hdr->trn_and_msg = PTP::Field::message_type::PDELAY_REQ;
                 ptp_hdr->message_len = PTP_DELAYREQ_LEN;
                 ptp_hdr->flag_field = PTP::Field::flags::PTP_NONE;
                 ptp_hdr->control = PTP::Field::control::CTL_DELAY_REQ;
@@ -969,7 +981,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             prepare_packet<PTP::FollowUpPacket>(m, next_message);
         } break;
 
-        case PTP::Field::message_type::DELAY_REQ: {
+        case PTP::Field::message_type::PDELAY_REQ: {
             prepare_packet<PTP::DelayedReqPacket>(m, next_message);
         } break;
 

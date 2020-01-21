@@ -137,7 +137,7 @@ RXLatency::create(CRFC2544Info *rfc2544, CRxCoreErrCntrs *err_cntrs) {
 }
 
 void RXLatency::handle_pkt(const rte_mbuf_t *m, int port) {
-  hr_time_t hr_time_now = CGlobalInfo::m_options.get_latency_timestamp();
+  hr_time_t hr_time_now = CGlobalInfo::m_options.get_latency_timestamp(port);
   uint8_t tmp_buf[sizeof(struct flow_stat_payload_header)];
   CFlowStatParser parser(CFlowStatParser::FLOW_STAT_PARSER_MODE_SW);
   parser.set_vxlan_skip(CGlobalInfo::m_options.m_ip_cfg[port].get_vxlan_fs());
