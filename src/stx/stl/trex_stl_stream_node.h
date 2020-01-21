@@ -766,9 +766,9 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
     inline void handle(CFlowGenListPerThread *thread) {
         if (hardware_timestamping_enabled) {
-        /*Read value from NIC to prevent latching with old value. */
-        timespec ts_temp;
-        rte_eth_timesync_read_tx_timestamp(m_port_id, &ts_temp);
+            /*Read value from NIC to prevent latching with old value. */
+            timespec ts_temp;
+            rte_eth_timesync_read_tx_timestamp(m_port_id, &ts_temp);
         }
 
         if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {

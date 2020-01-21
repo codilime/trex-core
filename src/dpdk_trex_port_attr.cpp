@@ -234,8 +234,17 @@ int DpdkTRexPortAttr::set_hardware_timesync(bool enable){
             hardware_timesync_enabled = true;
 
             // Set current time to card
-            clock_gettime(CLOCK_REALTIME, &sys_time);
-            rte_eth_timesync_write_time(m_repid, &sys_time);
+            ret = clock_gettime(CLOCK_REALTIME, &sys_time);
+            if (ret < 0) {
+                printf("Determining system clock time failed: %d.  This is serious.\n", ret);
+            } else {
+                ret = rte_eth_timesync_write_time(m_repid, &sys_time);
+                if (ret < 0) {
+                    printf("Setting time of a timesync clock on an Ethernet device failed: %d\n", ret);
+                } else {
+                    printf("Time of a timesync clock on an Ethernet device set\n");
+                }
+            }
         }
     } else {
         ret = rte_eth_timesync_disable(m_repid);
