@@ -3591,7 +3591,10 @@ COLD_FUNC int  CGlobalTRex::device_start(void){
             _if->get_port_attr()->set_multicast(true);
         }
         if (CGlobalInfo::m_options.m_timesync_method == TimesyncMethod::PTP) {
-            _if->get_port_attr()->set_hardware_timesync(true);
+            if ((_if->get_port_attr()->set_hardware_timesync(true) == 0) &&
+                (CGlobalInfo::m_options.m_latency_measurement == CParserOption::LATENCY_METHOD_NANOS)) {
+                CGlobalInfo::m_options.get_latency_timestamp = &get_rte_epoch_nanoseconds;
+            }
         }
 
         _if->configure_rx_duplicate_rules();
