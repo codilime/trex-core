@@ -128,9 +128,12 @@ int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
     if ((data == nullptr) || (!isDataValid(data)))
         return 0;
 
-    int64_t delta = -((int64_t)((timespecToTimestamp(data->t2) - timespecToTimestamp(data->t1)) -
-                                (timespecToTimestamp(data->t4) - timespecToTimestamp(data->t3)))) /
-                    2;
+    int64_t t1 = timespecToTimestamp(data->t1) / 2,
+            t2 = timespecToTimestamp(data->t2) / 2,
+            t3 = timespecToTimestamp(data->t3) / 2,
+            t4 = timespecToTimestamp(data->t4) / 2;
+    // delta = -((t2 - t1) - (t4 - t3))
+    int64_t delta = t1 - t2 + t4 - t3;
     setDelta(port, delta);
     cleanupSequencesBefore(port, data->t2);
     m_is_slave_synchronized = true;
