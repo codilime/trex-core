@@ -23,12 +23,6 @@ limitations under the License.
 
 #include "trex_global.h"
 
-inline timespec timestampToTimespec(uint64_t timestamp) {
-    return {(uint32_t)(timestamp / (1000 * 1000 * 1000)), (uint32_t)(timestamp % (1000 * 1000 * 1000))};
-};
-
-inline uint64_t timespecToTimestamp(timespec ts) { return ((uint64_t)ts.tv_sec * (1000 * 1000 * 1000)) + ts.tv_nsec; }
-
 /**
  * CTimesyncEngine
  */
@@ -141,7 +135,7 @@ int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
 }
 
 void CTimesyncEngine::setDelta(int port, int64_t delta) {
-    printf("PTP delta for port %d: %ld ns\n", port, delta);  // TODO this is useful but not mandatory, shall we keep it?
+    printf("PTP delta for port %d: %ld ns\n", port, delta);
     auto iter = m_deltas.find(port);
     if (iter != m_deltas.end()) {
         m_deltas[port] = delta;

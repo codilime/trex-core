@@ -39,12 +39,12 @@ class RXTimesync {
     bool hardware_timestamping_enabled;
 
   private:
-    TimesyncPacketParser_err_t parse_ptp_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port);
-    TimesyncPacketParser_err_t parse_ip_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port);
+    TimesyncPacketParser_err_t parse_ptp_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port, uint64_t m_timestamp);
+    TimesyncPacketParser_err_t parse_ip_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port, uint64_t m_timestamp);
 
-    int parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port);
+    int parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port, uint64_t m_timestamp);
     void parse_fup(PTP::FollowUpPacket *followup, timespec *t);
-    int parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int port);
+    int parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int port, uint64_t m_timestamp);
     void parse_delay_response(PTP::DelayedRespPacket *delay_resp, timespec *t);
 
   private:

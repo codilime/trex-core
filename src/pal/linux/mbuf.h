@@ -98,6 +98,7 @@ struct rte_mbuf {
     } hash;                   /**< hash information */
 
     uint16_t timesync;
+	uint64_t timestamp;  // required in rx-callbacks
 } ;
 
 #ifdef TREX_MBUF_SIM_LOCAL

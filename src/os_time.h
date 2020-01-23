@@ -83,7 +83,7 @@ static inline hr_time_t    os_get_hr_freq(void){
 static inline hr_time_t get_rte_epoch_nanoseconds(uint8_t port) {
     struct timespec res{0, 0};
     if(rte_eth_timesync_read_time(port, &res) == 0) {
-        return res.tv_sec * 1000 * 1000 * 1000 + res.tv_nsec;
+        return ((uint64_t) res.tv_sec * 1000 * 1000 * 1000) + res.tv_nsec;
     } else {
         return 0;
     }

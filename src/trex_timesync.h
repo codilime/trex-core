@@ -31,6 +31,12 @@ limitations under the License.
 
 #include "common/Network/Packet/PTPPacket.h"
 
+inline timespec timestampToTimespec(uint64_t timestamp) {
+    return {(uint32_t)(timestamp / (1000 * 1000 * 1000)), (uint32_t)(timestamp % (1000 * 1000 * 1000))};
+};
+
+inline uint64_t timespecToTimestamp(timespec ts) { return ((uint64_t)ts.tv_sec * (1000 * 1000 * 1000)) + ts.tv_nsec; }
+
 enum struct TimesyncMethod : uint8_t {
     NONE = 0,
     PTP = 1,

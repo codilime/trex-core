@@ -1546,6 +1546,10 @@ COLD_FUNC void CPhyEthIF::stats_clear(){
     m_stats.Clear();
 }
 
+COLD_FUNC void CPhyEthIF::add_rx_callback(uint16_t queue_id, rte_rx_callback_fn fn) {
+    rte_eth_add_rx_callback(m_repid, queue_id, fn, NULL);
+}
+
 class CCorePerPort  {
 public:
     CCorePerPort (){
@@ -3568,9 +3572,38 @@ COLD_FUNC void CGlobalTRex::rx_interactive_conf(void) {
     }
 }
 
+static HOT_FUNC uint16_t add_timestamps(uint16_t port,
+                               uint16_t qidx __rte_unused,
+                               struct rte_mbuf **pkts,
+                               uint16_t nb_pkts,
+                               uint16_t max_pkts __rte_unused,
+                               void *_ __rte_unused) {
+    for (uint16_t i = 0; i < nb_pkts; i++) {
+        if ((pkts[i]->timestamp > 0) || ((pkts[i]->packet_type & RTE_PTYPE_L3_IPV4) != RTE_PTYPE_L3_IPV4))
+            continue;
+        uint8_t *pkt = rte_pktmbuf_mtod(pkts[i], uint8_t *);
+        EthernetHeader *ether_hdr = (EthernetHeader *)pkt;
+        uint32_t ether_offset = ether_hdr->getSize();
+        IPHeader *ip_hdr = (IPHeader *)(pkt + ether_offset);
+        if (ip_hdr->getNextProtocol() == IPHeader::Protocol::UDP) {
+            UDPHeader *udp_hdr = (UDPHeader *)(pkt + ether_offset + IPV4_HDR_LEN);
+            uint16_t d_port = udp_hdr->getDestPort();
+            if (d_port == 319 || d_port == 320) // it is fine to distinguish PTP basing solely on UDP ports
+                pkts[i]->timestamp = CGlobalInfo::m_options.get_latency_timestamp(port);
+        }
+    }
+
+    return nb_pkts;
+}
 
 COLD_FUNC int  CGlobalTRex::device_start(void){
     int i;
+
+    CTrexDpdkParams dpdk_p;
+    get_dpdk_drv_params(dpdk_p);
+    uint16_t rx_qs;
+    rx_qs = dpdk_p.get_total_rx_queues();
+
     for (i=0; i<m_max_ports; i++) {
         socket_id_t socket_id = CGlobalInfo::m_socket.port_to_socket((port_id_t)i);
         assert(CGlobalInfo::m_mem_pool[socket_id].m_mbuf_pool_2048);
@@ -3594,6 +3627,11 @@ COLD_FUNC int  CGlobalTRex::device_start(void){
             if ((_if->get_port_attr()->set_hardware_timesync(true) == 0) &&
                 (CGlobalInfo::m_options.m_latency_measurement == CParserOption::LATENCY_METHOD_NANOS)) {
                 CGlobalInfo::m_options.get_latency_timestamp = &get_rte_epoch_nanoseconds;
+                if (CGlobalInfo::m_options.m_timesync_transport == TimesyncTransport::UDP) {
+                    for (uint16_t qid = 0; qid < rx_qs; qid++) {
+                        _if->add_rx_callback(qid, add_timestamps);
+                    }
+                }
             }
         }
 
