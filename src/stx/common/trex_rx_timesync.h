@@ -15,6 +15,7 @@ typedef enum TimesyncPacketParser_err {
     TIMESYNC_PARSER_E_SHORT_PTP_HEADER,
     TIMESYNC_PARSER_E_UNKNOWN_MSG,
     TIMESYNC_PARSER_E_UNKNOWN_HDR,
+    TIMESYNC_PARSER_E_NO_TIMESTAMP
 } TimesyncPacketParser_err_t;
 
 
@@ -41,9 +42,9 @@ class RXTimesync {
     TimesyncPacketParser_err_t parse_ptp_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port);
     TimesyncPacketParser_err_t parse_ip_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port);
 
-    void parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port);
+    int parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port);
     void parse_fup(PTP::FollowUpPacket *followup, timespec *t);
-    void parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int port);
+    int parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int port);
     void parse_delay_response(PTP::DelayedRespPacket *delay_resp, timespec *t);
 
   private:
