@@ -765,13 +765,16 @@ struct CGenNodeTimesync : public CGenNodeBase {
     }
 
     inline void handle(CFlowGenListPerThread *thread) {
-        if (hardware_timestamping_enabled) {
-            /*Read value from NIC to prevent latching with old value. */
-            timespec ts_temp;
-            rte_eth_timesync_read_tx_timestamp(m_port_id, &ts_temp);
-        }
-
         if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
+            if (hardware_timestamping_enabled) {
+                /*Read values from NIC to prevent latching with old value. */
+                timespec ts_temp;
+                int i = 0;
+                while (i == 0) {
+                    i = rte_eth_timesync_read_tx_timestamp(m_port_id, &ts_temp);
+                }
+            }
+
             m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
                                                PTP::Field::message_type::SYNC, {0, 0});
             timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
@@ -807,7 +810,17 @@ struct CGenNodeTimesync : public CGenNodeBase {
             case PTP::Field::message_type::PDELAY_REQ:
                 m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts, m_last_sent_ptp_src_port);
                 break;
-            
+            case PTP::Field::message_type::FOLLOW_UP:
+                if (hardware_timestamping_enabled) {
+                    /*Read values from NIC to prevent latching with old value. */
+                    int i = 0;
+                    timespec ts_temp;
+                    while (i == 0) {
+                        i = rte_eth_timesync_read_rx_timestamp(m_port_id, &ts_temp, 0);
+                    }
+                }
+                break;
+
             default:
                 break;
             }

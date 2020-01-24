@@ -1972,8 +1972,8 @@ HOT_FUNC int CCoreEthIFStateless::send_node_flow_stat(rte_mbuf *m, CGenNodeState
     lp_s->add_bytes(mi->pkt_len + 4); // We add 4 because of ethernet CRC
 
     if (hw_id >= MAX_FLOW_STATS) {
-        // do not send latency packets unless we are synchronized
-        if (!CGlobalInfo::m_timesync_engine.isSlaveSynchronized())
+        // if using time synchronization do not send latency packets unless we are synchronized
+        if (CGlobalInfo::m_options.is_timesync_enabled() && !CGlobalInfo::m_timesync_engine.isSlaveSynchronized())
             return -1;
         uint8_t m_port_id = lp_port->m_port->get_tvpid();
         fsp_head->time_stamp = CGlobalInfo::m_options.get_latency_timestamp(m_port_id);
