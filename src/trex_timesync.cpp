@@ -47,6 +47,7 @@ void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t
                                       PTP::Field::src_port_id_field source_port_id) {
     if (m_is_master)
         return;
+    printf("[DUPA] Received PTP Sync. Source port ID = %d\n", source_port_id.port_number());
     CTimesyncPTPData_t *data = getOrCreateData(port, sequence_id);
     data->masters_source_port_id = source_port_id;
     data->t2 = t;
@@ -56,6 +57,7 @@ void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timesp
                                           PTP::Field::src_port_id_field source_port_id) {
     if (m_is_master)
         return;
+    printf("[DUPA] Received PTP Follow up\n");
     CTimesyncPTPData_t *data = getData(port, sequence_id);
     if ((data == nullptr) || (data->masters_source_port_id != source_port_id))
         return;
@@ -67,6 +69,7 @@ void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t
                                       PTP::Field::src_port_id_field source_port_id) {
     if (m_is_master)
         return;
+    printf("[DUPA] Received PTP Delay Req\n");
     CTimesyncPTPData_t *data = getData(port, sequence_id);
     if (data == nullptr)
         return;
@@ -79,6 +82,7 @@ void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, times
                                            PTP::Field::src_port_id_field requesting_source_port_id) {
     if (m_is_master)
         return;
+    printf("[DUPA] Received PTP Delay Resp\n");
     CTimesyncPTPData_t *data = getData(port, sequence_id);
     if ((data == nullptr) || (data->masters_source_port_id != source_port_id) ||
         (data->slaves_source_port_id != requesting_source_port_id))
@@ -94,6 +98,7 @@ void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, times
 void CTimesyncEngine::sentPTPSync(int port, uint16_t sequence_id, timespec t) {
     if (!m_is_master)
         return;
+    printf("[DUPA] Sent PTP Sync\n");
     pushNextMessage(port, sequence_id, PTP::Field::message_type::FOLLOW_UP, t);
 }
 
@@ -101,6 +106,7 @@ void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timesp
                                           PTP::Field::src_port_id_field source_port_id) {
     if (!m_is_master)
         return;
+    printf("[DUPA] Received PTP Delay Req\n");
     pushNextMessage(port, sequence_id, PTP::Field::message_type::DELAY_RESP, t, source_port_id);
 }
 
@@ -108,6 +114,7 @@ void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timesp
 
 void CTimesyncEngine::cleanupSequencesBefore(int port, timespec ts) {
     uint64_t timestamp = timespecToTimestamp(ts);
+    printf("[DUPA] CTimesyncEngine::cleanupSequencesBefore - timestamp = %u\n", timestamp);
     if (timestamp == 0)
         return;
     CTimesyncSequences_t sequences = m_sequences_per_port[port];
@@ -125,8 +132,10 @@ bool CTimesyncEngine::isDataValid(CTimesyncPTPData_t *data) {
 
 int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
     CTimesyncPTPData_t *data = getData(port, sequence_id);
-    if ((data == nullptr) || (!isDataValid(data)))
+    if ((data == nullptr) || (!isDataValid(data))) {
+        printf("[DUPA] CTimesyncEngine::evalDelta - invalid data!\n");
         return 0;
+    }
 
     int64_t t1 = timespecToTimestamp(data->t1) / 2,
             t2 = timespecToTimestamp(data->t2) / 2,
@@ -134,6 +143,7 @@ int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
             t4 = timespecToTimestamp(data->t4) / 2;
     // delta = -((t2 - t1) - (t4 - t3))
     int64_t delta = t1 - t2 + t4 - t3;
+    printf("[DUPA] CTimesyncEngine::evalDelta delta = %d!\n", delta);
     setDelta(port, delta);
     cleanupSequencesBefore(port, data->t2);
     m_is_slave_synchronized = true;
@@ -141,7 +151,7 @@ int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
 }
 
 void CTimesyncEngine::setDelta(int port, int64_t delta) {
-    printf("PTP delta for port %d: %ld ns\n", port, delta);  // TODO this is useful but not mandatory, shall we keep it?
+    printf("[DUPA] PTP delta for port %d: %ld ns\n", port, delta);  // TODO this is useful but not mandatory, shall we keep it?
     auto iter = m_deltas.find(port);
     if (iter != m_deltas.end()) {
         m_deltas[port] = delta;
@@ -160,16 +170,20 @@ bool CTimesyncEngine::isPacketTypeAllowed(PTP::Field::message_type type) {
 
 void CTimesyncEngine::pushNextMessage(int port, uint16_t sequence_id, PTP::Field::message_type type, timespec ts,
                                       PTP::Field::src_port_id_field source_port_id) {
-    if (!isPacketTypeAllowed(type))
+    if (!isPacketTypeAllowed(type)) {
+        printf("[DUPA] CTimesyncEngine::pushNextMessage - packet type %x is not allowed!\n");
         return;
+    }
     CTimesyncPTPPacketQueue_t *packet_queue = getOrCreatePacketQueue(port);
     packet_queue->push({sequence_id, type, ts, source_port_id});
 }
 
 CTimesyncPTPPacketData_t CTimesyncEngine::popNextMessage(int port) {
     CTimesyncPTPPacketQueue_t *packet_queue = getPacketQueue(port);
-    if (packet_queue == nullptr)
+    if (packet_queue == nullptr) {
+        printf("[DUPA] CTimesyncPTPPacketData_t CTimesyncEngine::popNextMessage packet_queue is nullptr!\n");
         return {0, PTP::Field::message_type::UNKNOWN, {0, 0}, {}};
+    }
     CTimesyncPTPPacketData_t next_message = packet_queue->front();
     packet_queue->pop();
     return next_message;
