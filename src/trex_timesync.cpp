@@ -240,3 +240,17 @@ CTimesyncPTPData_t CTimesyncEngine::getClockInfo(int port, uint16_t sequence_id)
     CTimesyncPTPData_t *data = getOrCreateData(port, sequence_id);
     return *data;
 }
+
+void CTimesyncEngine::setTxTimestamp(int port, uint16_t sequence_id, uint64_t timestamp) {
+    m_tx_timestamp.port = port;
+    m_tx_timestamp.sequence_id = sequence_id;
+    m_tx_timestamp.timestamp = timestamp;
+}
+
+uint8_t CTimesyncEngine::getTxTimestamp(int port, uint16_t sequence_id, timespec *ts) {
+    if ((m_tx_timestamp.port == port) && (m_tx_timestamp.sequence_id == sequence_id)) {
+        *ts = timestampToTimespec(m_tx_timestamp.timestamp);
+        return 0;
+    }
+    return -1;
+}

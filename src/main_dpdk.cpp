@@ -221,6 +221,7 @@ enum {
        OPT_TIME_SYNC_METHOD,
        OPT_TIME_SYNC_TRANSPORT,
        OPT_TIME_SYNC_PERIOD,
+       OPT_TIME_SYNC_CALLBACKS,
     
        /* no more pass this */
        OPT_MAX
@@ -316,6 +317,7 @@ static CSimpleOpt::SOption parser_options[] =
         { OPT_TIME_SYNC_METHOD,       "--timesync-method", SO_REQ_SEP},
         { OPT_TIME_SYNC_TRANSPORT,    "--timesync-transport", SO_REQ_SEP},
         { OPT_TIME_SYNC_PERIOD,       "--timesync-interval", SO_REQ_SEP},
+        { OPT_TIME_SYNC_CALLBACKS,    "--timesync-callbacks", SO_REQ_SEP},
 
         SO_END_OF_OPTIONS
     };
@@ -414,10 +416,12 @@ static int COLD_FUNC  usage() {
     printf("                              argument from config file. Supported method are 1 for nanoseconds (clock_gettime), 0 (default) for standard system ticks (RDTSC)\n");
     printf(" --timesync-method <method> : Enable time synchronisation with given method. Overrides the 'timesync_method' argument from config file\n");
     printf("                              Supported method is 1 for PTP. Default is 0 for no synchronisation\n");
-    printf(" --timesync-transport <method> : Set transport method for PTP packets. Overrides the 'timesync_transport' argument from config file\n");
-    printf("                              Supported method is 0 for Eth/L2 and 1 for IP/UDP. Default is 0 if timesync_transport was set to PTP\n");
+    printf(" --timesync-transport <trt> : Set transport method for PTP packets. Overrides the 'timesync_transport' argument from config file\n");
+    printf("                              Supported method is 0 for Eth/L2 and 1 for IP/UDP. Default is 0 for PTP over L2\n");
     printf(" --timesync-interval <num>  : Define how often (in seconds) will time synchronisation take place. Overrides the 'timesync_interval' argument from config file\n");
     printf("                              Default is 0 seconds which means TRex will be running as a client/slave in time synchronisation protocol.\n");
+    printf(" --timesync-callbacks <msk> : Enable use of DPDK rx/tx callbacks to timestamp the packets. Overrides the 'timesync_callbacks argument from the config file.");
+    printf("                              Default is 0 for no callbacks. 0b01 (1) enables rx callbacks while 0b10 (2) enables tx; 0b11 enables both.\n");
     
 
     printf("\n");
@@ -952,6 +956,14 @@ COLD_FUNC static int parse_options(int argc, char *argv[], bool first_time ) {
             case OPT_TIME_SYNC_PERIOD:
                 sscanf(args.OptionArg(), "%d", &CGlobalInfo::m_options.m_timesync_interval);
                 break;
+            case OPT_TIME_SYNC_CALLBACKS:
+                sscanf(args.OptionArg(), "%d", &tmp_data);
+                if (!po->is_valid_opt_val(tmp_data, (uint8_t)TimesyncCallbacks::NONE, (uint8_t)TimesyncCallbacks::BOTH, "--timesync-callbacks")) {
+                    exit(-1);
+                }
+                CGlobalInfo::m_options.m_timesync_callbacks = (TimesyncCallbacks)tmp_data;
+                break;
+
 
             default:
                 printf("Error: option %s is not handled.\n\n", args.OptionText());
@@ -1548,6 +1560,10 @@ COLD_FUNC void CPhyEthIF::stats_clear(){
 
 COLD_FUNC void CPhyEthIF::add_rx_callback(uint16_t queue_id, rte_rx_callback_fn fn) {
     rte_eth_add_rx_callback(m_repid, queue_id, fn, NULL);
+}
+
+COLD_FUNC void CPhyEthIF::add_tx_callback(uint16_t queue_id, rte_tx_callback_fn fn) {
+    rte_eth_add_tx_callback(m_repid, queue_id, fn, NULL);
 }
 
 class CCorePerPort  {
@@ -3572,27 +3588,67 @@ COLD_FUNC void CGlobalTRex::rx_interactive_conf(void) {
     }
 }
 
-static HOT_FUNC uint16_t add_timestamps(uint16_t port,
+/**
+ * Decides if `m` is a PTP packet that sould be timestamped (only event messages are interesting).
+ * If so, returns ptp header offset in the L2 frame.
+ */
+static inline HOT_FUNC uint8_t get_ptp_packet_offset(struct rte_mbuf *m) {
+    if (m->timestamp > 0)
+        return 0;
+    uint8_t *pkt = rte_pktmbuf_mtod(m, uint8_t *);
+    EthernetHeader *ether_hdr = (EthernetHeader *)pkt;
+    uint16_t ether_np = ether_hdr->getNextProtocol();
+    if (ether_np == EthernetHeader::Protocol::IP) {
+        uint32_t ether_offset = ether_hdr->getSize();
+        IPHeader *ip_hdr = (IPHeader *)(pkt + ether_offset);
+        if (ip_hdr->getNextProtocol() == IPHeader::Protocol::UDP) {
+            UDPHeader *udp_hdr = (UDPHeader *)(pkt + ether_offset + IPV4_HDR_LEN);
+            if (udp_hdr->getDestPort() == 319)
+                return ether_offset + IPV4_HDR_LEN + UDP_HEADER_LEN;
+        }
+        return 0;
+    } else if (ether_np ==  EthernetHeader::Protocol::PTP) {
+        uint32_t ether_offset = ether_hdr->getSize();
+        uint8_t *ptp_msg_type = (uint8_t *)(pkt + ether_offset);
+        switch (*ptp_msg_type & 0x07) {
+            case (uint8_t) PTP::Field::message_type::SYNC:
+            case (uint8_t) PTP::Field::message_type::DELAY_REQ:
+            case (uint8_t) PTP::Field::message_type::PDELAY_REQ:
+            case (uint8_t) PTP::Field::message_type::PDELAY_RESP:
+                return ether_offset;
+        }
+        return 0;
+    }
+    return 0;
+}
+
+static HOT_FUNC uint16_t add_rx_timestamp(uint16_t port,
                                uint16_t qidx __rte_unused,
                                struct rte_mbuf **pkts,
                                uint16_t nb_pkts,
                                uint16_t max_pkts __rte_unused,
                                void *_ __rte_unused) {
     for (uint16_t i = 0; i < nb_pkts; i++) {
-        if ((pkts[i]->timestamp > 0) || ((pkts[i]->packet_type & RTE_PTYPE_L3_IPV4) != RTE_PTYPE_L3_IPV4))
-            continue;
-        uint8_t *pkt = rte_pktmbuf_mtod(pkts[i], uint8_t *);
-        EthernetHeader *ether_hdr = (EthernetHeader *)pkt;
-        uint32_t ether_offset = ether_hdr->getSize();
-        IPHeader *ip_hdr = (IPHeader *)(pkt + ether_offset);
-        if (ip_hdr->getNextProtocol() == IPHeader::Protocol::UDP) {
-            UDPHeader *udp_hdr = (UDPHeader *)(pkt + ether_offset + IPV4_HDR_LEN);
-            uint16_t d_port = udp_hdr->getDestPort();
-            if (d_port == 319 || d_port == 320) // it is fine to distinguish PTP basing solely on UDP ports
-                pkts[i]->timestamp = CGlobalInfo::m_options.get_latency_timestamp(port);
+        if (get_ptp_packet_offset(pkts[i]) > 0) {
+            pkts[i]->timestamp = CGlobalInfo::m_options.get_latency_timestamp(port);
         }
     }
+    return nb_pkts;
+}
 
+static HOT_FUNC uint16_t add_tx_timestamp(uint16_t port,
+                               uint16_t qidx __rte_unused,
+                               struct rte_mbuf **pkts,
+                               uint16_t nb_pkts,
+                               void *_ __rte_unused) {
+    for (uint16_t i = 0; i < nb_pkts; i++) {
+        uint8_t ptp_offset = get_ptp_packet_offset(pkts[i]);
+        if (ptp_offset > 0) {
+            uint8_t *pkt = rte_pktmbuf_mtod(pkts[i], uint8_t *);
+            PTP::Header *ptp_hdr = (PTP::Header *)(pkt + ptp_offset);
+            CGlobalInfo::m_timesync_engine.setTxTimestamp(port, *(ptp_hdr->seq_id), CGlobalInfo::m_options.get_latency_timestamp(port));
+        }
+    }
     return nb_pkts;
 }
 
@@ -3627,10 +3683,15 @@ COLD_FUNC int  CGlobalTRex::device_start(void){
             if ((_if->get_port_attr()->set_hardware_timesync(true) == 0) &&
                 (CGlobalInfo::m_options.m_latency_measurement == CParserOption::LATENCY_METHOD_NANOS)) {
                 CGlobalInfo::m_options.get_latency_timestamp = &get_rte_epoch_nanoseconds;
-                if (CGlobalInfo::m_options.m_timesync_transport == TimesyncTransport::UDP) {
-                    for (uint16_t qid = 0; qid < rx_qs; qid++) {
-                        _if->add_rx_callback(qid, add_timestamps);
-                    }
+            }
+            if (CGlobalInfo::m_options.is_timesync_rx_callback_enabled()) {
+                for (uint16_t qid = 0; qid < rx_qs; qid++) {
+                    _if->add_rx_callback(qid, add_rx_timestamp);
+                }
+            }
+            if (CGlobalInfo::m_options.is_timesync_tx_callback_enabled()) {
+                for (uint16_t qid = 0; qid < rx_qs; qid++) {
+                    _if->add_tx_callback(qid, add_tx_timestamp);
                 }
             }
         }
@@ -6098,6 +6159,21 @@ COLD_FUNC int update_global_info_from_platform_file(){
         g_opts->m_timesync_interval = cg->m_timesync_interval;
     }
 
+    if (cg->m_timesync_callbacks.length()) {
+        if ((cg->m_timesync_callbacks.compare("RX") == 0) ||
+            (cg->m_timesync_callbacks.compare("1") == 0)) {
+            g_opts->m_timesync_callbacks = TimesyncCallbacks::RX;
+        }
+        if ((cg->m_timesync_callbacks.compare("TX") == 0) ||
+            (cg->m_timesync_callbacks.compare("2") == 0)) {
+            g_opts->m_timesync_callbacks = TimesyncCallbacks::TX;
+        }
+        if ((cg->m_timesync_callbacks.compare("BOTH") == 0) ||
+            (cg->m_timesync_callbacks.compare("3") == 0)) {
+            g_opts->m_timesync_callbacks = TimesyncCallbacks::BOTH;
+        }
+    }
+
     return (0);
 }
 
@@ -6547,6 +6623,13 @@ COLD_FUNC int main_test(int argc , char * argv[]){
                CGlobalInfo::m_options.timesync_method_desc(), CGlobalInfo::m_options.m_timesync_interval);
     } else {
         printf("Time synchronisation disabled.\n");
+    }
+
+    if (CGlobalInfo::m_options.m_timesync_callbacks != TimesyncCallbacks::NONE) {
+        printf("Enabled %s callbacks for PTP packets timestamping.\n", CGlobalInfo::m_options.timesync_callbacks_desc());
+        if (!CGlobalInfo::m_options.is_timesync_enabled()) {
+            printf("(Since you do not use time synchronization mechanism, enabling callbacks probably makes no sense).\n");
+        }
     }
 
     // TODO when we have a decent hardware to test the performance, it might be a good idea to implement

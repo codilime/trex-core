@@ -17,7 +17,10 @@ void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
         if (m->pkt_len < ETH_HDR_LEN)
             return;
 
-        uint64_t m_timestamp = m->timestamp;
+        uint64_t m_timestamp = 0;
+        if (CGlobalInfo::m_options.is_timesync_rx_callback_enabled()) {
+            m_timestamp = m->timestamp;
+        }
         uint8_t *pkt = rte_pktmbuf_mtod(m, uint8_t *);
         EthernetHeader *ether_hdr = (EthernetHeader *)pkt;
         uint32_t offset = ether_hdr->getSize();
@@ -107,6 +110,9 @@ int RXTimesync::parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port, uint64
             *t = timestampToTimespec(m_timestamp);
             i = m_timestamp > 0 ? 0 : -1;
         }
+    } else if (CGlobalInfo::m_options.is_timesync_rx_callback_enabled()) {
+        *t = timestampToTimespec(m_timestamp);
+        i = m_timestamp > 0 ? 0 : -1;
     } else {
         i = clock_gettime(CLOCK_REALTIME, t);
     }
@@ -129,6 +135,9 @@ int RXTimesync::parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int por
             *t = timestampToTimespec(m_timestamp);
             i = m_timestamp > 0 ? 0 : -1;
         }
+    } else if (CGlobalInfo::m_options.is_timesync_rx_callback_enabled()) {
+        *t = timestampToTimespec(m_timestamp);
+        i = m_timestamp > 0 ? 0 : -1;
     } else {
         i = clock_gettime(CLOCK_REALTIME, t);
     }

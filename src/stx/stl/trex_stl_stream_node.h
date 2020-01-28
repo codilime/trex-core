@@ -794,6 +794,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
                     wait_us++;
                     i = rte_eth_timesync_read_tx_timestamp(m_port_id, &ts);
                 }
+            } else if (CGlobalInfo::m_options.is_timesync_tx_callback_enabled()) {
+                i = m_timesync_engine->getTxTimestamp(m_port_id, m_last_sent_sequence_id, &ts);
             } else {
                 i = clock_gettime(CLOCK_REALTIME, &ts);
             }
