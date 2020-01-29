@@ -287,6 +287,12 @@ static inline int rte_delay_us(unsigned int us) {
     return usleep(us);
 }
 
+// this method should only run with hardware clocks on NICs
+static inline int rte_eth_timesync_adjust_time(uint16_t port_id, int64_t delta)
+{
+    return -1;
+}
+
 /**
  * Get the headroom in a packet mbuf.
  *

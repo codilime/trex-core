@@ -91,6 +91,17 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
         parse_delay_response(delay_resp, &t);
         m_timesync_engine->receivedPTPDelayResp(port, *(header->seq_id), t, header->source_port_id,
                                                 delay_resp->req_clock_identity);
+        if (hardware_timestamping_enabled && m_timesync_engine->isDeltaValid(port)) {
+            int64_t delta = m_timesync_engine->getDelta(port);
+            if (delta != 0) {
+                int i = rte_eth_timesync_adjust_time(port, delta);
+                if (i < 0) {
+                    printf("Error (%d) adjusting hardware clock on port %d.  Falling back to latency offsetting.\n", i, port);
+                    break;
+                }
+            }
+            m_timesync_engine->setHardwareClockAdjusted(port, true);
+        }
     } break;
     default:
         return TIMESYNC_PARSER_E_UNKNOWN_MSG;

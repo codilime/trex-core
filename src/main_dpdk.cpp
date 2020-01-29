@@ -1997,7 +1997,8 @@ HOT_FUNC int CCoreEthIFStateless::send_node_flow_stat(rte_mbuf *m, CGenNodeState
             return -1;
         uint8_t m_port_id = lp_port->m_port->get_tvpid();
         fsp_head->time_stamp = CGlobalInfo::m_options.get_latency_timestamp(m_port_id);
-        if (CGlobalInfo::m_options.is_timesync_enabled()) {
+        if (CGlobalInfo::m_options.is_timesync_enabled() &&
+            !(CGlobalInfo::get_timesync_engine()->isHardwareClockAdjusted(m_port_id))) {
             fsp_head->time_stamp += CGlobalInfo::get_timesync_engine()->getDelta(m_port_id);
         }
         send_pkt_lat(lp_port, mi, lp_stats);
