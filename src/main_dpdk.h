@@ -121,6 +121,7 @@ class CPhyEthIF  {
     virtual void stats_clear();
 
     virtual void add_rx_callback(uint16_t queue_id, rte_rx_callback_fn fn);
+    virtual void add_tx_callback(uint16_t queue_id, rte_tx_callback_fn fn);
 
     tvpid_t             get_tvpid(){
         return (m_tvpid);

@@ -47,6 +47,14 @@ enum struct TimesyncTransport : uint8_t {
     UDP = 1,
 };
 
+enum struct TimesyncCallbacks : uint8_t {
+    NONE = 0,
+    RX = 0b01,
+    TX = 0b10,
+    BOTH = 0b11
+};
+
+
 // A struct defining a single PTP synchronization sequence data
 typedef struct {
     PTP::Field::src_port_id_field masters_source_port_id;
@@ -68,6 +76,13 @@ typedef struct {
 } CTimesyncPTPPacketData_t;
 
 typedef std::queue<CTimesyncPTPPacketData_t> CTimesyncPTPPacketQueue_t;
+
+typedef struct {
+    int port;
+    uint16_t sequence_id;
+    uint64_t timestamp;
+} CTimesyncTxTimestamp_t;
+
 
 /**
  * Time synchronization engine [WIP]
@@ -129,6 +144,9 @@ class CTimesyncEngine {
     CTimesyncPTPPacketData_t popNextMessage(int port);
     bool hasNextMessage(int port);
 
+    void setTxTimestamp(int port, uint16_t sequence_id, uint64_t timestamp);
+    uint8_t getTxTimestamp(int port, uint16_t sequence_id, timespec *ts);
+
   private:
     CTimesyncSequences_t *getSequences(int port);
     CTimesyncSequences_t *getOrCreateSequences(int port);
@@ -150,6 +168,7 @@ class CTimesyncEngine {
     std::unordered_map<int, CTimesyncSequences_t> m_sequences_per_port;
     std::unordered_map<int, CTimesyncPTPPacketQueue_t> m_send_queue_per_port;
     std::unordered_map<int, int64_t> m_deltas;
+    CTimesyncTxTimestamp_t m_tx_timestamp;
 };
 
 #endif /* __TREX_TIMESYNC_H__ */

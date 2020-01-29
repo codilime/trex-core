@@ -525,6 +525,12 @@ void operator >> (const YAML::Node& node, CPlatformYamlInfo & plat_info) {
         node["timesync_interval"] >> plat_info.m_timesync_interval;
     }
 
+    if ( node.FindValue("timesync_callbacks") ) {
+        node["timesync_callbacks"] >> plat_info.m_timesync_callbacks;
+        std::transform(plat_info.m_timesync_callbacks.begin(), plat_info.m_timesync_callbacks.end(),
+                       plat_info.m_timesync_callbacks.begin(), ::toupper);
+    }
+
     if ( node.FindValue("port_info")  ) {
         const YAML::Node& mac_info = node["port_info"];
         for(unsigned i=0;i<mac_info.size();i++) {
@@ -661,6 +667,10 @@ void CPlatformYamlInfo::Dump(FILE *fd){
 
     if (m_timesync_interval != TIMESYNC_INTERVAL_DEFAULT) {
         fprintf(fd," timesync_interval:  %d \n",(int)m_timesync_interval);
+    }
+
+    if (m_timesync_callbacks.length()) {
+        fprintf(fd," timesync_callbacks:  %s \n",m_timesync_callbacks.c_str());
     }
 
     if ( m_mac_info_exist ){

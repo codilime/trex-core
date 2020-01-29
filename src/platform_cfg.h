@@ -223,6 +223,7 @@ public:
         m_timesync_method = "";
         m_timesync_transport = "";
         m_timesync_interval = TIMESYNC_INTERVAL_DEFAULT;
+        m_timesync_callbacks = "";
     }
 
     bool            m_info_exist; /* file exist ?*/
@@ -272,6 +273,7 @@ public:
     std::string                 m_timesync_method;
     std::string                 m_timesync_transport;
     uint32_t                    m_timesync_interval;
+    std::string                 m_timesync_callbacks;
 
 public:
     std::string get_use_if_comma_seperated();

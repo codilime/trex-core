@@ -576,6 +576,7 @@ public:
         m_timesync_method = TimesyncMethod::NONE;
         m_timesync_transport = TimesyncTransport::ETH;
         m_timesync_interval = 0;
+        m_timesync_callbacks = TimesyncCallbacks::NONE;
     }
 
     CParserOption(){
@@ -642,6 +643,7 @@ public:
     TimesyncMethod  m_timesync_method;
     TimesyncTransport m_timesync_transport;
     uint32_t        m_timesync_interval;
+    TimesyncCallbacks m_timesync_callbacks;
 
 
 public:
@@ -748,6 +750,29 @@ public:
                 return (const char *)"PTP over UDP";
             else
                 return (const char *)"PTP with unknown transport";
+        default:
+            return (const char *)"undefined";
+        }
+    }
+
+    inline bool is_timesync_rx_callback_enabled() {
+        return ((uint8_t) m_timesync_callbacks & (uint8_t) TimesyncCallbacks::RX) == (uint8_t) TimesyncCallbacks::RX;
+    }
+
+    inline bool is_timesync_tx_callback_enabled() {
+        return ((uint8_t) m_timesync_callbacks & (uint8_t) TimesyncCallbacks::TX) == (uint8_t) TimesyncCallbacks::TX;
+    }
+
+    inline const char *timesync_callbacks_desc() {
+        switch (m_timesync_callbacks) {
+        case TimesyncCallbacks::NONE:
+            return (const char *)"NONE";
+        case TimesyncCallbacks::RX:
+            return (const char *)"RX";
+        case TimesyncCallbacks::TX:
+            return (const char *)"TX";
+        case TimesyncCallbacks::BOTH:
+            return (const char *)"BOTH";
         default:
             return (const char *)"undefined";
         }
