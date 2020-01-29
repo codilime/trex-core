@@ -3593,8 +3593,6 @@ COLD_FUNC void CGlobalTRex::rx_interactive_conf(void) {
  * If so, returns ptp header offset in the L2 frame.
  */
 static inline HOT_FUNC uint8_t get_ptp_packet_offset(struct rte_mbuf *m) {
-    if (m->timestamp > 0)
-        return 0;
     uint8_t *pkt = rte_pktmbuf_mtod(m, uint8_t *);
     EthernetHeader *ether_hdr = (EthernetHeader *)pkt;
     uint16_t ether_np = ether_hdr->getNextProtocol();
