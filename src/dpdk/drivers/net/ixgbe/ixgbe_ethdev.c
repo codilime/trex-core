@@ -7076,6 +7076,7 @@ ixgbe_timesync_enable(struct rte_eth_dev *dev)
 	tsync_ctl = 0x14;
 	IXGBE_WRITE_REG(hw, IXGBE_TSYNCRXCTL, tsync_ctl);
 	printf("(PTP)IXGBE_TSYNCRXCTL = %#032x\n", IXGBE_READ_REG(hw, IXGBE_TSYNCRXCTL));
+	printf("(PTP)IXGBE_RXMTRL = %#032x\n", IXGBE_READ_REG(hw, IXGBE_RXMTRL));
 
 	/* Enable timestamping of transmitted PTP packets. */
 	tsync_ctl = IXGBE_READ_REG(hw, IXGBE_TSYNCTXCTL);
