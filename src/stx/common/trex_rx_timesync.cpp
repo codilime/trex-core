@@ -10,6 +10,11 @@ void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
     if (m_timesync_engine->getTimesyncMethod() == TimesyncMethod::PTP) {
         uint16_t rx_tstamp_idx = 0;
 
+        if (! (m->ol_flags & PKT_RX_IEEE1588_TMST)) {
+		printf("Port %u Received PTP packet not timestamped"
+		       " by hardware\n", port);
+        }
+
         if (hardware_timestamping_enabled) {
             rx_tstamp_idx = m->timesync;
         }
