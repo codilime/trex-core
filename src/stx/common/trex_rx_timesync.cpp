@@ -115,6 +115,7 @@ Json::Value RXTimesync::to_json() const { return Json::objectValue; }
 int RXTimesync::parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port, uint64_t m_timestamp) {
     int i;
     if (hardware_timestamping_enabled) {
+        printf("Reading time from hardware\n");
         i = rte_eth_timesync_read_rx_timestamp(port,
             t, rx_tstamp_idx);
         if (i != 0) {
