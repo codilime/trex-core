@@ -9,11 +9,7 @@
 void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
     if (m_timesync_engine->getTimesyncMethod() == TimesyncMethod::PTP) {
         uint16_t rx_tstamp_idx = 0;
-
-        if (! (m->ol_flags & PKT_RX_IEEE1588_TMST)) {
-		printf("Port %u Received PTP packet not timestamped"
-		       " by hardware\n", port);
-        }
+        m_mbuf = m;
 
         if (hardware_timestamping_enabled) {
             rx_tstamp_idx = m->timesync;
@@ -119,6 +115,10 @@ Json::Value RXTimesync::to_json() const { return Json::objectValue; }
 
 int RXTimesync::parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port, uint64_t m_timestamp) {
     int i;
+    if (! (m_mbuf->ol_flags & PKT_RX_IEEE1588_TMST)) {
+        printf("Received PTP Sync packet not timestamped by hardware\n");
+    }
+
     if (hardware_timestamping_enabled) {
         printf("Reading time from hardware\n");
         i = rte_eth_timesync_read_rx_timestamp(port,
@@ -145,6 +145,11 @@ void RXTimesync::parse_fup(PTP::FollowUpPacket *followup, timespec *t) {
 
 int RXTimesync::parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int port, uint64_t m_timestamp) {
     int i;
+
+    if (! (m_mbuf->ol_flags & PKT_RX_IEEE1588_TMST)) {
+        printf("Received PTP delay_request packet not timestamped by hardware\n");
+    }
+
     if (hardware_timestamping_enabled) {
         i = rte_eth_timesync_read_rx_timestamp(port,
             t, rx_tstamp_idx);

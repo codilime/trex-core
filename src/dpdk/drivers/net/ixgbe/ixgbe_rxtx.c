@@ -1429,8 +1429,11 @@ rx_desc_status_to_pkt_flags(uint32_t rx_status, uint64_t vlan_flags)
 	pkt_flags = (rx_status & IXGBE_RXD_STAT_VP) ?  vlan_flags : 0;
 
 #ifdef RTE_LIBRTE_IEEE1588
-	if (rx_status & IXGBE_RXD_STAT_TMST)
+	if (rx_status & IXGBE_RXD_STAT_TMST){
 		pkt_flags = pkt_flags | PKT_RX_IEEE1588_TMST;
+		printf("Flag packet as timestamped (PTP) %d", rx_status);
+	}
+		
 #endif
 	return pkt_flags;
 }

@@ -37,6 +37,7 @@ class RXTimesync {
     Json::Value to_json() const;
 
     bool hardware_timestamping_enabled;
+    rte_mbuf* m_mbuf;
 
   private:
     TimesyncPacketParser_err_t parse_ptp_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port, uint64_t m_timestamp);
