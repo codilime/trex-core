@@ -100,8 +100,7 @@
 
 /* Additional timesync values. */
 #define NSEC_PER_SEC             1000000000L
-//#define IXGBE_INCVAL_10GB        0x66666666
-#define IXGBE_INCVAL_10GB		 0xF42400
+#define IXGBE_INCVAL_10GB        0x66666666
 #define IXGBE_INCVAL_1GB         0x40000000
 #define IXGBE_INCVAL_100         0x50000000
 #define IXGBE_INCVAL_SHIFT_10GB  28
@@ -6976,10 +6975,10 @@ ixgbe_start_timecounters(struct rte_eth_dev *dev)
 		IXGBE_WRITE_REG(hw, IXGBE_TIMINCA, incval);
 		break;
 	case ixgbe_mac_82599EB:
-		//incval >>= IXGBE_INCVAL_SHIFT_82599;
-		//shift -= IXGBE_INCVAL_SHIFT_82599;
+		incval >>= IXGBE_INCVAL_SHIFT_82599;
+		shift -= IXGBE_INCVAL_SHIFT_82599;
 		IXGBE_WRITE_REG(hw, IXGBE_TIMINCA,
-				(2 << IXGBE_INCPER_SHIFT_82599) | incval);
+				(1 << IXGBE_INCPER_SHIFT_82599) | incval);
 		break;
 	default:
 		/* Not supported. */
@@ -7061,8 +7060,7 @@ ixgbe_timesync_enable(struct rte_eth_dev *dev)
 
 	/* Enable system time for platforms where it isn't on by default. */
 	tsauxc = IXGBE_READ_REG(hw, IXGBE_TSAUXC);
-	tsauxc |= (IXGBE_TSAUXC_OPT_MASK & ~IXGBE_TSAUXC_DISABLE_SYSTIME);
-	tsauxc |= IXGBE_TSAUXC_TTIME_MASK;
+	tsauxc &= ~IXGBE_TSAUXC_DISABLE_SYSTIME;
 	IXGBE_WRITE_REG(hw, IXGBE_TSAUXC, tsauxc);
 
 	ixgbe_start_timecounters(dev);
