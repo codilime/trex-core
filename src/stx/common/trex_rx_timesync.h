@@ -32,7 +32,7 @@ class RXTimesync {
         hardware_timestamping_enabled = api.getPortAttrObj(port)->is_hardware_timesync_enabled();
     };
 
-    void handle_pkt(const rte_mbuf_t *m, int port);
+    void handle_pkt(rte_mbuf_t *m, int port);
 
     Json::Value to_json() const;
 
