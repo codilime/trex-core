@@ -6979,7 +6979,7 @@ ixgbe_start_timecounters(struct rte_eth_dev *dev)
 		shift -= IXGBE_INCVAL_SHIFT_82599;
 		incval = 0xF42400;
 		IXGBE_WRITE_REG(hw, IXGBE_TIMINCA,
-				(1 << IXGBE_INCPER_SHIFT_82599) | incval);
+				(2 << IXGBE_INCPER_SHIFT_82599) | incval);
 		break;
 	default:
 		/* Not supported. */
