@@ -7061,7 +7061,8 @@ ixgbe_timesync_enable(struct rte_eth_dev *dev)
 
 	/* Enable system time for platforms where it isn't on by default. */
 	tsauxc = IXGBE_READ_REG(hw, IXGBE_TSAUXC);
-	tsauxc &= ~IXGBE_TSAUXC_DISABLE_SYSTIME;
+	tsauxc |= (IXGBE_TSAUXC_OPT_MASK & ~IXGBE_TSAUXC_DISABLE_SYSTIME);
+	tsauxc |= IXGBE_TSAUXC_TTIME_MASK;
 	IXGBE_WRITE_REG(hw, IXGBE_TSAUXC, tsauxc);
 
 	ixgbe_start_timecounters(dev);
@@ -7074,7 +7075,7 @@ ixgbe_timesync_enable(struct rte_eth_dev *dev)
 
 	/* Enable timestamping of received PTP packets. */
 	tsync_ctl = IXGBE_READ_REG(hw, IXGBE_TSYNCRXCTL);
-	tsync_ctl |= IXGBE_TSYNCRXCTL_TYPE_EVENT_V2;
+	tsync_ctl |= IXGBE_TSYNCRXCTL_TYPE_L2_L4_V2;
 	tsync_ctl |= IXGBE_TSYNCRXCTL_ENABLED;
 	IXGBE_WRITE_REG(hw, IXGBE_TSYNCRXCTL, tsync_ctl);
 

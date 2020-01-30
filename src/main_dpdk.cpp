@@ -3681,6 +3681,7 @@ COLD_FUNC int  CGlobalTRex::device_start(void){
         if (CGlobalInfo::m_options.m_timesync_method == TimesyncMethod::PTP) {
             if ((_if->get_port_attr()->set_hardware_timesync(true) == 0) &&
                 (CGlobalInfo::m_options.m_latency_measurement == CParserOption::LATENCY_METHOD_NANOS)) {
+                    printf("Hardware Timestamping(PTP) enabled!")
                 CGlobalInfo::m_options.get_latency_timestamp = &get_rte_epoch_nanoseconds;
             }
             if (CGlobalInfo::m_options.is_timesync_rx_callback_enabled()) {
