@@ -7080,7 +7080,7 @@ ixgbe_timesync_enable(struct rte_eth_dev *dev)
 
 	tsync_ctl = IXGBE_READ_REG(hw, IXGBE_RXMTRL);
 	tsync_ctl = (319 << 16);
-	tsync_ctl |= (2 << 8);
+	//tsync_ctl |= (2 << 8);
 	IXGBE_WRITE_REG(hw, IXGBE_RXMTRL, tsync_ctl);
 	printf("(PTP)IXGBE_RXMTRL = %#032x\n", IXGBE_READ_REG(hw, IXGBE_RXMTRL));
 
