@@ -98,6 +98,40 @@ class CTimesyncEngine {
     inline void setTimesyncMaster(bool is_master) { m_is_master = is_master; }
     inline bool isTimesyncMaster() { return m_is_master; }
 
+    // define if hardware clock on port `port` is being adjusted with PTP delta
+    inline void setHardwareClockAdjusted(uint16_t port, bool is_hardware_clock_adjusted) {
+        auto iter = m_hta_per_port.find(port);
+        if (iter != m_hta_per_port.end()) {
+            m_hta_per_port[port] = is_hardware_clock_adjusted;
+        } else {
+            m_hta_per_port.insert({port, is_hardware_clock_adjusted});
+        }
+    }
+    // check if hardware clock on port `port` is being adjusted with PTP delta
+    inline bool isHardwareClockAdjusted(uint16_t port) {
+        try {
+            return m_hta_per_port.at(port);
+        } catch (const std::out_of_range &e) {
+            return false;
+        }
+    }
+
+    inline void setDeltaValid(uint16_t port, bool is_delta_valid) {
+        auto iter = m_delta_valid_per_port.find(port);
+        if (iter != m_delta_valid_per_port.end()) {
+            m_delta_valid_per_port[port] = is_delta_valid;
+        } else {
+            m_delta_valid_per_port.insert({port, is_delta_valid});
+        }
+    }
+    inline bool isDeltaValid(uint16_t port) {
+        try {
+            return m_delta_valid_per_port.at(port);
+        } catch (const std::out_of_range &e) {
+            return false;
+        }
+    }
+
     inline bool isSlaveSynchronized() { return m_is_slave_synchronized; }
 
     void setSequenceId(uint16_t sequence_id) {
@@ -129,8 +163,6 @@ class CTimesyncEngine {
 
     CTimesyncPTPData_t getClockInfo(int port, uint16_t sequence_id);
 
-    int64_t evalDelta(int port, uint16_t sequence_id);
-    void setDelta(int port, int64_t delta);
     inline int64_t getDelta(int port) {
         try {
             return m_deltas.at(port);
@@ -155,6 +187,9 @@ class CTimesyncEngine {
     CTimesyncPTPPacketQueue_t *getPacketQueue(int port);
     CTimesyncPTPPacketQueue_t *getOrCreatePacketQueue(int port);
 
+    int64_t evalDelta(int port, uint16_t sequence_id);
+    void setDelta(int port, int64_t delta, bool *is_valid);
+
     bool isDataValid(CTimesyncPTPData_t *data);
     void cleanupSequencesBefore(int port, timespec t);
 
@@ -169,6 +204,8 @@ class CTimesyncEngine {
     std::unordered_map<int, CTimesyncPTPPacketQueue_t> m_send_queue_per_port;
     std::unordered_map<int, int64_t> m_deltas;
     CTimesyncTxTimestamp_t m_tx_timestamp;
+    std::unordered_map<int, bool> m_hta_per_port; // is hardware clock adjusting in work (per port)
+    std::unordered_map<int, bool> m_delta_valid_per_port; // is recently calculated delta valid (per port)
 };
 
 #endif /* __TREX_TIMESYNC_H__ */

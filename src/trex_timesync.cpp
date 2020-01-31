@@ -21,8 +21,6 @@ limitations under the License.
 
 #include "trex_timesync.h"
 
-#include "trex_global.h"
-
 /**
  * CTimesyncEngine
  */
@@ -122,19 +120,22 @@ int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
     if ((data == nullptr) || (!isDataValid(data)))
         return 0;
 
+    // delta = -((t2 - t1) - (t4 - t3)) / 2
     int64_t t1 = timespecToTimestamp(data->t1) / 2,
             t2 = timespecToTimestamp(data->t2) / 2,
             t3 = timespecToTimestamp(data->t3) / 2,
             t4 = timespecToTimestamp(data->t4) / 2;
-    // delta = -((t2 - t1) - (t4 - t3))
     int64_t delta = t1 - t2 + t4 - t3;
-    setDelta(port, delta);
+    bool is_delta_valid = false;
+    setDelta(port, delta, &is_delta_valid);
     cleanupSequencesBefore(port, data->t2);
-    m_is_slave_synchronized = true;
+    setHardwareClockAdjusted(port, false);
+    if (is_delta_valid)
+        m_is_slave_synchronized = true;
     return delta;
 }
 
-void CTimesyncEngine::setDelta(int port, int64_t delta) {
+void CTimesyncEngine::setDelta(int port, int64_t delta, bool *is_valid) {
     printf("PTP delta for port %d: %ld ns\n", port, delta);
     auto iter = m_deltas.find(port);
     if (iter != m_deltas.end()) {
@@ -142,6 +143,9 @@ void CTimesyncEngine::setDelta(int port, int64_t delta) {
     } else {
         m_deltas.insert({port, delta});
     }
+    // valid delta should: abs(delta) < 5 minutes
+    *is_valid = (abs(delta) < ((int64_t) 5 * 60 * 1000 * 1000 * 1000));
+    setDeltaValid(port, *is_valid);
 }
 
 // Message queue /////////////////////////////////////////////////
