@@ -6962,6 +6962,8 @@ ixgbe_start_timecounters(struct rte_eth_dev *dev)
 		break;
 	}
 
+	printf("hw->mac.type = '%d'\n", hw->mac.type);
+
 	switch (hw->mac.type) {
 	case ixgbe_mac_X550:
 	case ixgbe_mac_X550EM_x:
@@ -6975,9 +6977,8 @@ ixgbe_start_timecounters(struct rte_eth_dev *dev)
 		IXGBE_WRITE_REG(hw, IXGBE_TIMINCA, incval);
 		break;
 	case ixgbe_mac_82599EB:
-		//incval >>= IXGBE_INCVAL_SHIFT_82599;
-		shift -= IXGBE_INCVAL_SHIFT_82599;
 		incval = 0xF42400;
+		shift = 21;
 		IXGBE_WRITE_REG(hw, IXGBE_TIMINCA,
 				(2 << IXGBE_INCPER_SHIFT_82599) | incval);
 		break;
@@ -7072,18 +7073,16 @@ ixgbe_timesync_enable(struct rte_eth_dev *dev)
 			 IXGBE_ETQF_FILTER_EN |
 			 IXGBE_ETQF_1588));
 
-	/* Enable timestamping of received PTP packets. */
+	/* Enable timestamping of received PTP packets. (All PTP MessageID types) */
 	tsync_ctl = IXGBE_READ_REG(hw, IXGBE_TSYNCRXCTL);
 	tsync_ctl |= IXGBE_TSYNCRXCTL_TYPE_EVENT_V2;
 	tsync_ctl |= IXGBE_TSYNCRXCTL_ENABLED;
 	IXGBE_WRITE_REG(hw, IXGBE_TSYNCRXCTL, tsync_ctl);
-	printf("(PTP)IXGBE_TSYNCRXCTL = %#032x\n", IXGBE_READ_REG(hw, IXGBE_TSYNCRXCTL));
 
+	/* Set UDP port for PTP packets */
 	tsync_ctl = IXGBE_READ_REG(hw, IXGBE_RXMTRL);
 	tsync_ctl = (319 << 16);
-	//tsync_ctl |= (2 << 8);
 	IXGBE_WRITE_REG(hw, IXGBE_RXMTRL, tsync_ctl);
-	printf("(PTP)IXGBE_RXMTRL = %#032x\n", IXGBE_READ_REG(hw, IXGBE_RXMTRL));
 
 	/* Enable timestamping of transmitted PTP packets. */
 	tsync_ctl = IXGBE_READ_REG(hw, IXGBE_TSYNCTXCTL);
