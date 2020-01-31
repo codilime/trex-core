@@ -120,7 +120,7 @@ int RXTimesync::parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port, uint64
     }
 
     if (hardware_timestamping_enabled) {
-        printf("Reading time from hardware\n");
+        printf("Reading time from hardware(PTP)\n");
         i = rte_eth_timesync_read_rx_timestamp(port,
             t, rx_tstamp_idx);
         if (i != 0) {
@@ -151,6 +151,7 @@ int RXTimesync::parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int por
     }
 
     if (hardware_timestamping_enabled) {
+        printf("Reading time from hardware(PTP)\n");
         i = rte_eth_timesync_read_rx_timestamp(port,
             t, rx_tstamp_idx);
         if (i != 0) {
