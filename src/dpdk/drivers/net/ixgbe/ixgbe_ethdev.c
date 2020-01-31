@@ -6962,8 +6962,6 @@ ixgbe_start_timecounters(struct rte_eth_dev *dev)
 		break;
 	}
 
-	printf("hw->mac.type = '%d'\n", hw->mac.type);
-
 	switch (hw->mac.type) {
 	case ixgbe_mac_X550:
 	case ixgbe_mac_X550EM_x:
@@ -6978,7 +6976,7 @@ ixgbe_start_timecounters(struct rte_eth_dev *dev)
 		break;
 	case ixgbe_mac_82599EB:
 		incval = 0xF42400;
-		shift = 21;
+		shift = 20;
 		IXGBE_WRITE_REG(hw, IXGBE_TIMINCA,
 				(2 << IXGBE_INCPER_SHIFT_82599) | incval);
 		break;
