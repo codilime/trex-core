@@ -103,9 +103,9 @@
 #define IXGBE_INCVAL_10GB        0x66666666
 #define IXGBE_INCVAL_1GB         0x40000000
 #define IXGBE_INCVAL_100         0x50000000
-#define IXGBE_INCVAL_SHIFT_10GB  28
-#define IXGBE_INCVAL_SHIFT_1GB   24
-#define IXGBE_INCVAL_SHIFT_100   21
+#define IXGBE_INCVAL_SHIFT_10GB  21
+#define IXGBE_INCVAL_SHIFT_1GB   17
+#define IXGBE_INCVAL_SHIFT_100   13
 #define IXGBE_INCVAL_SHIFT_82599 7
 #define IXGBE_INCPER_SHIFT_82599 24
 
@@ -6975,10 +6975,9 @@ ixgbe_start_timecounters(struct rte_eth_dev *dev)
 		IXGBE_WRITE_REG(hw, IXGBE_TIMINCA, incval);
 		break;
 	case ixgbe_mac_82599EB:
-		incval >>= IXGBE_INCVAL_SHIFT_82599;
-		shift -= IXGBE_INCVAL_SHIFT_82599;
+		incval = 0xF42400;
 		IXGBE_WRITE_REG(hw, IXGBE_TIMINCA,
-				(1 << IXGBE_INCPER_SHIFT_82599) | incval);
+				(2 << IXGBE_INCPER_SHIFT_82599) | incval);
 		break;
 	default:
 		/* Not supported. */
@@ -7071,10 +7070,16 @@ ixgbe_timesync_enable(struct rte_eth_dev *dev)
 			 IXGBE_ETQF_FILTER_EN |
 			 IXGBE_ETQF_1588));
 
-	/* Enable timestamping of received PTP packets. */
+	/* Enable timestamping of received PTP packets. (All PTP MessageID types) */
 	tsync_ctl = IXGBE_READ_REG(hw, IXGBE_TSYNCRXCTL);
+	tsync_ctl |= IXGBE_TSYNCRXCTL_TYPE_EVENT_V2;
 	tsync_ctl |= IXGBE_TSYNCRXCTL_ENABLED;
 	IXGBE_WRITE_REG(hw, IXGBE_TSYNCRXCTL, tsync_ctl);
+
+	/* Set UDP port(319) for PTP packets */
+	tsync_ctl = IXGBE_READ_REG(hw, IXGBE_RXMTRL);
+	tsync_ctl = (319 << 16);
+	IXGBE_WRITE_REG(hw, IXGBE_RXMTRL, tsync_ctl);
 
 	/* Enable timestamping of transmitted PTP packets. */
 	tsync_ctl = IXGBE_READ_REG(hw, IXGBE_TSYNCTXCTL);
