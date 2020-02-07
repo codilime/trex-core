@@ -851,6 +851,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
         EthernetHeader* eth_hdr = rte_pktmbuf_mtod(mbuf, EthernetHeader*);
         size += ETH_HDR_LEN;
         eth_hdr->mySource = { m_mac_addr[6], m_mac_addr[7], m_mac_addr[8], m_mac_addr[9], m_mac_addr[10], m_mac_addr[11] };
+        eth_hdr->myDestination = { m_mac_addr[0], m_mac_addr[1], m_mac_addr[2], m_mac_addr[3], m_mac_addr[4], m_mac_addr[5] };
 
         IPHeader* ipv4_hdr = nullptr;
         UDPHeader* udp_hdr = nullptr;
@@ -867,7 +868,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             ipv4_hdr->setVersion(4);
             ipv4_hdr->setHeaderLength(IPV4_HDR_LEN);
             ipv4_hdr->setProtocol(IPHeader::Protocol::UDP);
-            ipv4_hdr->setTimeToLive(1);
+            ipv4_hdr->setTimeToLive(64);
             ipv4_hdr->setSourceIp(m_ip_addr);
             ipv4_hdr->setFragment(0, false, true);
             
@@ -878,7 +879,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
             // Set IPv4mcast for PTP multicast ip
             // Source: https://techhub.hpe.com/eginfolib/networking/docs/switches/5130ei/5200-3944_ip-multi_cg/content/483573739.htm
-            eth_hdr->myDestination = { 0x01, 0x00, 0x5e, 0x00, 0x01, 0x81 };
+            //eth_hdr->myDestination = { 0x01, 0x00, 0x5e, 0x00, 0x01, 0x81 };
 
             udp_hdr = rte_pktmbuf_mtod_offset(mbuf, UDPHeader*, size);
             size += UDP_HEADER_LEN;
