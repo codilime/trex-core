@@ -764,6 +764,18 @@ struct CGenNodeTimesync : public CGenNodeBase {
         m_timesync_engine = nullptr;
     }
 
+    inline void set_mbuf_cache_dir(pkt_dir_t  dir){
+        if (dir) {
+            m_flags |=NODE_FLAGS_DIR;
+        }else{
+            m_flags &=~NODE_FLAGS_DIR;
+        }
+    }
+
+    inline pkt_dir_t get_mbuf_cache_dir(){
+        return ((pkt_dir_t)( m_flags &1));
+    }
+
     inline void handle(CFlowGenListPerThread *thread) {
         if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
             if (hardware_timestamping_enabled) {
