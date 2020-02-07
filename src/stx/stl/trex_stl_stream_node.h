@@ -331,7 +331,7 @@ public:
     }
 
     inline pkt_dir_t get_mbuf_cache_dir(){
-        return ((pkt_dir_t)( m_flags &1));
+        return ((pkt_dir_t)( m_flags &NODE_FLAGS_DIR));
     }
 
     inline void set_cache_mbuf(rte_mbuf_t * m){
@@ -773,7 +773,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
     }
 
     inline pkt_dir_t get_mbuf_cache_dir(){
-        return ((pkt_dir_t)( m_flags &1));
+        return ((pkt_dir_t)( m_flags &NODE_FLAGS_DIR));
     }
 
     inline void handle(CFlowGenListPerThread *thread) {
