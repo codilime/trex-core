@@ -8,89 +8,92 @@
 
 void RXTimesync::handle_pkt(const rte_mbuf_t *m, int port) {
     if (m_timesync_engine->getTimesyncMethod() == TimesyncMethod::PTP) {
-        uint16_t rx_tstamp_idx = 0;
 
-        if (hardware_timestamping_enabled) {
-            rx_tstamp_idx = m->timesync;
-        }
+        timespec t { 0, 0 };
 
         if (m->pkt_len < ETH_HDR_LEN)
             return;
 
-        uint64_t m_timestamp = 0;
-        if (CGlobalInfo::m_options.is_timesync_rx_callback_enabled()) {
-            m_timestamp = m->timestamp;
+        if (hardware_timestamping_enabled && (m->ol_flags & PKT_RX_IEEE1588_TMST)) {
+            if (rte_eth_timesync_read_rx_timestamp(port, &t, m->timesync) != 0) {
+                printf("Cannot read hardware timestamp from hardware");
+            }
+        } else if (CGlobalInfo::m_options.is_timesync_rx_callback_enabled()) {
+            t = timestampToTimespec(m->timestamp);
+        } else {
+            if (clock_gettime(CLOCK_REALTIME, &t) != 0) {
+                printf("Something is wrong!!! Cannot read time from kernel!");
+            }
         }
+
         uint8_t *pkt = rte_pktmbuf_mtod(m, uint8_t *);
         EthernetHeader *ether_hdr = (EthernetHeader *)pkt;
         uint32_t offset = ether_hdr->getSize();
         switch (ether_hdr->getNextProtocol()) {
         case EthernetHeader::Protocol::IP:
-            parse_ip_pkt(pkt + offset, m->pkt_len - offset, rx_tstamp_idx, port, m_timestamp);
+            parse_ip_pkt(pkt + offset, m->pkt_len - offset, &t, port);
             break;
         case EthernetHeader::Protocol::PTP:
             // TODO what about vxlan support (a.k.a. CFlowStatParser.m_flags |= FSTAT_PARSER_VXLAN_SKIP)
-            parse_ptp_pkt(pkt + offset, m->pkt_len - offset, rx_tstamp_idx, port, m_timestamp);
+            parse_ptp_pkt(pkt + offset, m->pkt_len - offset, &t, port);
             break;
         }
     }
 }
 
-TimesyncPacketParser_err_t RXTimesync::parse_ip_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port, uint64_t m_timestamp) {
+TimesyncPacketParser_err_t RXTimesync::parse_ip_pkt(uint8_t *pkt, uint16_t len, timespec* t, int port) {
     if (pkt == NULL)
         return TIMESYNC_PARSER_E_NO_DATA;
+
     if (len < IPV4_HDR_LEN + UDP_HEADER_LEN)
         return TIMESYNC_PARSER_E_TOO_SHORT;
 
     IPHeader *ip_hdr = (IPHeader *)pkt;
     switch (ip_hdr->getNextProtocol()) {
         case IPHeader::Protocol::UDP:
-            return parse_ptp_pkt(pkt + IPV4_HDR_LEN + UDP_HEADER_LEN, len - IPV4_HDR_LEN - UDP_HEADER_LEN, rx_tstamp_idx, port, m_timestamp);
+            return parse_ptp_pkt(pkt + IPV4_HDR_LEN + UDP_HEADER_LEN, len - IPV4_HDR_LEN - UDP_HEADER_LEN, t, port);
         default:
             return TIMESYNC_PARSER_E_UNKNOWN_HDR;
     }
 }
 
-TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len, uint16_t rx_tstamp_idx, int port, uint64_t m_timestamp) {
+TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len, timespec* t, int port) {
     if (pkt == NULL)
         return TIMESYNC_PARSER_E_NO_DATA;
     if (len < PTP_HDR_LEN)
         return TIMESYNC_PARSER_E_SHORT_PTP_HEADER;
 
-    int i;
     PTP::Header *header = (PTP::Header *)pkt;
     switch (header->trn_and_msg.msg_type()) {
+
     case PTP::Field::message_type::SYNC: {
-        // PTP::SyncPacket *sync = reinterpret_cast<PTP::SyncPacket *>(pkt + PTP_HDR_LEN);
-        timespec t;
-        i = parse_sync(rx_tstamp_idx, &t, port, m_timestamp);
-        // try fe
-        if (i != 0) {
+        if (t->tv_sec == 0 && t->tv_nsec == 0)
             return TIMESYNC_PARSER_E_NO_TIMESTAMP;
-        }
-        m_timesync_engine->receivedPTPSync(port, *(header->seq_id), t, header->source_port_id);
+
+        m_timesync_engine->receivedPTPSync(port, *(header->seq_id), *t, header->source_port_id);
     } break;
+
     case PTP::Field::message_type::FOLLOW_UP: {
         PTP::FollowUpPacket *followup = reinterpret_cast<PTP::FollowUpPacket *>(pkt + PTP_HDR_LEN);
-        timespec t;
-        parse_fup(followup, &t);
-        m_timesync_engine->receivedPTPFollowUp(port, *(header->seq_id), t, header->source_port_id);
+        *t = followup->origin_timestamp.get_timestamp();
+
+        m_timesync_engine->receivedPTPFollowUp(port, *(header->seq_id), *t, header->source_port_id);
     } break;
+
     case PTP::Field::message_type::PDELAY_REQ: {
-        // PTP::DelayedReqPacket *delay_req = reinterpret_cast<PTP::DelayedReqPacket *>(pkt + PTP_HDR_LEN);
-        timespec t;
-        i = parse_delay_request(rx_tstamp_idx, &t, port, m_timestamp);
-        if (i != 0) {
+        if (t->tv_sec == 0 && t->tv_nsec == 0)
             return TIMESYNC_PARSER_E_NO_TIMESTAMP;
-        }
-        m_timesync_engine->receivedPTPDelayReq(port, *(header->seq_id), t, header->source_port_id);
+
+        m_timesync_engine->receivedPTPDelayReq(port, *(header->seq_id), *t, header->source_port_id);
     } break;
+
     case PTP::Field::message_type::DELAY_RESP: {
         PTP::DelayedRespPacket *delay_resp = reinterpret_cast<PTP::DelayedRespPacket *>(pkt + PTP_HDR_LEN);
-        timespec t;
-        parse_delay_response(delay_resp, &t);
-        m_timesync_engine->receivedPTPDelayResp(port, *(header->seq_id), t, header->source_port_id,
+        *t = delay_resp->origin_timestamp.get_timestamp();
+
+        m_timesync_engine->receivedPTPDelayResp(port, *(header->seq_id), *t, header->source_port_id,
                                                 delay_resp->req_clock_identity);
+
         if (hardware_timestamping_enabled && m_timesync_engine->isDeltaValid(port)) {
             int64_t delta = m_timesync_engine->getDelta(port);
             if (delta != 0) {
@@ -111,53 +114,3 @@ TimesyncPacketParser_err_t RXTimesync::parse_ptp_pkt(uint8_t *pkt, uint16_t len,
 }
 
 Json::Value RXTimesync::to_json() const { return Json::objectValue; }
-
-int RXTimesync::parse_sync(uint16_t rx_tstamp_idx, timespec *t, int port, uint64_t m_timestamp) {
-    int i;
-    if (hardware_timestamping_enabled) {
-        i = rte_eth_timesync_read_rx_timestamp(port,
-            t, rx_tstamp_idx);
-        if (i != 0) {
-            *t = timestampToTimespec(m_timestamp);
-            i = m_timestamp > 0 ? 0 : -1;
-        }
-    } else if (CGlobalInfo::m_options.is_timesync_rx_callback_enabled()) {
-        *t = timestampToTimespec(m_timestamp);
-        i = m_timestamp > 0 ? 0 : -1;
-    } else {
-        i = clock_gettime(CLOCK_REALTIME, t);
-    }
-    if (i != 0) {
-        printf("Error in PTP synchronization - failed to read rx SYNC timestamp, error code: %i\n", i);
-    }
-    return i;
-}
-
-void RXTimesync::parse_fup(PTP::FollowUpPacket *followup, timespec *t) {
-    *t = followup->origin_timestamp.get_timestamp();
-}
-
-int RXTimesync::parse_delay_request(uint16_t rx_tstamp_idx, timespec *t, int port, uint64_t m_timestamp) {
-    int i;
-    if (hardware_timestamping_enabled) {
-        i = rte_eth_timesync_read_rx_timestamp(port,
-            t, rx_tstamp_idx);
-        if (i != 0) {
-            *t = timestampToTimespec(m_timestamp);
-            i = m_timestamp > 0 ? 0 : -1;
-        }
-    } else if (CGlobalInfo::m_options.is_timesync_rx_callback_enabled()) {
-        *t = timestampToTimespec(m_timestamp);
-        i = m_timestamp > 0 ? 0 : -1;
-    } else {
-        i = clock_gettime(CLOCK_REALTIME, t);
-    }
-    if (i != 0) {
-        printf("Error in PTP synchronization - failed to read rx DELAY_REQ timestamp, error code: %i\n", i);
-    }
-    return i;
-}
-
-void RXTimesync::parse_delay_response(PTP::DelayedRespPacket *delay_resp, timespec *t) {
-    *t = delay_resp->origin_timestamp.get_timestamp();
-}

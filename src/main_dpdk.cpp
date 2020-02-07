@@ -3595,30 +3595,24 @@ COLD_FUNC void CGlobalTRex::rx_interactive_conf(void) {
  */
 static inline HOT_FUNC uint8_t get_ptp_packet_offset(struct rte_mbuf *m) {
     uint8_t *pkt = rte_pktmbuf_mtod(m, uint8_t *);
-    EthernetHeader *ether_hdr = (EthernetHeader *)pkt;
-    uint16_t ether_np = ether_hdr->getNextProtocol();
-    if (ether_np == EthernetHeader::Protocol::IP) {
-        uint32_t ether_offset = ether_hdr->getSize();
-        IPHeader *ip_hdr = (IPHeader *)(pkt + ether_offset);
-        if (ip_hdr->getNextProtocol() == IPHeader::Protocol::UDP) {
-            UDPHeader *udp_hdr = (UDPHeader *)(pkt + ether_offset + IPV4_HDR_LEN);
-            if (udp_hdr->getDestPort() == 319)
-                return ether_offset + IPV4_HDR_LEN + UDP_HEADER_LEN;
-        }
-        return 0;
-    } else if (ether_np ==  EthernetHeader::Protocol::PTP) {
-        uint32_t ether_offset = ether_hdr->getSize();
-        uint8_t *ptp_msg_type = (uint8_t *)(pkt + ether_offset);
-        switch (*ptp_msg_type & 0x07) {
-            case (uint8_t) PTP::Field::message_type::SYNC:
-            case (uint8_t) PTP::Field::message_type::DELAY_REQ:
-            case (uint8_t) PTP::Field::message_type::PDELAY_REQ:
-            case (uint8_t) PTP::Field::message_type::PDELAY_RESP:
-                return ether_offset;
-        }
-        return 0;
+
+    // Check if eth protocol is PTP (BE: 0x88F7 LE: 0xF788)
+    if(*((uint16_t*)(pkt + 12)) == 0xF788) {
+        return ETH_HDR_LEN;
     }
+    // Check if eth protocol is IP (BE: 0x0800 LE: 0x0008) 
+    else if(*((uint16_t*)(pkt + 12)) == 0x0008) {
+        // Check if IP Protocol is UDP (no conversion as protocol is 8bit)
+        if(*((uint8_t*)(pkt + ETH_HDR_LEN + 9)) == IPHeader::Protocol::UDP) {
+            // Check if port is 319 (BE: 0x013F LE: 0x3F01)
+            if(*((uint16_t*)(pkt + ETH_HDR_LEN + IPV4_HDR_LEN + 2)) == 0x3F01) { 
+                return (ETH_HDR_LEN + IPV4_HDR_LEN + UDP_HEADER_LEN);
+            }
+        }
+    }
+
     return 0;
+
 }
 
 static HOT_FUNC uint16_t add_rx_timestamp(uint16_t port,
@@ -3627,6 +3621,7 @@ static HOT_FUNC uint16_t add_rx_timestamp(uint16_t port,
                                uint16_t nb_pkts,
                                uint16_t max_pkts __rte_unused,
                                void *_ __rte_unused) {
+
     for (uint16_t i = 0; i < nb_pkts; i++) {
         if (get_ptp_packet_offset(pkts[i]) > 0) {
             pkts[i]->timestamp = CGlobalInfo::m_options.get_latency_timestamp(port);
@@ -3640,14 +3635,18 @@ static HOT_FUNC uint16_t add_tx_timestamp(uint16_t port,
                                struct rte_mbuf **pkts,
                                uint16_t nb_pkts,
                                void *_ __rte_unused) {
-    for (uint16_t i = 0; i < nb_pkts; i++) {
-        uint8_t ptp_offset = get_ptp_packet_offset(pkts[i]);
+
+    // Check if last packet in queue is flaged to timestamp
+    // Note: We check only last packet because, we always send PTP packet immediately
+    if(pkts[nb_pkts-1]->ol_flags & PKT_TX_IEEE1588_TMST) {
+        uint8_t ptp_offset = get_ptp_packet_offset(pkts[nb_pkts-1]);
         if (ptp_offset > 0) {
-            uint8_t *pkt = rte_pktmbuf_mtod(pkts[i], uint8_t *);
+            uint8_t *pkt = rte_pktmbuf_mtod(pkts[nb_pkts-1], uint8_t *);
             PTP::Header *ptp_hdr = (PTP::Header *)(pkt + ptp_offset);
             CGlobalInfo::m_timesync_engine.setTxTimestamp(port, *(ptp_hdr->seq_id), CGlobalInfo::m_options.get_latency_timestamp(port));
         }
     }
+
     return nb_pkts;
 }
 
