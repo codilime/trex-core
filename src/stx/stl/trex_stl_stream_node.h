@@ -720,7 +720,9 @@ struct CGenNodeTimesync : public CGenNodeBase {
     uint8_t m_stream_type; // see TrexStream::STREAM_TYPE, stream_type_t
     pkt_dir_t m_pkt_dir;
     uint32_t m_ip_addr;
-    uint64_t m_pad_0[2];
+    uint32_t m_ip_addr_dest;
+    uint32_t m_pad_0[1];
+    uint64_t m_pad_1[1];
 
     /* cache line 1 */
     /* this cache line would better be readonly but is not */
@@ -728,8 +730,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
     rte_mbuf_t *m;
     CTimesyncEngine *m_timesync_engine;
     bool hardware_timestamping_enabled;
-    uint8_t m_pad_1[7];
-    uint64_t m_pad_2[2];
+    uint8_t m_pad_2[7];
+    uint64_t m_pad_3[2];
 
     uint8_t m_pad5;
     uint32_t m_profile_id;
@@ -741,7 +743,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
     dsec_t m_next_time_offset;
 
   private:
-    uint64_t m_pad_3[6];
+    uint64_t m_pad_4[6];
 
   public:
 
@@ -754,6 +756,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         // Get Ip Addr
         m_ip_addr = CGlobalInfo::m_options.m_ip_cfg[m_port_id].get_ip();
+        m_ip_addr_dest = CGlobalInfo::m_options.m_ip_cfg[m_port_id].get_ptp_ip_dest();
 
         set_slow_path(true);
         set_send_immediately(true);
@@ -870,7 +873,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
             
             // IP Addr = 224.0.1.129 (multicast ip addr for PTP)
             // Source: https://www.iana.org/assignments/multicast-addresses/multicast-addresses.xhtml
-            ipv4_hdr->setDestIp(0xE0000181);
+            //ipv4_hdr->setDestIp(0xE0000181);
+            ipv4_hdr->setDestIp(m_ip_addr_dest);
 
             // Set IPv4mcast for PTP multicast ip
             // Source: https://techhub.hpe.com/eginfolib/networking/docs/switches/5130ei/5200-3944_ip-multi_cg/content/483573739.htm
