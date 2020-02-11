@@ -213,6 +213,10 @@ uint32_t CMacYamlInfo::get_ip() {
     return m_ip;
 }
 
+uint32_t CMacYamlInfo::get_ptp_ip_dest() {
+    return m_ptp_ip_dest;
+}
+
 uint32_t CMacYamlInfo::get_mask() {
     return m_mask;
 }
@@ -286,6 +290,10 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
 
     if (! utl_yaml_read_ip_addr(node, "default_gw", mac_info.m_def_gw)) {
         mac_info.m_def_gw = 0;
+    }
+
+    if (! utl_yaml_read_ip_addr(node, "ptp_ip_dest", mac_info.m_ptp_ip_dest)) {
+        mac_info.m_ptp_ip_dest = 0;
     }
 
     if (! utl_yaml_read_ip_addr(node, "ip", mac_info.m_ip)) {

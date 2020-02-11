@@ -6123,6 +6123,7 @@ COLD_FUNC int update_global_info_from_platform_file(){
 
             g_opts->m_ip_cfg[i].set_def_gw(cg->m_mac_info[i].get_def_gw());
             g_opts->m_ip_cfg[i].set_ip(cg->m_mac_info[i].get_ip());
+            g_opts->m_ip_cfg[i].set_ptp_ip_dest(cg->m_mac_info[i].get_ptp_ip_dest());
             g_opts->m_ip_cfg[i].set_mask(cg->m_mac_info[i].get_mask());
             g_opts->m_ip_cfg[i].set_vlan(cg->m_mac_info[i].get_vlan());
             // If one of the ports has vlan, work in vlan mode

@@ -104,6 +104,7 @@ struct CMacYamlInfo {
     std::vector     <uint8_t> m_dest_base;
     std::vector     <uint8_t> m_src_base;
     uint32_t m_def_gw;
+    uint32_t m_ptp_ip_dest;
     uint32_t m_ip;
     uint32_t m_mask;
     uint16_t m_vlan;
@@ -113,6 +114,7 @@ struct CMacYamlInfo {
     void copy_src(char *p);
     uint32_t get_def_gw();
     uint32_t get_ip();
+    uint32_t get_ptp_ip_dest();
     uint32_t get_vlan();
     uint32_t get_mask();
 
