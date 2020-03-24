@@ -42,6 +42,7 @@ void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t
     CTimesyncPTPData_t *data = getOrCreateData(port, sequence_id);
     data->masters_source_port_id = source_port_id;
     data->t2 = t;
+    printf("PTP ID='%d' T2='%d s, %d ns'", sequence_id, t.tv_sec, t.tv_nsec);
 }
 
 void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t,
@@ -52,6 +53,7 @@ void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timesp
     if ((data == nullptr) || (data->masters_source_port_id != source_port_id))
         return;
     data->t1 = t;
+    printf("PTP ID='%d' T1='%d s, %d ns'", sequence_id, t.tv_sec, t.tv_nsec);
     pushNextMessage(port, sequence_id, PTP::Field::message_type::PDELAY_REQ, {0, 0});
 }
 
@@ -64,6 +66,7 @@ void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t
         return;
     data->slaves_source_port_id = source_port_id;
     data->t3 = t;
+    printf("PTP ID='%d' T3='%d s, %d ns'", sequence_id, t.tv_sec, t.tv_nsec);
 }
 
 void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t,
@@ -76,6 +79,7 @@ void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, times
         (data->slaves_source_port_id != requesting_source_port_id))
         return;
     data->t4 = t;
+    printf("PTP ID='%d' T4='%d s, %d ns'", sequence_id, t.tv_sec, t.tv_nsec);
     evalDelta(port, sequence_id);
 }
 
