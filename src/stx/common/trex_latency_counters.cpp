@@ -178,6 +178,7 @@ RXLatency::update_stats_for_pkt(
         flow_stat_payload_header *fsp_head,
         uint32_t pkt_len,
         hr_time_t hr_time_now) {
+
     uint16_t hw_id = fsp_head->hw_id;
     if (unlikely(fsp_head->magic != FLOW_STAT_PAYLOAD_MAGIC)
             || hw_id >= MAX_FLOW_STATS_PAYLOAD) {
@@ -236,6 +237,7 @@ RXLatency::handle_correct_flow(
     if (!has_valid_timestamps(fsp_head, hr_time_now))
         return;
     uint64_t d = (hr_time_now - fsp_head->time_stamp);
+    printf("Latency: PktTime = '%d', TimeNow = '%d', Latency = '%d'", fsp_head->time_stamp,  hr_time_now, d);
     dsec_t ctime = CGlobalInfo::m_options.timestamp_diff_to_dsec(d);
     curr_rfc2544->add_sample(ctime);
 }
