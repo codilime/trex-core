@@ -237,7 +237,7 @@ RXLatency::handle_correct_flow(
     if (!has_valid_timestamps(fsp_head, hr_time_now))
         return;
     uint64_t d = (hr_time_now - fsp_head->time_stamp);
-    printf("Latency: PktTime = '%llu', TimeNow = '%llu', Latency = '%llu'", fsp_head->time_stamp,  hr_time_now, d);
+    printf("Latency: PktTime = '%llu', TimeNow = '%llu', Latency = '%llu'\n", fsp_head->time_stamp,  hr_time_now, d);
     dsec_t ctime = CGlobalInfo::m_options.timestamp_diff_to_dsec(d);
     curr_rfc2544->add_sample(ctime);
 }
