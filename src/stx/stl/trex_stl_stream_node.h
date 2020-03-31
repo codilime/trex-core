@@ -798,7 +798,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
             timespec card_time;
             timespec sys_time;
-            rte_eth_timesync_read_time(m_port_id, card_time);
+            rte_eth_timesync_read_time(m_port_id, &card_time);
             clock_gettime(CLOCK_REALTIME, &sys_time);
             printf("Card time = '%llu', '%llu'\nSystem time = '%llu', '%llu'",
                    card_time.tv_sec, card_time.tv_sec,
