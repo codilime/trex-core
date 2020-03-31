@@ -782,19 +782,27 @@ struct CGenNodeTimesync : public CGenNodeBase {
     }
 
     inline void handle(CFlowGenListPerThread *thread) {
-        if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
-            if (hardware_timestamping_enabled) {
-                /*Read values from NIC to prevent latching with old value. */
-                timespec ts_temp;
-                int i = 0;
-                while (i == 0) {
-                    i = rte_eth_timesync_read_tx_timestamp(m_port_id, &ts_temp);
-                }
-            }
+        //if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
+        if (timesync_last + 1.0 < now_sec()) {
+            // if (hardware_timestamping_enabled) {
+            //     /*Read values from NIC to prevent latching with old value. */
+            //     timespec ts_temp;
+            //     int i = 0;
+            //     while (i == 0) {
+            //         i = rte_eth_timesync_read_tx_timestamp(m_port_id, &ts_temp);
+            //     }
+            // }
 
             //m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
             //                                   PTP::Field::message_type::SYNC, {0, 0});
-            //timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
+            timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
+            timespec card_time;
+            timespec sys_time;
+            rte_eth_timesync_read_time(m_port_id, card_time);
+            clock_gettime(CLOCK_REALTIME, &sys_time);
+            printf("Card time = '%llu', '%llu'\nSystem time = '%llu', '%llu'",
+                   card_time.tv_sec, card_time.tv_sec,
+                   sys_time.tv_sec, sys_time.tv_nsec);
         }
 
         if (m_timesync_engine->hasNextMessage(m_port_id)) {
