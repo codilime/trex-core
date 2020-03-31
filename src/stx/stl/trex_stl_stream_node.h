@@ -743,7 +743,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
     dsec_t m_next_time_offset;
 
   private:
-    uint64_t m_pad_4[6];
+    uint64_t log_time;
+    uint64_t m_pad_4[5];
 
   public:
 
@@ -760,6 +761,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         set_slow_path(true);
         set_send_immediately(true);
+
+        log_time = 0;
 
     }
 
@@ -805,7 +808,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
         }
 
-        if ((CGlobalInfo::m_options.m_timesync_interval <= 0) && (timesync_last + 1.0 < now_sec())) {
+        if (log_time + 1.0 < now_sec()) {
             timespec card_time;
             timespec sys_time;
             rte_eth_timesync_read_time(m_port_id, &card_time);
@@ -814,7 +817,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
                    card_time.tv_sec, card_time.tv_nsec,
                    sys_time.tv_sec, sys_time.tv_nsec);
 
-            timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
+            log_time = now_sec();  // store timestamp of the last (this) time synchronization
         }
 
         if (m_timesync_engine->hasNextMessage(m_port_id)) {
