@@ -801,7 +801,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             rte_eth_timesync_read_time(m_port_id, &card_time);
             clock_gettime(CLOCK_REALTIME, &sys_time);
             printf("Card time = '%llu', '%llu'\nSystem time = '%llu', '%llu'\n",
-                   card_time.tv_sec, card_time.tv_sec,
+                   card_time.tv_sec, card_time.tv_nsec,
                    sys_time.tv_sec, sys_time.tv_nsec);
         }
 
