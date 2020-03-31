@@ -761,6 +761,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
         set_slow_path(true);
         set_send_immediately(true);
 
+        m_timesync_engine->setHardwareClockAdjusted(m_port_id, true);
+
     }
 
     inline void teardown() {
@@ -793,7 +795,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
             //m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
             //                                   PTP::Field::message_type::SYNC, {0, 0});
             //timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
-            m_timesync_engine->setHardwareClockAdjusted(m_port_id, true);
         }
 
         if (m_timesync_engine->hasNextMessage(m_port_id)) {
