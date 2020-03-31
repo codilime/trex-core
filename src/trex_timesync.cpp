@@ -28,7 +28,7 @@ limitations under the License.
 CTimesyncEngine::CTimesyncEngine() {
     setTimesyncMethod(TimesyncMethod::NONE);
     setTimesyncMaster(false);
-    m_is_slave_synchronized = false;
+    m_is_slave_synchronized = true;
 }
 
 // PTP Slave's code //////////////////////////////////////////////
