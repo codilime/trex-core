@@ -39,7 +39,7 @@ rte_cyclecounter_cycles_to_ns(struct rte_timecounter *tc, uint64_t cycles)
 
 	/* Add fractional nanoseconds. */
 	ns = cycles + tc->nsec_frac;
-	//ns = ns * 8;
+	ns = ((ns / 5) * 4);
 	tc->nsec_frac = ns % 1000000L;
 
 	/* Shift to get only nanoseconds. */
