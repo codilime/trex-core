@@ -796,15 +796,6 @@ struct CGenNodeTimesync : public CGenNodeBase {
             m_timesync_engine->pushNextMessage(m_port_id, m_timesync_engine->nextSequenceId(),
                                                PTP::Field::message_type::SYNC, {0, 0});
 
-            timespec card_time;
-            timespec sys_time;
-            rte_eth_timesync_read_time(m_port_id, &card_time);
-            clock_gettime(CLOCK_REALTIME, &sys_time);
-            printf("Card time = '%llu', '%llu'\nSystem time = '%llu', '%llu'\n",
-                   card_time.tv_sec, card_time.tv_nsec,
-                   sys_time.tv_sec, sys_time.tv_nsec);
-
-
             timesync_last = now_sec();  // store timestamp of the last (this) time synchronization
         }
 
