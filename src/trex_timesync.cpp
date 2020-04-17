@@ -121,11 +121,11 @@ int64_t CTimesyncEngine::evalDelta(int port, uint16_t sequence_id) {
         return 0;
 
     // delta = -((t2 - t1) - (t4 - t3)) / 2
-    int64_t t1 = timespecToTimestamp(data->t1) / 2,
-            t2 = timespecToTimestamp(data->t2) / 2,
-            t3 = timespecToTimestamp(data->t3) / 2,
-            t4 = timespecToTimestamp(data->t4) / 2;
-    int64_t delta = t1 - t2 + t4 - t3;
+    uint64_t t1 = timespecToTimestamp(data->t1) / 2,
+             t2 = timespecToTimestamp(data->t2) / 2,
+             t3 = timespecToTimestamp(data->t3) / 2,
+             t4 = timespecToTimestamp(data->t4) / 2;
+    int64_t delta = ((int64_t)(t1 - t2)) + ((int64_t)(t4 - t3));
     bool is_delta_valid = false;
     setDelta(port, delta, &is_delta_valid);
     cleanupSequencesBefore(port, data->t2);
