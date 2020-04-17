@@ -729,8 +729,9 @@ struct CGenNodeTimesync : public CGenNodeBase {
     TrexStream *m_ref_stream_info;
     rte_mbuf_t *m;
     CTimesyncEngine *m_timesync_engine;
-    bool hardware_timestamping_enabled;
-    uint8_t m_pad_2[7];
+    bool m_hardware_timestamping_enabled;
+    bool m_is_master;
+    uint8_t m_pad_2[6];
     uint64_t m_pad_3[2];
 
     uint8_t m_pad5;
@@ -752,7 +753,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
         assert(m_timesync_engine);
 
         TrexPlatformApi &api = get_platform_api();
-        hardware_timestamping_enabled = api.getPortAttrObj(m_port_id)->is_hardware_timesync_enabled();
+        m_hardware_timestamping_enabled = api.getPortAttrObj(m_port_id)->is_hardware_timesync_enabled();
 
         // Get Ip Addr
         m_ip_addr = CGlobalInfo::m_options.m_ip_cfg[m_port_id].get_ip();
@@ -760,6 +761,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
 
         set_slow_path(true);
         set_send_immediately(true);
+        m_is_master = m_timesync_engine->isTimesyncMaster();
 
     }
 
@@ -780,8 +782,8 @@ struct CGenNodeTimesync : public CGenNodeBase {
     }
 
     inline void handle(CFlowGenListPerThread *thread) {
-        if (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec()) {
-            if (hardware_timestamping_enabled) {
+        if ((m_is_master) && (timesync_last + static_cast<double>(CGlobalInfo::m_options.m_timesync_interval) < now_sec())) {
+            if (m_hardware_timestamping_enabled) {
                 /*Read values from NIC to prevent latching with old value. */
                 timespec ts_temp;
                 int i = 0;
@@ -799,7 +801,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
             timespec ts;
             thread->m_node_gen.m_v_if->send_node((CGenNode *)this);
             int i;
-            if (hardware_timestamping_enabled) {
+            if (m_hardware_timestamping_enabled) {
                 /* Wait at least 1 us to read TX timestamp. */
                 int wait_us = 0;
 
@@ -828,7 +830,7 @@ struct CGenNodeTimesync : public CGenNodeBase {
                 m_timesync_engine->sentPTPDelayReq(m_port_id, m_last_sent_sequence_id, ts, m_last_sent_ptp_src_port);
                 break;
             case PTP::Field::message_type::FOLLOW_UP:
-                if (hardware_timestamping_enabled) {
+                if (m_hardware_timestamping_enabled) {
                     /*Read values from NIC to prevent latching with old value. */
                     int i = 0;
                     timespec ts_temp;
