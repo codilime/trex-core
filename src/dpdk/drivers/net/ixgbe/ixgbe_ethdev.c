@@ -7038,6 +7038,7 @@ ixgbe_timesync_read_time(struct rte_eth_dev *dev, struct timespec *ts)
 			(struct ixgbe_adapter *)dev->data->dev_private;
 
 	systime_cycles = ixgbe_read_systime_cyclecounter(dev);
+	printf("System Card cycles = %lld\n", systime_cycles);
 	ns = rte_timecounter_update(&adapter->systime_tc, systime_cycles);
 	*ts = rte_ns_to_timespec(ns);
 
@@ -7133,6 +7134,7 @@ ixgbe_timesync_read_rx_timestamp(struct rte_eth_dev *dev,
 		return -EINVAL;
 
 	rx_tstamp_cycles = ixgbe_read_rx_tstamp_cyclecounter(dev);
+	printf("RX Card cycles = %lld\n", rx_tstamp_cycles);
 	ns = rte_timecounter_update(&adapter->rx_tstamp_tc, rx_tstamp_cycles);
 	*timestamp = rte_ns_to_timespec(ns);
 
@@ -7155,6 +7157,7 @@ ixgbe_timesync_read_tx_timestamp(struct rte_eth_dev *dev,
 		return -EINVAL;
 
 	tx_tstamp_cycles = ixgbe_read_tx_tstamp_cyclecounter(dev);
+	printf("TX Card cycles = %lld\n", tx_tstamp_cycles);
 	ns = rte_timecounter_update(&adapter->tx_tstamp_tc, tx_tstamp_cycles);
 	*timestamp = rte_ns_to_timespec(ns);
 
