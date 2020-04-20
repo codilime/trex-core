@@ -6975,9 +6975,10 @@ ixgbe_start_timecounters(struct rte_eth_dev *dev)
 		IXGBE_WRITE_REG(hw, IXGBE_TIMINCA, incval);
 		break;
 	case ixgbe_mac_82599EB:
-		incval = (0xF42400 * 4);
+		//incval = 0xF42400;
+		incval = 16;
 		IXGBE_WRITE_REG(hw, IXGBE_TIMINCA,
-				(8 << IXGBE_INCPER_SHIFT_82599) | incval);
+				(2 << IXGBE_INCPER_SHIFT_82599) | incval);
 		break;
 	default:
 		/* Not supported. */
