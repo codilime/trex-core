@@ -28,6 +28,7 @@ limitations under the License.
 
 #include <unordered_map>
 #include <queue>
+#include <mutex>
 
 #include "common/Network/Packet/PTPPacket.h"
 
@@ -197,6 +198,7 @@ class CTimesyncEngine {
 
   private:
     TimesyncMethod m_timesync_method;
+    std::mutex m_mutex;
     bool m_is_master;
     bool m_is_slave_synchronized;
     uint16_t m_sequence_id;

@@ -37,6 +37,7 @@ CTimesyncEngine::CTimesyncEngine() {
 
 void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t,
                                       PTP::Field::src_port_id_field source_port_id) {
+    const std::lock_guard<std::mutex> lock(m_mutex);
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getOrCreateData(port, sequence_id);
@@ -46,6 +47,7 @@ void CTimesyncEngine::receivedPTPSync(int port, uint16_t sequence_id, timespec t
 
 void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timespec t,
                                           PTP::Field::src_port_id_field source_port_id) {
+    const std::lock_guard<std::mutex> lock(m_mutex);
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getData(port, sequence_id);
@@ -57,6 +59,7 @@ void CTimesyncEngine::receivedPTPFollowUp(int port, uint16_t sequence_id, timesp
 
 void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t,
                                       PTP::Field::src_port_id_field source_port_id) {
+    const std::lock_guard<std::mutex> lock(m_mutex);
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getData(port, sequence_id);
@@ -69,6 +72,7 @@ void CTimesyncEngine::sentPTPDelayReq(int port, uint16_t sequence_id, timespec t
 void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, timespec t,
                                            PTP::Field::src_port_id_field source_port_id,
                                            PTP::Field::src_port_id_field requesting_source_port_id) {
+    const std::lock_guard<std::mutex> lock(m_mutex);
     if (m_is_master)
         return;
     CTimesyncPTPData_t *data = getData(port, sequence_id);
@@ -84,6 +88,7 @@ void CTimesyncEngine::receivedPTPDelayResp(int port, uint16_t sequence_id, times
 // master flow: send SYNC, send FOLLOW_UP, receive DELAY_REQ, send DELAY_RESP
 
 void CTimesyncEngine::sentPTPSync(int port, uint16_t sequence_id, timespec t) {
+    const std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_is_master)
         return;
     pushNextMessage(port, sequence_id, PTP::Field::message_type::FOLLOW_UP, t);
@@ -91,6 +96,7 @@ void CTimesyncEngine::sentPTPSync(int port, uint16_t sequence_id, timespec t) {
 
 void CTimesyncEngine::receivedPTPDelayReq(int port, uint16_t sequence_id, timespec t,
                                           PTP::Field::src_port_id_field source_port_id) {
+    const std::lock_guard<std::mutex> lock(m_mutex);
     if (!m_is_master)
         return;
     pushNextMessage(port, sequence_id, PTP::Field::message_type::DELAY_RESP, t, source_port_id);
