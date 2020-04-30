@@ -96,7 +96,8 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
 }
 
 CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len) {
-    int min_len = ETH_HDR_LEN;
+    //int min_len = ETH_HDR_LEN;
+    int min_len = 42;
     if (len < min_len)
         return FSTAT_PARSER_E_TOO_SHORT;
 
