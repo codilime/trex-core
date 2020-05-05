@@ -397,8 +397,6 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
         m_l4_proto = m_ipv6->getl4Proto((uint8_t *)m_ipv6, len - l2_header_len, p_l4);
     }
 
-    printf("IPv4 Proto = '%d'\n", m_l4_proto);
-
     switch (m_l4_proto) {
 
     case IPPROTO_UDP: {
@@ -423,7 +421,6 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
         //l4_header_len = GRE_HDR_LEN;
         GREHeader* gre = (GREHeader*)p_l4;
         m_next_header = gre->getProto();
-        printf("Next protocol is GRE (encapsulate protocol = '%d')\n", m_next_header);
     }break;
 
     default: {
@@ -431,8 +428,6 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
     } break;
 
     }
-
-    
 
     payload_len = len - (p_l4 - p) - l4_header_len;
 
