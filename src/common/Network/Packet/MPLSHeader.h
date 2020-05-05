@@ -32,7 +32,7 @@ public:
     }
 
     bool getBottomOfStack() {
-        return (bottom_of_stack != 1 ? true : false);
+        return (bottom_of_stack == 1 ? true : false);
     }
 
 private:
