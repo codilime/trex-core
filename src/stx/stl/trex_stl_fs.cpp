@@ -556,9 +556,9 @@ int CFlowStatRuleMgr::compile_stream(const TrexStream * stream, CFlowStatParser 
         parser->set_vxlan_skip(true);
     }
 
-    //if (stream->m_rx_check.m_tun_skip) {
-    //    parser->set_vxlan_skip(true);
-    //}
+    if (stream->m_rx_check.m_gre_skip) {
+        parser->set_gre_skip(true);
+    }
 
     CFlowStatParser_err_t ret = parser->parse(stream->m_pkt.binary, stream->m_pkt.len);
 

@@ -587,6 +587,7 @@ public:
         bool      m_seq_enabled;
         bool      m_latency;
         bool      m_vxlan_skip;
+        bool      m_gre_skip;
         uint16_t  m_rule_type;
         uint32_t  m_pg_id;
         uint16_t  m_hw_id;

@@ -51,7 +51,8 @@ class CFlowStatParser {
       FSTAT_PARSER_VLAN_NEEDED = 0x2,
       FSTAT_PARSER_QINQ_SUPP   = 0x4,
       FSTAT_PARSER_MPLS_SUPP   = 0x8,
-      FSTAT_PARSER_VXLAN_SKIP  = 0x10
+      FSTAT_PARSER_VXLAN_SKIP  = 0x10,
+      FSTAT_PARSER_GRE_SKIP  = 0x20
     };
 
   public:
@@ -77,6 +78,16 @@ class CFlowStatParser {
 
     }
     bool get_vxlan_skip() { return ((m_flags & FSTAT_PARSER_VXLAN_SKIP)?true:false); }
+
+    void set_gre_skip(bool enable){
+        if (enable) {
+          m_flags |=  FSTAT_PARSER_GRE_SKIP;
+        }else{
+          m_flags &= ~FSTAT_PARSER_GRE_SKIP;
+        }
+
+    }
+    bool get_gre_skip() { return ((m_flags & FSTAT_PARSER_GRE_SKIP)?true:false); }
 
     virtual int get_ip_id(uint32_t &ip_id);
     virtual void set_ip_id(uint32_t ip_id);

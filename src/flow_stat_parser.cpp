@@ -93,13 +93,13 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
         return res;
 
     if (get_vxlan_skip()) {
-        uint16_t vxlan_skip = get_vxlan_rx_payload_offset(p,len);
+        uint16_t vxlan_skip = get_vxlan_rx_payload_offset(p, len);
         if (vxlan_skip) {
             res = _parse(p + vxlan_skip, len - vxlan_skip);
         }
     }
 
-    if (true) { // Tunel
+    if (get_gre_skip()) {
         uint16_t tun_skip = get_tun_rx_payload_offset(p, len);
         if (tun_skip) {
             res = _parse(p + tun_skip, len - tun_skip, m_next_header);
@@ -234,10 +234,10 @@ uint16_t CFlowStatParser::get_tun_payload_offset(uint8_t *pkt, uint16_t len) {
         throw TrexFStatEx("Failed getting payload len", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
     }
     if ( m_l4_proto != IPPROTO_GRE ) {
-        throw TrexFStatEx("VXLAN tunnel requires UDP", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
+        throw TrexFStatEx("There is no GRE Header in Packet", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
     }
     if ( payload_len < GRE_HDR_LEN + IPV4_HDR_LEN ) {
-        throw TrexFStatEx("Packet is too small to have VXLAN tunnel", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
+        throw TrexFStatEx("Packet is too small to have GRE tunnel", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
     }
     return len - payload_len + GRE_HDR_LEN;
 }
