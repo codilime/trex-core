@@ -131,7 +131,7 @@ class CFlowStatParser {
  private:
     char *create_test_pkt(int ip_ver, uint16_t l4_proto, uint8_t ttl
                           , uint32_t ip_id, uint16_t flags, int &pkt_size);
-    CFlowStatParser_err_t _parse(uint8_t *p, uint16_t len, uint16_t next_hdr = 0);
+    CFlowStatParser_err_t _parse(uint8_t *p, uint16_t len, uint16_t next_hdr);
 
     uint16_t get_vxlan_rx_payload_offset(uint8_t *pkt, uint16_t len);
     uint16_t get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len);
