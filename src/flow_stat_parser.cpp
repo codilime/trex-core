@@ -108,7 +108,7 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
     return (res);
 }
 
-CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_t next_hdr = 0) {
+CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_t next_hdr) {
     int min_len = 0;
     bool finished = false;
     bool has_vlan = false;
