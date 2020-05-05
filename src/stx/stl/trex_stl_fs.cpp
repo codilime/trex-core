@@ -552,22 +552,18 @@ int CFlowStatRuleMgr::compile_stream(const TrexStream * stream, CFlowStatParser 
     std::cout << __METHOD_NAME__ << " user id:" << stream->m_rx_check.m_pg_id << " en:";
     std::cout << stream->m_rx_check.m_enabled << std::endl;
 #endif
+    if (stream->m_rx_check.m_vxlan_skip) {
+        parser->set_vxlan_skip(true);
+    }
+
+    //if (stream->m_rx_check.m_tun_skip) {
+    //    parser->set_vxlan_skip(true);
+    //}
+
     CFlowStatParser_err_t ret = parser->parse(stream->m_pkt.binary, stream->m_pkt.len);
 
     // if we could not parse the packet, but no stat count needed, it is probably OK.
     if ( ret != FSTAT_PARSER_E_OK && stream->need_flow_stats() && get_dpdk_mode()->is_hardware_filter_needed() ) {
-        throw TrexFStatEx(parser->get_error_str(ret), TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
-    }
-
-    if ( !stream->m_rx_check.m_vxlan_skip ) {
-        return 0;
-    }
-
-    uint16_t vxlan_skip = parser->get_vxlan_payload_offset(stream->m_pkt.binary, stream->m_pkt.len);
-
-    ret = parser->parse(stream->m_pkt.binary + vxlan_skip, stream->m_pkt.len - vxlan_skip);
-
-    if ( ret != FSTAT_PARSER_E_OK ) {
         throw TrexFStatEx(parser->get_error_str(ret), TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
     }
 

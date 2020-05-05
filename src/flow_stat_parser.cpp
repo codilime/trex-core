@@ -26,6 +26,8 @@
 #include "common/Network/Packet/IPv6Header.h"
 #include "common/Network/Packet/TcpHeader.h"
 #include "common/Network/Packet/VLANHeader.h"
+#include "common/Network/Packet/MPLSHeader.h"
+#include "common/Network/Packet/GREHeader.h"
 #include "pkt_gen.h"
 #include "flow_stat_parser.h"
 #include "bp_sim.h"
@@ -37,7 +39,7 @@ CFlowStatParser::CFlowStatParser(CFlowStatParser_mode mode) {
         m_flags = FSTAT_PARSER_VLAN_SUPP;
         break;
     case FLOW_STAT_PARSER_MODE_SW:
-        m_flags = FSTAT_PARSER_VLAN_SUPP | FSTAT_PARSER_QINQ_SUPP;
+        m_flags = FSTAT_PARSER_VLAN_SUPP | FSTAT_PARSER_QINQ_SUPP | FSTAT_PARSER_MPLS_SUPP;
         break;
     // In 82599 we configure the card to either always use VLAN, or never use
     case FLOW_STAT_PARSER_MODE_82599:
@@ -56,6 +58,7 @@ void CFlowStatParser::reset() {
     m_ipv6 = 0;
     m_l4_proto = 0;
     m_l4 = 0;
+    m_next_header = 0;
 }
 
 std::string CFlowStatParser::get_error_str(CFlowStatParser_err_t err) {
@@ -86,24 +89,27 @@ std::string CFlowStatParser::get_error_str(CFlowStatParser_err_t err) {
 
 CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
     CFlowStatParser_err_t res = _parse(p, len);
-    if (get_vxlan_skip() && (res == FSTAT_PARSER_E_OK)) {
-      uint16_t vxlan_skip = get_vxlan_rx_payload_offset(p,len);
-      if (vxlan_skip) {
-        res = _parse(p + vxlan_skip, len - vxlan_skip);
-      }
+    if(res != FSTAT_PARSER_E_OK)
+        return res;
+
+    if (get_vxlan_skip()) {
+        uint16_t vxlan_skip = get_vxlan_rx_payload_offset(p,len);
+        if (vxlan_skip) {
+            res = _parse(p + vxlan_skip, len - vxlan_skip);
+        }
+    }
+
+    if (true) { // Tunel
+        uint16_t tun_skip = get_tun_rx_payload_offset(p, len);
+        if (tun_skip) {
+            res = _parse(p + tun_skip, len - tun_skip, m_next_header);
+        }
     }
     return (res);
 }
 
-CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len) {
-    //int min_len = ETH_HDR_LEN;
-    int min_len = 42;
-    if (len < min_len)
-        return FSTAT_PARSER_E_TOO_SHORT;
-
-    EthernetHeader *ether = (EthernetHeader *)p;
-    VLANHeader *vlan;
-    uint16_t next_hdr = ether->getNextProtocol();
+CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_t next_hdr = 0) {
+    int min_len = 0;
     bool finished = false;
     bool has_vlan = false;
     reset();
@@ -111,18 +117,31 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len) {
     m_start = p;
     m_len = len;
 
-    p += min_len;
     while (! finished) {
         switch( next_hdr ) {
+        case 0:
+            min_len += ETH_HDR_LEN;
+            if (len < min_len)
+                return FSTAT_PARSER_E_TOO_SHORT;
+
+            EthernetHeader *ether = (EthernetHeader *)p;
+            next_hdr = ether->getNextProtocol();
+
+            p += ETH_HDR_LEN;
+
+            break;
+
         case EthernetHeader::Protocol::IP :
             min_len += IPV4_HDR_LEN;
             if (len < min_len)
                 return FSTAT_PARSER_E_SHORT_IP_HDR;
+
             m_ipv4 = (IPHeader *) p;
             m_l4 = ((uint8_t *)m_ipv4) + m_ipv4->getHeaderLength();
             m_l4_proto = m_ipv4->getProtocol();
             finished = true;
             break;
+
         case EthernetHeader::Protocol::IPv6 :
             min_len += IPV6_HDR_LEN;
             if (len < min_len)
@@ -130,6 +149,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len) {
             m_ipv6 = (IPv6Header *) p;
             finished = true;
             break;
+
         case EthernetHeader::Protocol::QINQ :
             if (! (m_flags & FSTAT_PARSER_QINQ_SUPP))
                 return FSTAT_PARSER_E_QINQ_NOT_SUP;
@@ -143,15 +163,31 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len) {
             min_len += sizeof(VLANHeader);
             if (len < min_len)
                 return FSTAT_PARSER_E_TOO_SHORT;
-            vlan = (VLANHeader *)p;
+            VLANHeader *vlan = (VLANHeader *)p;
             p += sizeof(VLANHeader);
             next_hdr = vlan->getNextProtocolHostOrder();
             break;
+
         case EthernetHeader::Protocol::MPLS_Unicast :
         case EthernetHeader::Protocol::MPLS_Multicast :
             if (! (m_flags & FSTAT_PARSER_MPLS_SUPP))
                 return FSTAT_PARSER_E_MPLS_NOT_SUP;
+
+            min_len += MPLS_HDR_LEN;
+            if(len < min_len)
+                return FSTAT_PARSER_E_TOO_SHORT;
+
+            MPLSHeader* mpls = (MPLSHeader *) p;
+            if (mpls->getBottomOfStack()) {
+                //For MPLS we only allow IPv4 as up layer protocol
+                next_hdr = EthernetHeader::Protocol::IP; // IPv4
+            } else {
+                next_hdr = EthernetHeader::Protocol::MPLS_Unicast;
+            }
+
+            p += MPLS_HDR_LEN;
             break;
+
         default:
             return FSTAT_PARSER_E_UNKNOWN_HDR;
         }
@@ -191,6 +227,34 @@ uint16_t CFlowStatParser::get_vxlan_rx_payload_offset(uint8_t *pkt, uint16_t len
         return 0;
     }
     return len - payload_len + VXLAN_LEN;
+}
+
+uint16_t CFlowStatParser::get_tun_payload_offset(uint8_t *pkt, uint16_t len) {
+    uint16_t payload_len;
+    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
+        throw TrexFStatEx("Failed getting payload len", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
+    }
+    if ( m_l4_proto != IPPROTO_GRE ) {
+        throw TrexFStatEx("VXLAN tunnel requires UDP", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
+    }
+    if ( payload_len < GRE_HDR_LEN + IPV4_HDR_LEN ) {
+        throw TrexFStatEx("Packet is too small to have VXLAN tunnel", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
+    }
+    return len - payload_len + GRE_HDR_LEN;
+}
+
+uint16_t CFlowStatParser::get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len) {
+    uint16_t payload_len;
+    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
+        return 0;
+    }
+    if ( m_l4_proto != IPPROTO_GRE ) {
+        return 0;
+    }
+    if ( payload_len < GRE_HDR_LEN + IPV4_HDR_LEN ) {
+        return 0;
+    }
+    return len - payload_len + GRE_HDR_LEN;
 }
 
 // arg is uint32_t in below two functions because we want same function to work for IPv4 and IPv6
@@ -351,6 +415,11 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
     case IPPROTO_ICMP:
         l4_header_len = 8;
         break;
+    case IPPROTO_GRE:
+        //l4_header_len = GRE_HDR_LEN;
+        GREHeader* gre = (GREHeader*)p_l4;
+        m_next_header = gre->getProto();
+        break;
     default:
         l4_header_len = 0;
         break;
@@ -368,6 +437,22 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
 
 static const uint16_t TEST_IP_ID = 0xabcd;
 static const uint16_t TEST_IP_ID2 = 0xabcd;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 int CFlowStatParserTest::verify_pkt_one_parser(uint8_t * p, uint16_t pkt_size, uint16_t payload_len, uint32_t ip_id

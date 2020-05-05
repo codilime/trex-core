@@ -67,6 +67,7 @@ class CFlowStatParser {
     std::string get_error_str(CFlowStatParser_err_t err);
     virtual CFlowStatParser_err_t parse(uint8_t *pkt, uint16_t len);
     virtual uint16_t get_vxlan_payload_offset(uint8_t *pkt, uint16_t len);
+    virtual uint16_t get_tun_payload_offset(uint8_t *pkt, uint16_t len);
     void set_vxlan_skip(bool enable){
         if (enable) {
           m_flags |=  FSTAT_PARSER_VXLAN_SKIP;
@@ -130,13 +131,15 @@ class CFlowStatParser {
  private:
     char *create_test_pkt(int ip_ver, uint16_t l4_proto, uint8_t ttl
                           , uint32_t ip_id, uint16_t flags, int &pkt_size);
-    CFlowStatParser_err_t _parse(uint8_t *p, uint16_t len);
+    CFlowStatParser_err_t _parse(uint8_t *p, uint16_t len, uint16_t next_hdr = 0);
 
     uint16_t get_vxlan_rx_payload_offset(uint8_t *pkt, uint16_t len);
+    uint16_t get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len);
 
   protected:
     uint8_t *m_start;
     uint16_t m_len;
+    uint16_t m_next_header;
     IPHeader *m_ipv4;
     IPv6Header *m_ipv6;
     uint8_t *m_l4;
