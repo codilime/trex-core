@@ -28,7 +28,7 @@ limitations under the License.
 class GREHeader {
 public:
     uint16_t getProto() {
-        return (uint32_t)proto;
+        return PKT_HTONS(proto);
     }
 
 private:
