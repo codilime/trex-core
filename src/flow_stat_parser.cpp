@@ -119,7 +119,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
 
     while (! finished) {
         switch( next_hdr ) {
-        case 0:
+        case 0: {
             min_len += ETH_HDR_LEN;
             if (len < min_len)
                 return FSTAT_PARSER_E_TOO_SHORT;
@@ -128,8 +128,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
             next_hdr = ether->getNextProtocol();
 
             p += ETH_HDR_LEN;
-
-            break;
+        } break;
 
         case EthernetHeader::Protocol::IP :
             min_len += IPV4_HDR_LEN;
@@ -153,7 +152,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
         case EthernetHeader::Protocol::QINQ :
             if (! (m_flags & FSTAT_PARSER_QINQ_SUPP))
                 return FSTAT_PARSER_E_QINQ_NOT_SUP;
-        case EthernetHeader::Protocol::VLAN :
+        case EthernetHeader::Protocol::VLAN : {
             if (! (m_flags & FSTAT_PARSER_VLAN_SUPP))
                 return FSTAT_PARSER_E_VLAN_NOT_SUP;
             // In QINQ, we also allow multiple 0x8100 headers
@@ -166,10 +165,10 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
             VLANHeader *vlan = (VLANHeader *)p;
             p += sizeof(VLANHeader);
             next_hdr = vlan->getNextProtocolHostOrder();
-            break;
+        } break;
 
         case EthernetHeader::Protocol::MPLS_Unicast :
-        case EthernetHeader::Protocol::MPLS_Multicast :
+        case EthernetHeader::Protocol::MPLS_Multicast : {
             if (! (m_flags & FSTAT_PARSER_MPLS_SUPP))
                 return FSTAT_PARSER_E_MPLS_NOT_SUP;
 
@@ -186,7 +185,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
             }
 
             p += MPLS_HDR_LEN;
-            break;
+        } break;
 
         default:
             return FSTAT_PARSER_E_UNKNOWN_HDR;
@@ -383,7 +382,7 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
     uint16_t l4_header_len;
     uint8_t *p_l3 = NULL;
     uint8_t *p_l4 = NULL;
-    TCPHeader *p_tcp = NULL;
+     = NULL;
     if (!m_ipv4 && !m_ipv6) {
         payload_len = len - ETH_HDR_LEN;
         return 0;
@@ -400,29 +399,35 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
     }
 
     switch (m_l4_proto) {
-    case IPPROTO_UDP:
+
+    case IPPROTO_UDP: {
         l4_header_len = 8;
-        break;
-    case IPPROTO_TCP:
+    } break;
+
+    case IPPROTO_TCP: {
         if ((p_l4 + TCP_HEADER_LEN) > (p + len)) {
             //Not enough space for TCP header
             payload_len = 0;
             return -2;
         }
-        p_tcp = (TCPHeader *)p_l4;
+        TCPHeader *p_tcp = (TCPHeader *)p_l4;
         l4_header_len = p_tcp->getHeaderLength();
-        break;
-    case IPPROTO_ICMP:
+    } break;
+
+    case IPPROTO_ICMP: {
         l4_header_len = 8;
-        break;
-    case IPPROTO_GRE:
+    } break;
+
+    case IPPROTO_GRE: {
         //l4_header_len = GRE_HDR_LEN;
         GREHeader* gre = (GREHeader*)p_l4;
         m_next_header = gre->getProto();
-        break;
-    default:
+    }break;
+
+    default: {
         l4_header_len = 0;
-        break;
+    } break;
+
     }
 
     payload_len = len - (p_l4 - p) - l4_header_len;
