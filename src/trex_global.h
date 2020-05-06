@@ -478,6 +478,7 @@ class CPerPortIPCfg {
     void set_mask(uint32_t val) {m_mask = val;}
     void set_def_gw(uint32_t val) {m_def_gw = val;}
     void set_vlan(uint16_t val) {m_vlan = val;}
+    void set_vxlan_fs(bool val) {m_vxlan_fs = val;}
     void set_gre_tun(bool val) {m_gre_tun = val;}
 
  private:
