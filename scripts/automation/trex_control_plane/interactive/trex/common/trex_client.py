@@ -3292,7 +3292,7 @@ class TRexClient(object):
         opts.link            = parsing_opts.UP_DOWN_DICT.get(opts.link)
         opts.led             = parsing_opts.ON_OFF_DICT.get(opts.led)
         opts.flow_ctrl       = parsing_opts.FLOW_CTRL_DICT.get(opts.flow_ctrl)
-        opts.gre_tun         = parsing_opts.GRE_TUN.get(opts.gre_tun)
+        opts.gre_tun         = parsing_opts.ON_OFF_DICT.get(opts.gre_tun)
 
         # if no attributes - fall back to printing the status
         if not list(filter(lambda opt:opt[0] not in ('all_ports', 'ports') and opt[1] is not None, opts._get_kwargs())):
