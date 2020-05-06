@@ -135,11 +135,21 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
         } break;
 
         case EthernetHeader::Protocol::IP :
+            printf("Found IP header\n");
             min_len += IPV4_HDR_LEN;
             if (len < min_len)
                 return FSTAT_PARSER_E_SHORT_IP_HDR;
 
             m_ipv4 = (IPHeader *) p;
+
+            unsigned char bytes[4];
+            uint32_t ip = m_ipv4->getDestIp();
+            bytes[0] = ip & 0xFF;
+            bytes[1] = (ip >> 8) & 0xFF;
+            bytes[2] = (ip >> 16) & 0xFF;
+            bytes[3] = (ip >> 24) & 0xFF;
+
+            printf("Setting m_ip to new IP Header (dest addr = '%d.%d.%d.%d')\n", bytes[3], bytes[2], bytes[1], bytes[0]);
             m_l4 = ((uint8_t *)m_ipv4) + m_ipv4->getHeaderLength();
             m_l4_proto = m_ipv4->getProtocol();
             finished = true;
