@@ -134,7 +134,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
             p += ETH_HDR_LEN;
         } break;
 
-        case EthernetHeader::Protocol::IP :
+        case EthernetHeader::Protocol::IP : {
             printf("Found IP header\n");
             min_len += IPV4_HDR_LEN;
             if (len < min_len)
@@ -153,7 +153,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
             m_l4 = ((uint8_t *)m_ipv4) + m_ipv4->getHeaderLength();
             m_l4_proto = m_ipv4->getProtocol();
             finished = true;
-            break;
+        } break;
 
         case EthernetHeader::Protocol::IPv6 :
             min_len += IPV6_HDR_LEN;
