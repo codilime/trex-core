@@ -649,6 +649,14 @@ TrexRpcCmdSetPortAttr::_run(const Json::Value &params, Json::Value &result) {
             ret = get_platform_api().getPortAttrObj(port_id)->set_vxlan_fs(vxlan_fs_ports);
         }
 
+        else if (name == "gre_tun") {
+            if ( !get_is_stateless() ) {
+                generate_execute_err(result, "GRE flow stats are relevant only to stateless mode");
+            }
+            bool on = parse_bool(attr[name], "enable", result);
+            ret = get_platform_api().getPortAttrObj(port_id)->set_gre_tun(on);
+        }
+
         /* unknown attribute */
         else {
             generate_execute_err(result, "unknown attribute type: '" + name + "'");

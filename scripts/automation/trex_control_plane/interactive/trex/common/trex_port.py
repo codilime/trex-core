@@ -512,6 +512,9 @@ class Port(object):
         if kwargs.get('vxlan_fs') is not None:
             json_attr['vxlan_fs'] = kwargs['vxlan_fs']
 
+        if kwargs.get('gre_tun') is not None:
+            json_attr['gre_tun'] = {'enabled': kwargs['gre_tun']}
+
         params = {"handler": self.handler,
                   "port_id": self.port_id,
                   "attr": json_attr}
@@ -639,6 +642,11 @@ class Port(object):
             info['vxlan_fs'] = fit_arr(attr['vxlan_fs'], 20) or '-'
         else:
             info['vxlan_fs'] = 'N/A'
+
+        if 'gre_tun' in attr:
+            info['gre'] = "on" if attr['gre_tun']['enabled'] else "off"
+        else:
+            info['gre'] = "N/A"
 
         if 'description' not in info:
             info['description'] = "N/A"
@@ -789,6 +797,9 @@ class Port(object):
     def is_prom_enabled(self):
         return self.__attr.get_param('promiscuous', 'enabled')
 
+    def is_gre_enabled(self):
+        return self.__attr.get_param('gre_tun', 'enabled')
+
     def is_mult_enabled(self):
         return self.__attr.get_param('multicast', 'enabled')
 
@@ -818,6 +829,7 @@ class Port(object):
                            ("multicast",       info['mult']),
                            ("flow ctrl",       info['fc']),
                            ("vxlan fs",        info['vxlan_fs']),
+                           ("gre_tun",         info['gre']),
                            ("--", ""),
 
                            ("layer mode",      format_text(info['layer_mode'], 'green' if info['layer_mode'] == 'IPv4' else 'magenta')),

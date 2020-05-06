@@ -84,6 +84,7 @@ public:
     virtual int set_led(bool on) = 0;
     virtual int set_rx_filter_mode(rx_filter_mode_e mode) = 0;
     virtual int set_vxlan_fs(vxlan_fs_ports_t &vxlan_fs_ports) = 0;
+    virtual int set_gre_tun(bool gre) = 0;
     virtual int set_hardware_timesync(bool enabled) = 0;
 
 
@@ -163,6 +164,7 @@ public:
 
     virtual int set_rx_filter_mode(rx_filter_mode_e mode);
     virtual int set_vxlan_fs(vxlan_fs_ports_t &vxlan_fs_ports);
+    virtual int set_gre_tun(bool gre);
 
 /*    DUMPS    */
     virtual void dump_link(FILE *fd);
@@ -230,6 +232,7 @@ public:
     void dump_link(FILE *fd) {}
     int set_rx_filter_mode(rx_filter_mode_e mode) { return -ENOTSUP; }
     int set_vxlan_fs(vxlan_fs_ports_t &vxlan_fs_ports) { return -ENOTSUP; }
+    int set_gre_tun(bool gre) { return -ENOTSUP; }
     bool is_loopback() const { return false; }
     std::string get_rx_filter_mode() {return "";}
 protected:

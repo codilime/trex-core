@@ -421,6 +421,11 @@ class OPTIONS_DB_ARGS:
          'action': 'merge',
          'type': int})
 
+    GRE_TUN = ArgumentPack(
+        ['--gre'],
+        {'help': 'Set GRE Tunnel on/off',
+         'choices': ON_OFF_DICT})
+
     SRC_IPV4 = ArgumentPack(
         ['--src'],
         {'help': 'Configure source IPv4 address',

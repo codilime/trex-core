@@ -2065,6 +2065,7 @@ class TRexClient(object):
                        led_on = None,
                        flow_ctrl = None,
                        multicast = None,
+                       gre_tun = None,
                        vxlan_fs = None):
         """
             Set port attributes
@@ -2099,6 +2100,7 @@ class TRexClient(object):
         validate_type('led_on', led_on, (bool, type(None)))
         validate_type('flow_ctrl', flow_ctrl, (int, type(None)))
         validate_type('multicast', multicast, (bool, type(None)))
+        validate_type('gre_tun', gre_tun, (bool, type(None)))
         validate_type('vxlan_fs', vxlan_fs, (list, type(None)))
 
         if all_none([promiscuous, link_up, led_on, flow_ctrl, multicast, vxlan_fs]):
@@ -2113,6 +2115,7 @@ class TRexClient(object):
                                  led_on = led_on,
                                  flow_ctrl = flow_ctrl,
                                  multicast = multicast,
+                                 gre_tun = gre_tun,
                                  vxlan_fs = vxlan_fs)
 
         self.ctx.logger.post_cmd(rc)
@@ -3278,6 +3281,7 @@ class TRexClient(object):
                                          parsing_opts.LED_STATUS,
                                          parsing_opts.FLOW_CTRL,
                                          parsing_opts.VXLAN_FS,
+                                         parsing_opts.GRE_TUN,
                                          parsing_opts.SUPPORTED,
                                          parsing_opts.MULTICAST)
 
@@ -3288,6 +3292,7 @@ class TRexClient(object):
         opts.link            = parsing_opts.UP_DOWN_DICT.get(opts.link)
         opts.led             = parsing_opts.ON_OFF_DICT.get(opts.led)
         opts.flow_ctrl       = parsing_opts.FLOW_CTRL_DICT.get(opts.flow_ctrl)
+        opts.gre_tun         = parsing_opts.GRE_TUN.get(opts.gre_tun)
 
         # if no attributes - fall back to printing the status
         if not list(filter(lambda opt:opt[0] not in ('all_ports', 'ports') and opt[1] is not None, opts._get_kwargs())):
@@ -3316,6 +3321,7 @@ class TRexClient(object):
                     opts.led,
                     opts.flow_ctrl,
                     opts.mult,
+                    opts.gre_tun,
                     opts.vxlan_fs)
 
 
