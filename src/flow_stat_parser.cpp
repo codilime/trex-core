@@ -88,6 +88,8 @@ std::string CFlowStatParser::get_error_str(CFlowStatParser_err_t err) {
 }
 
 CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
+    printf("Parsing packet\n");
+    
     CFlowStatParser_err_t res = _parse(p, len);
     if(res != FSTAT_PARSER_E_OK)
         return res;
@@ -100,11 +102,13 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
     }
 
     if (get_gre_skip()) {
+        printf("Skiping GRE tunnel\n");
         uint16_t tun_skip = get_tun_rx_payload_offset(p, len);
         if (tun_skip) {
             res = _parse(p + tun_skip, len - tun_skip, m_next_header);
         }
     }
+
     return (res);
 }
 
@@ -441,23 +445,6 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
 
 static const uint16_t TEST_IP_ID = 0xabcd;
 static const uint16_t TEST_IP_ID2 = 0xabcd;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int CFlowStatParserTest::verify_pkt_one_parser(uint8_t * p, uint16_t pkt_size, uint16_t payload_len, uint32_t ip_id
                                                , uint8_t l4_proto, CFlowStatParser &parser, CFlowStatParser_err_t exp_ret) {
