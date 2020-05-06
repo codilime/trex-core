@@ -2081,6 +2081,8 @@ class TRexClient(object):
                     0: disable all, 1: enable tx side, 2: enable rx side, 3: full enable
                 multicast: bool
                     Enable receiving multicast
+                gre_tun: bool
+                    Enable GRE Tunneling
                 vxlan_fs: list
                     | UDP ports for which HW flow stats will be read from layers after VXLAN
                     | UDP(<dst_port>)/VXLAN()/Ether()/... <--- NIC will look for flow stats magic here
@@ -2103,7 +2105,7 @@ class TRexClient(object):
         validate_type('gre_tun', gre_tun, (bool, type(None)))
         validate_type('vxlan_fs', vxlan_fs, (list, type(None)))
 
-        if all_none([promiscuous, link_up, led_on, flow_ctrl, multicast, vxlan_fs]):
+        if all_none([promiscuous, link_up, led_on, flow_ctrl, multicast, gre_tun, vxlan_fs]):
             return
 
         self.ctx.logger.pre_cmd("Applying attributes on port(s) {0}:".format(ports))

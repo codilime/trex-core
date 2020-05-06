@@ -653,7 +653,7 @@ TrexRpcCmdSetPortAttr::_run(const Json::Value &params, Json::Value &result) {
             if ( !get_is_stateless() ) {
                 generate_execute_err(result, "GRE flow stats are relevant only to stateless mode");
             }
-            bool on = parse_bool(attr[name], "enable", result);
+            bool on = parse_bool(attr[name], "enabled", result);
             ret = get_platform_api().getPortAttrObj(port_id)->set_gre_tun(on);
         }
 
