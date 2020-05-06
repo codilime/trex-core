@@ -299,6 +299,7 @@ int DpdkTRexPortAttr::set_vxlan_fs(vxlan_fs_ports_t &vxlan_fs_ports) {
 
 int DpdkTRexPortAttr::set_gre_tun(bool gre) {
     CGlobalInfo::m_options.m_ip_cfg[m_port_id].set_gre_tun(gre);
+    return 0;
 }
 
 bool DpdkTRexPortAttr::get_promiscuous(){
