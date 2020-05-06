@@ -473,7 +473,7 @@ class CPerPortIPCfg {
     uint32_t get_vlan() {return m_vlan;}
     bool get_vxlan_fs() {return m_vxlan_fs;}
     bool get_gre_tun() {
-        printf("Setting GRE tunnel");
+        printf("Getting GRE tunnel");
         return m_gre_tun;
     }
     void set_ip(uint32_t val) {m_ip = val;}
