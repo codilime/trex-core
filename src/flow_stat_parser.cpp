@@ -88,8 +88,6 @@ std::string CFlowStatParser::get_error_str(CFlowStatParser_err_t err) {
 }
 
 CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
-    printf("Parsing packet\n");
-    
     CFlowStatParser_err_t res = _parse(p, len);
     if(res != FSTAT_PARSER_E_OK)
         return res;
@@ -113,6 +111,8 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
 }
 
 CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_t next_hdr) {
+    printf("Parsing packet\n");
+
     int min_len = 0;
     bool finished = false;
     bool has_vlan = false;
@@ -247,6 +247,7 @@ uint16_t CFlowStatParser::get_tun_payload_offset(uint8_t *pkt, uint16_t len) {
 }
 
 uint16_t CFlowStatParser::get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len) {
+    printf("Getting GRE payload\n");
     uint16_t payload_len;
     if ( get_payload_len(pkt, len, payload_len) < 0 ) {
         return 0;
@@ -257,6 +258,7 @@ uint16_t CFlowStatParser::get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len) 
     if ( payload_len < GRE_HDR_LEN + IPV4_HDR_LEN ) {
         return 0;
     }
+    printf("Len: '%d' Payload length: '%d'\n", len, len - payload_len + GRE_HDR_LEN);
     return len - payload_len + GRE_HDR_LEN;
 }
 
