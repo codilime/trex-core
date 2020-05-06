@@ -141,6 +141,7 @@ void RXLatency::handle_pkt(const rte_mbuf_t *m, int port) {
   uint8_t tmp_buf[sizeof(struct flow_stat_payload_header)];
   CFlowStatParser parser(CFlowStatParser::FLOW_STAT_PARSER_MODE_SW);
   parser.set_vxlan_skip(CGlobalInfo::m_options.m_ip_cfg[port].get_vxlan_fs());
+  printf("Parsing packet from RXLatency::handle_pkt\n");
   int ret = parser.parse(rte_pktmbuf_mtod(m, uint8_t *), m->pkt_len);
 
   if (m_rcv_all || (ret == 0)) {

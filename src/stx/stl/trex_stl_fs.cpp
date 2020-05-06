@@ -560,6 +560,7 @@ int CFlowStatRuleMgr::compile_stream(const TrexStream * stream, CFlowStatParser 
         parser->set_gre_skip(true);
     }
 
+    printf("Parsing packet from CFlowStatRuleMgr::compile_stream\n");
     CFlowStatParser_err_t ret = parser->parse(stream->m_pkt.binary, stream->m_pkt.len);
 
     // if we could not parse the packet, but no stat count needed, it is probably OK.
