@@ -1055,7 +1055,6 @@ void TrexStatelessDpCore::_rx_handle_packet(int dir,
 
     uint8_t *p = rte_pktmbuf_mtod(m, uint8_t*);
     uint16_t pkt_size= rte_pktmbuf_data_len(m);
-    printf("Parsing in _rx_handle_packet\n");
     CFlowStatParser_err_t res=m_parser->parse(p,pkt_size);
 
     if (res != FSTAT_PARSER_E_OK){

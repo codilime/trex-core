@@ -52,7 +52,7 @@ class CFlowStatParser {
       FSTAT_PARSER_QINQ_SUPP   = 0x4,
       FSTAT_PARSER_MPLS_SUPP   = 0x8,
       FSTAT_PARSER_VXLAN_SKIP  = 0x10,
-      FSTAT_PARSER_GRE_SKIP  = 0x20
+      FSTAT_PARSER_GRE_SKIP    = 0x20
     };
 
   public:
