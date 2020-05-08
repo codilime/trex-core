@@ -342,6 +342,8 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
             uint32_t label;
             uint16_t ethtype;
 
+            printf("Parsing MPLS Data\n");
+
             it.first() >> str_label;
             it.second() >> ethtype;
             if(str_label == "default"){
