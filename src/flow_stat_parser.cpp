@@ -64,7 +64,7 @@ void CFlowStatParser::init(uint16_t port_id) {
     }
     else if (CGlobalInfo::m_options.m_ip_cfg[port_id].get_udp_tun()) {
         set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_UDP);
-        set_tunnel_ethtype(34887);
+        set_tunnel_ethtype(CGlobalInfo::m_options.m_ip_cfg[port_id].get_udp_ethtype());
         set_tunnel_uport(CGlobalInfo::m_options.m_ip_cfg[port_id].get_udp_tun());
     }
     m_mpls_def_ethertype = CGlobalInfo::m_options.m_ip_cfg[port_id].get_mpls_default();

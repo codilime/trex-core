@@ -229,6 +229,10 @@ uint32_t CMacYamlInfo::get_udp_tun() {
     return m_udp_tun;
 }
 
+uint32_t CMacYamlInfo::get_udp_ethtype() {
+    return m_udp_ethtype;
+}
+
 uint32_t CMacYamlInfo::get_gre_tun() {
     return m_gre_tun;
 }
@@ -320,6 +324,10 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
 
     if (! utl_yaml_read_uint32(node, "udp_tun", mac_info.m_udp_tun)) {
         mac_info.m_udp_tun = 0;
+    }
+
+    if (! utl_yaml_read_uint32(node, "udp_ethtype", mac_info.m_udp_tun)) {
+        mac_info.m_udp_ethtype = 0;
     }
 
     if (! utl_yaml_read_uint16(node, "gre", mac_info.m_gre_tun, 0, 1)) {

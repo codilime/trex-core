@@ -6128,6 +6128,7 @@ COLD_FUNC int update_global_info_from_platform_file(){
             g_opts->m_ip_cfg[i].set_vlan(cg->m_mac_info[i].get_vlan());
             g_opts->m_ip_cfg[i].set_gre_tun(cg->m_mac_info[i].get_gre_tun());
             g_opts->m_ip_cfg[i].set_udp_tun(cg->m_mac_info[i].get_udp_tun());
+            g_opts->m_ip_cfg[i].set_udp_ethtype(cg->m_mac_info[i].get_udp_ethtype());
             g_opts->m_ip_cfg[i].set_mpls_default(cg->m_mac_info[i].get_mpls_default());
 
             for (int j = 0; i < cg->m_mac_info[i].m_mpls_count; i++) {
