@@ -560,6 +560,8 @@ int CFlowStatRuleMgr::compile_stream(const TrexStream * stream, CFlowStatParser 
         parser->set_gre_skip(true);
     }
 
+    parser->set_udp_tun_skip(CGlobalInfo::m_options.m_ip_cfg[stream->m_port_id].get_udp_tun());
+
     printf("Parsing packet from CFlowStatRuleMgr::compile_stream\n");
     CFlowStatParser_err_t ret = parser->parse(stream->m_pkt.binary, stream->m_pkt.len);
 
