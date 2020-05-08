@@ -344,7 +344,7 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
             uint32_t label = 0;
             uint32_t ethtype = 0;
 
-            it.first() >> str_label;
+            //it.first() >> str_label;
             //it.second() >> ethtype;
             if(str_label == "default"){
                 mac_info.m_mpls_def_type = ethtype;
