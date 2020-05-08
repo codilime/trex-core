@@ -521,6 +521,7 @@ TrexStatelessDpPerPort::TrexStatelessDpPerPort() {
             m_rfc2544[i].create();
         }
     m_fs_latency.create(m_rfc2544, &m_err_cntrs);
+    m_parser = new CFlowStatParser(CFlowStatParser::FLOW_STAT_PARSER_MODE_SW);
 }
 
 bool PerPortProfile::update_number_of_active_streams(uint32_t d){
@@ -891,13 +892,19 @@ PerPortProfile::PerPortProfile(TrexStatelessDpPerPort * port) {
     m_paused_streams = 0;
 }
 
-void TrexStatelessDpPerPort::create(CFlowGenListPerThread   *  core){
+void TrexStatelessDpPerPort::create(CFlowGenListPerThread   *  core, uint8_t port_id){
     m_core = core;
+    m_port_id = port_id;
     m_state = TrexStatelessDpPerPort::ppSTATE_IDLE;
     m_active_profiles = 0;
     m_paused_profiles = 0;
     m_profiles.clear();
     m_active_pcap_node = NULL;
+    m_parser->reset();
+    m_parser->set_vxlan_skip(CGlobalInfo::m_options.m_ip_cfg[port_id].get_vxlan_fs());
+    m_parser->set_gre_skip(CGlobalInfo::m_options.m_ip_cfg[port_id].get_gre_tun());
+    m_parser->set_udp_tun_skip(CGlobalInfo::m_options.m_ip_cfg[port_id].get_udp_tun());
+
 }
 
 PerPortProfile * TrexStatelessDpPerPort::lookup_profile(uint32_t profile_id) {
@@ -944,18 +951,19 @@ TrexStatelessDpCore::TrexStatelessDpCore(uint8_t thread_id, CFlowGenListPerThrea
 
     m_local_port_offset = 2 * core->getDualPortId();
 
+    uint8_t port_id[NUM_PORTS_PER_CORE];
+    core->get_port_ids(port_id[0], port_id[1]);
+
     int i;
     for (i=0; i<NUM_PORTS_PER_CORE; i++) {
-        m_ports[i].create(core);
+        m_ports[i].create(core, port_id[i]);
     }
-    m_parser = new CFlowStatParser(CFlowStatParser::FLOW_STAT_PARSER_MODE_SW);
-    m_parser->set_gre_skip(true);
+
     m_features = NO_FEATURES;
 }
 
 TrexStatelessDpCore::~TrexStatelessDpCore() {
     delete m_wrapper;
-    delete m_parser;
 }
 
 
@@ -1057,12 +1065,12 @@ void TrexStatelessDpCore::_rx_handle_packet(int dir,
     uint8_t *p = rte_pktmbuf_mtod(m, uint8_t*);
     uint16_t pkt_size= rte_pktmbuf_data_len(m);
     printf("Parsing in _rx_handle_packet\n");
-    CFlowStatParser_err_t res=m_parser->parse(p,pkt_size);
+    CFlowStatParser_err_t res=m_ports[dir].m_parser->parse(p,pkt_size);
 
     if (res != FSTAT_PARSER_E_OK){
         if (res == FSTAT_PARSER_E_UNKNOWN_HDR){
             // try updating latency statistics for unknown ether type packets
-            m_ports[dir].m_fs_latency.handle_pkt(m,0);
+            m_ports[dir].m_fs_latency.handle_pkt(m, m_ports[dir].m_port_id);
         }
         if ( m_is_service_mode || (m_is_service_mode_filter && (m_service_mask & TrexPort::NO_TCP_UDP)) ) {
             drop = false;
@@ -1070,11 +1078,11 @@ void TrexStatelessDpCore::_rx_handle_packet(int dir,
         return;
     }
 
-    uint8_t proto = m_parser->get_protocol();
+    uint8_t proto = m_ports[dir].m_parser->get_protocol();
     bool tcp_udp=false;
 
-    if (m_parser->is_fs_latency()) {
-        m_ports[dir].m_fs_latency.handle_pkt(m,0);
+    if (m_ports[dir].m_parser->is_fs_latency()) {
+        m_ports[dir].m_fs_latency.handle_pkt(m, m_ports[dir].m_port_id);
     }
 
     if (m_is_service_mode){
@@ -1090,20 +1098,20 @@ void TrexStatelessDpCore::_rx_handle_packet(int dir,
         drop=false;
     }
 
-    if ( m_is_service_mode_filter && check_service_filter(drop) ) {
+    if ( m_is_service_mode_filter && check_service_filter(drop, dir) ) {
         return;
     }
 }
 
 /* return true if packet passed through service filter */
-bool TrexStatelessDpCore::check_service_filter(bool &drop) {
+bool TrexStatelessDpCore::check_service_filter(bool &drop, int dir) {
     
-    uint8_t proto = m_parser->get_protocol();
+    uint8_t proto = m_ports[dir].m_parser->get_protocol();
 
     // BGP check
     if ( (m_service_mask & TrexPort::BGP) && (proto == IPPROTO_TCP) ) {
 
-        TCPHeader *l4_header = (TCPHeader *)m_parser->get_l4();
+        TCPHeader *l4_header = (TCPHeader *)m_ports[dir].m_parser->get_l4();
         uint16_t src_port = l4_header->getSourcePort();
         uint16_t dst_port = l4_header->getDestPort();
 

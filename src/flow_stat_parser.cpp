@@ -92,14 +92,21 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
     if(res != FSTAT_PARSER_E_OK)
         return res;
 
-    if (get_vxlan_skip()) {
+    if (get_udp_tun_skip()) {
+        uint16_t udp_tun_skip = get_vxlan_rx_payload_offset(p, len);
+        if (udp_tun_skip) {
+            res = _parse(p + udp_tun_skip, len - udp_tun_skip, m_next_header);
+        }
+    }
+
+    else if (get_vxlan_skip()) {
         uint16_t vxlan_skip = get_vxlan_rx_payload_offset(p, len);
         if (vxlan_skip) {
             res = _parse(p + vxlan_skip, len - vxlan_skip);
         }
     }
 
-    if (get_gre_skip()) {
+    else if (get_gre_skip()) {
         printf("Skiping GRE tunnel\n");
         uint16_t tun_skip = get_tun_rx_payload_offset(p, len);
         if (tun_skip) {
@@ -240,6 +247,27 @@ uint16_t CFlowStatParser::get_vxlan_rx_payload_offset(uint8_t *pkt, uint16_t len
         return 0;
     }
     return len - payload_len + VXLAN_LEN;
+}
+
+uint16_t CFlowStatParser::get_udp_tun_rx_payload_offset(uint8_t *pkt, uint16_t len) {
+    printf("Getting UDP Tunnel payload\n");
+    uint16_t payload_len;
+    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
+        return 0;
+    }
+    if ( m_l4_proto != IPPROTO_UDP ) {
+        return 0;
+    }
+    if ( m_l4_port != m_udp_tun_port ) {
+        return 0;
+    }
+    if ( payload_len < MPLS_HDR_LEN ) {
+        return 0;
+    }
+    m_next_header = EthernetHeader::Protocol::MPLS_Unicast;
+
+    printf("Len: '%d' Payload length: '%d'\n", len, len - payload_len);
+    return len - payload_len;
 }
 
 uint16_t CFlowStatParser::get_tun_payload_offset(uint8_t *pkt, uint16_t len) {
@@ -406,16 +434,25 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
     if (m_ipv4) {
         l2_header_len = ((uint8_t *)m_ipv4) - p;
         m_l4_proto = m_ipv4->getProtocol();
+        m_l4_port = 0;
         p_l3 = (uint8_t *)m_ipv4;
         p_l4 = p_l3 + m_ipv4->getHeaderLength();
     } else if (m_ipv6) {
         l2_header_len = ((uint8_t *)m_ipv6) - p;
         m_l4_proto = m_ipv6->getl4Proto((uint8_t *)m_ipv6, len - l2_header_len, p_l4);
+        m_l4_port = 0;
     }
 
     switch (m_l4_proto) {
 
     case IPPROTO_UDP: {
+        if ((p_l4 + UDP_HEADER_LEN) > (p + len)) {
+            //Not enough space for TCP header
+            payload_len = 0;
+            return -2;
+        }
+        UDPHeader* p_udp = (UDPHeader*)p_l4;
+        m_l4_port = p_udp->getDestPort();
         l4_header_len = 8;
     } break;
 
@@ -427,6 +464,7 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
         }
         TCPHeader *p_tcp = (TCPHeader *)p_l4;
         l4_header_len = p_tcp->getHeaderLength();
+        m_l4_port = p_tcp->getDestPort();
     } break;
 
     case IPPROTO_ICMP: {

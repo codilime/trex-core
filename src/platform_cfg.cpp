@@ -225,6 +225,14 @@ uint32_t CMacYamlInfo::get_vlan() {
     return m_vlan;
 }
 
+uint32_t CMacYamlInfo::get_udp_tun() {
+    return m_udp_tun;
+}
+
+uint32_t CMacYamlInfo::get_gre_tun() {
+    return m_gre_tun;
+}
+
 void CMacYamlInfo::Dump(FILE *fd){
     if (m_dest_base.size() != 6) {
         fprintf(fd,"ERROR in dest mac addr \n");
@@ -304,6 +312,14 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
     }
     if (! utl_yaml_read_uint16(node, "vlan", mac_info.m_vlan, 0, 0xfff)) {
         mac_info.m_vlan = 0;
+    }
+
+    if (! utl_yaml_read_uint32(node, "udp_tun", mac_info.m_udp_tun, 0, 0xffff)) {
+        mac_info.m_udp_tun = 0;
+    }
+
+    if (! utl_yaml_read_uint16(node, "udp_tun", mac_info.m_gre_tun, 0, 1)) {
+        mac_info.m_gre_tun = 0;
     }
 }
 

@@ -133,7 +133,7 @@ public:
 public:
     TrexStatelessDpPerPort();
 
-    void create(CFlowGenListPerThread   *  core);
+    void create(CFlowGenListPerThread   *  core, uint8_t port_id);
 
     bool pause_traffic(uint8_t port_id, uint32_t profile_id);
     bool pause_streams(uint8_t port_id, uint32_t profile_id, stream_ids_t &stream_ids); // filter by stream IDs, slower
@@ -182,6 +182,7 @@ public:
 public:
 
     state_e                     m_state;
+    uint8_t                     m_port_id;
 
     uint32_t                    m_active_profiles; /* how many active profiles on this port */
     uint32_t                    m_paused_profiles; /* how many paused profiles on this port */
@@ -194,6 +195,7 @@ public:
     CRxCoreErrCntrs             m_err_cntrs;
     CRFC2544Info                m_rfc2544[MAX_FLOW_STATS_PAYLOAD];
     RXLatency                   m_fs_latency;
+    CFlowStatParser *           m_parser;
 };
 
 
@@ -401,7 +403,7 @@ private:
         m_features &= (~feature);
     }
 
-    bool check_service_filter(bool &drop);
+    bool check_service_filter(bool &drop, int dir);
 
     uint8_t                    m_need_to_rx;
     uint8_t                    m_local_port_offset;
@@ -414,7 +416,6 @@ private:
     bool                       m_is_service_mode;
     bool                       m_is_service_mode_filter;
     uint8_t                    m_service_mask;
-    CFlowStatParser *          m_parser;
 
     uint8_t                    m_features;
 };

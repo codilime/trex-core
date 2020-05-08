@@ -476,6 +476,10 @@ class CPerPortIPCfg {
         printf("Getting GRE tunnel");
         return m_gre_tun;
     }
+    uint32_t get_udp_tun() {
+        printf("Getting MPLSoUDP tunnel port");
+        return m_udp_tun;
+    }
     void set_ip(uint32_t val) {m_ip = val;}
     void set_ptp_ip_dest(uint32_t val) {m_ptp_ip_dest = val;}
     void set_mask(uint32_t val) {m_mask = val;}
@@ -486,6 +490,10 @@ class CPerPortIPCfg {
         printf("Setting GRE tunnel");
         m_gre_tun = val;
     }
+    void set_udp_tun(uint32_t val) {
+        printf("Setting MPLSoUDP tunnel");
+        m_udp_tun = val;
+    }
 
  private:
     uint32_t m_def_gw;
@@ -493,6 +501,7 @@ class CPerPortIPCfg {
     uint32_t m_ptp_ip_dest;
     uint32_t m_mask;
     uint16_t m_vlan;
+    uint32_t m_udp_tun;
     bool m_vxlan_fs = false;
     bool m_gre_tun = false;
 };

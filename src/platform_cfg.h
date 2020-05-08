@@ -108,6 +108,8 @@ struct CMacYamlInfo {
     uint32_t m_ip;
     uint32_t m_mask;
     uint16_t m_vlan;
+    uint32_t m_udp_tun;
+    uint16_t m_gre_tun;
     void Dump(FILE *fd);
 
     void copy_dest(char *p);
@@ -117,6 +119,8 @@ struct CMacYamlInfo {
     uint32_t get_ptp_ip_dest();
     uint32_t get_vlan();
     uint32_t get_mask();
+    uint32_t get_udp_tun();
+    uint32_t get_gre_tun();
 
     void dump_mac_vector( std::vector<uint8_t> & v,FILE *fd){
         int i;

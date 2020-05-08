@@ -52,7 +52,8 @@ class CFlowStatParser {
       FSTAT_PARSER_QINQ_SUPP   = 0x4,
       FSTAT_PARSER_MPLS_SUPP   = 0x8,
       FSTAT_PARSER_VXLAN_SKIP  = 0x10,
-      FSTAT_PARSER_GRE_SKIP  = 0x20
+      FSTAT_PARSER_GRE_SKIP    = 0x20,
+      FSTAT_PARSER_UDP_SKIP    = 0x40
     };
 
   public:
@@ -88,6 +89,18 @@ class CFlowStatParser {
 
     }
     bool get_gre_skip() { return ((m_flags & FSTAT_PARSER_GRE_SKIP)?true:false); }
+
+    void set_udp_tun_skip(uint32_t port){
+        if (port > 0) {
+            m_udp_tun_port = port;
+            m_flags |=  FSTAT_PARSER_UDP_SKIP;
+        }else{
+            m_udp_tun_port = 0;
+            m_flags &= ~FSTAT_PARSER_UDP_SKIP;
+        }
+
+    }
+    bool get_udp_tun_skip() { return ((m_flags & FSTAT_PARSER_UDP_SKIP)?true:false); }
 
     virtual int get_ip_id(uint32_t &ip_id);
     virtual void set_ip_id(uint32_t ip_id);
@@ -146,6 +159,7 @@ class CFlowStatParser {
 
     uint16_t get_vxlan_rx_payload_offset(uint8_t *pkt, uint16_t len);
     uint16_t get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len);
+    uint16_t get_udp_tun_rx_payload_offset(uint8_t *pkt, uint16_t len);
 
   protected:
     uint8_t *m_start;
@@ -155,8 +169,10 @@ class CFlowStatParser {
     IPv6Header *m_ipv6;
     uint8_t *m_l4;
     uint8_t m_l4_proto;
+    uint32_t m_l4_port;
     uint8_t m_vlan_offset;
     uint16_t m_flags;
+    uint32_t m_udp_tun_port;
 };
 
 class CPassAllParser : public CFlowStatParser {
