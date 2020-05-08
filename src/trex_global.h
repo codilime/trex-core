@@ -465,11 +465,6 @@ public:
     } u;
 } __rte_cache_aligned;
 
-struct mpls_label_mapping {
-    uint32_t label;
-    uint16_t ethtype;
-};
-
 class CPerPortIPCfg {
  public:
     uint32_t get_ip() {return m_ip;}
