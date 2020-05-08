@@ -74,44 +74,11 @@ class CFlowStatParser {
     };
 
     CFlowStatParser(CFlowStatParser_mode mode);
+    void init(uint16_t port_id);
     virtual ~CFlowStatParser() {}
     virtual void reset();
     std::string get_error_str(CFlowStatParser_err_t err);
     virtual CFlowStatParser_err_t parse(uint8_t *pkt, uint16_t len);
-    virtual uint16_t get_vxlan_payload_offset(uint8_t *pkt, uint16_t len);
-    virtual uint16_t get_tun_payload_offset(uint8_t *pkt, uint16_t len);
-    //virtual uint16_t get_tunnel_payload_offset(uint8_t *pkt, uint16_t len);
-    void set_vxlan_skip(bool enable){
-        if (enable) {
-          m_flags |=  FSTAT_PARSER_VXLAN_SKIP;
-        }else{
-          m_flags &= ~FSTAT_PARSER_VXLAN_SKIP;
-        }
-
-    }
-    bool get_vxlan_skip() { return ((m_flags & FSTAT_PARSER_VXLAN_SKIP)?true:false); }
-
-    void set_gre_skip(bool enable){
-        if (enable) {
-          m_flags |=  FSTAT_PARSER_GRE_SKIP;
-        }else{
-          m_flags &= ~FSTAT_PARSER_GRE_SKIP;
-        }
-
-    }
-    bool get_gre_skip() { return ((m_flags & FSTAT_PARSER_GRE_SKIP)?true:false); }
-
-    void set_udp_tun_skip(uint32_t port){
-        if (port > 0) {
-            m_udp_tun_port = port;
-            m_flags |=  FSTAT_PARSER_UDP_SKIP;
-        }else{
-            m_udp_tun_port = 0;
-            m_flags &= ~FSTAT_PARSER_UDP_SKIP;
-        }
-
-    }
-    bool get_udp_tun_skip() { return ((m_flags & FSTAT_PARSER_UDP_SKIP)?true:false); }
 
     void set_tunnel_skip(CFlowStatParser_tun_type type) {
         if (type != FLOW_STAT_PARSER_TUNNEL_NONE) {
@@ -196,9 +163,6 @@ class CFlowStatParser {
                           , uint32_t ip_id, uint16_t flags, int &pkt_size);
     CFlowStatParser_err_t _parse(uint8_t *p, uint16_t len, uint16_t next_hdr = 0);
 
-    uint16_t get_vxlan_rx_payload_offset(uint8_t *pkt, uint16_t len);
-    uint16_t get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len);
-    uint16_t get_udp_tun_rx_payload_offset(uint8_t *pkt, uint16_t len);
     uint16_t get_tunnel_rx_payload_offset(uint8_t *pkt, uint16_t len);
 
   protected:

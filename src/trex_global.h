@@ -471,29 +471,21 @@ class CPerPortIPCfg {
     uint32_t get_mask() {return m_mask;}
     uint32_t get_def_gw() {return m_def_gw;}
     uint32_t get_vlan() {return m_vlan;}
+    uint32_t get_udp_tun() {return m_udp_tun;}
+    uint16_t get_udp_ethtype() {return m_udp_ethtype;}
     bool get_vxlan_fs() {return m_vxlan_fs;}
-    bool get_gre_tun() {
-        printf("Getting GRE tunnel ('%d')\n", m_gre_tun);
-        return m_gre_tun;
-    }
-    uint32_t get_udp_tun() {
-        printf("Getting MPLSoUDP tunnel port ('%d')\n", m_udp_tun);
-        return m_udp_tun;
-    }
+    bool get_gre_tun() {return m_gre_tun;}
+
+
     void set_ip(uint32_t val) {m_ip = val;}
     void set_ptp_ip_dest(uint32_t val) {m_ptp_ip_dest = val;}
     void set_mask(uint32_t val) {m_mask = val;}
     void set_def_gw(uint32_t val) {m_def_gw = val;}
     void set_vlan(uint16_t val) {m_vlan = val;}
     void set_vxlan_fs(bool val) {m_vxlan_fs = val;}
-    void set_gre_tun(bool val) {
-        printf("Setting GRE tunnel to '%d'\n", val);
-        m_gre_tun = val;
-    }
-    void set_udp_tun(uint32_t val) {
-        printf("Setting MPLSoUDP tunnel to '%d'\n", val);
-        m_udp_tun = val;
-    }
+    void set_gre_tun(bool val) {m_gre_tun = val;}
+    void set_udp_tun(uint32_t val) {m_udp_tun = val;}
+    void set_udp_ethtype(uint16_t val) {m_udp_ethtype = val;}
 
  private:
     uint32_t m_def_gw;
@@ -502,6 +494,7 @@ class CPerPortIPCfg {
     uint32_t m_mask;
     uint16_t m_vlan;
     uint32_t m_udp_tun;
+    uint16_t m_udp_ethtype;
     bool m_vxlan_fs = false;
     bool m_gre_tun = false;
 };

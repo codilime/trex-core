@@ -141,25 +141,7 @@ void RXLatency::handle_pkt(const rte_mbuf_t *m, int port) {
   uint8_t tmp_buf[sizeof(struct flow_stat_payload_header)];
 
   CFlowStatParser parser(CFlowStatParser::FLOW_STAT_PARSER_MODE_SW);
-  if (CGlobalInfo::m_options.m_ip_cfg[port].get_vxlan_fs()) {
-    parser.set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_VXLAN);
-    parser.set_tunnel_ethtype(0);
-    parser.set_tunnel_uport(4789);
-  }
-  else if (CGlobalInfo::m_options.m_ip_cfg[port].get_gre_tun()) {
-    parser.set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_GRE);
-    parser.set_tunnel_ethtype(34887);
-  }
-  else if (CGlobalInfo::m_options.m_ip_cfg[port].get_udp_tun()) {
-    parser.set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_UDP);
-    parser.set_tunnel_ethtype(34887);
-    parser.set_tunnel_uport(CGlobalInfo::m_options.m_ip_cfg[port].get_udp_tun());
-  }
-
-  parser.set_vxlan_skip(CGlobalInfo::m_options.m_ip_cfg[port].get_vxlan_fs());
-  parser.set_gre_skip(CGlobalInfo::m_options.m_ip_cfg[port].get_gre_tun());
-  parser.set_udp_tun_skip(CGlobalInfo::m_options.m_ip_cfg[port].get_udp_tun());
-  printf("Parsing packet from RXLatency::handle_pkt\n");
+  parser.init(port);
   int ret = parser.parse(rte_pktmbuf_mtod(m, uint8_t *), m->pkt_len);
 
   if (m_rcv_all || (ret == 0)) {

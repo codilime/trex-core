@@ -52,6 +52,23 @@ CFlowStatParser::CFlowStatParser(CFlowStatParser_mode mode) {
     }
 }
 
+void CFlowStatParser::init(uint16_t port_id) {
+    reset();
+    if (CGlobalInfo::m_options.m_ip_cfg[port_id].get_vxlan_fs()) {
+        set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_VXLAN);
+        set_tunnel_ethtype(0);
+        set_tunnel_uport(4789);
+    }
+    else if (CGlobalInfo::m_options.m_ip_cfg[port_id].get_gre_tun()) {
+        set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_GRE);
+    }
+    else if (CGlobalInfo::m_options.m_ip_cfg[port_id].get_udp_tun()) {
+        set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_UDP);
+        set_tunnel_ethtype(34887);
+        set_tunnel_uport(CGlobalInfo::m_options.m_ip_cfg[port_id].get_udp_tun());
+    }
+}
+
 void CFlowStatParser::reset() {
     m_start = 0;
     m_len = 0;
@@ -107,8 +124,6 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
 }
 
 CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_t next_hdr) {
-    printf("Parsing packet\n");
-
     int min_len = 0;
     bool finished = false;
     bool has_vlan = false;
@@ -131,7 +146,6 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
         } break;
 
         case EthernetHeader::Protocol::IP : {
-            printf("Found IP header\n");
             min_len += IPV4_HDR_LEN;
             if (len < min_len)
                 return FSTAT_PARSER_E_SHORT_IP_HDR;
@@ -204,87 +218,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
 
 #define VXLAN_LEN 8
 
-uint16_t CFlowStatParser::get_vxlan_payload_offset(uint8_t *pkt, uint16_t len) {
-    uint16_t payload_len;
-    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
-        throw TrexFStatEx("Failed getting payload len", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
-    }
-    if ( m_l4_proto != IPPROTO_UDP ) {
-        throw TrexFStatEx("VXLAN tunnel requires UDP", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
-    }
-    if ( payload_len < VXLAN_LEN + ETH_HDR_LEN ) {
-        throw TrexFStatEx("Packet is too small to have VXLAN tunnel", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
-    }
-    return len - payload_len + VXLAN_LEN;
-}
-
-uint16_t CFlowStatParser::get_vxlan_rx_payload_offset(uint8_t *pkt, uint16_t len) {
-    uint16_t payload_len;
-    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
-        return 0;
-    }
-    if ( m_l4_proto != IPPROTO_UDP ) {
-        return 0;
-    }
-    if ( payload_len < VXLAN_LEN + ETH_HDR_LEN ) {
-        return 0;
-    }
-    return len - payload_len + VXLAN_LEN;
-}
-
-uint16_t CFlowStatParser::get_udp_tun_rx_payload_offset(uint8_t *pkt, uint16_t len) {
-    printf("Getting UDP Tunnel payload\n");
-    uint16_t payload_len;
-    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
-        return 0;
-    }
-    if ( m_l4_proto != IPPROTO_UDP ) {
-        return 0;
-    }
-    if ( m_l4_port != m_udp_tun_port ) {
-        return 0;
-    }
-    if ( payload_len < MPLS_HDR_LEN ) {
-        return 0;
-    }
-    m_next_header = EthernetHeader::Protocol::MPLS_Unicast;
-
-    printf("Len: '%d' Payload length: '%d'\n", len, len - payload_len);
-    return len - payload_len;
-}
-
-uint16_t CFlowStatParser::get_tun_payload_offset(uint8_t *pkt, uint16_t len) {
-    uint16_t payload_len;
-    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
-        throw TrexFStatEx("Failed getting payload len", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
-    }
-    if ( m_l4_proto != IPPROTO_GRE ) {
-        throw TrexFStatEx("There is no GRE Header in Packet", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
-    }
-    if ( payload_len < GRE_HDR_LEN + IPV4_HDR_LEN ) {
-        throw TrexFStatEx("Packet is too small to have GRE tunnel", TrexException::T_FLOW_STAT_BAD_PKT_FORMAT);
-    }
-    return len - payload_len + GRE_HDR_LEN;
-}
-
-uint16_t CFlowStatParser::get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len) {
-    printf("Getting GRE payload\n");
-    uint16_t payload_len;
-    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
-        return 0;
-    }
-    if ( m_l4_proto != IPPROTO_GRE ) {
-        return 0;
-    }
-    if ( payload_len < GRE_HDR_LEN + IPV4_HDR_LEN ) {
-        return 0;
-    }
-    printf("Len: '%d' Payload length: '%d'\n", len, len - payload_len + GRE_HDR_LEN);
-    return len - payload_len + GRE_HDR_LEN;
-}
-
 uint16_t CFlowStatParser::get_tunnel_rx_payload_offset(uint8_t *pkt, uint16_t len) {
-    printf("Getting Tunnel payload\n");
     uint16_t payload_len;
     if ( get_payload_len(pkt, len, payload_len) < 0 ) {
         return 0;
@@ -319,7 +253,6 @@ uint16_t CFlowStatParser::get_tunnel_rx_payload_offset(uint8_t *pkt, uint16_t le
             return 0;
     }
 
-    printf("Len: '%d' Payload length: '%d'\n", len, payload_len);
     return (len - payload_len);
 }
 
