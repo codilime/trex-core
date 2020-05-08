@@ -102,6 +102,19 @@ class CFlowStatParser {
     }
     bool get_udp_tun_skip() { return ((m_flags & FSTAT_PARSER_UDP_SKIP)?true:false); }
 
+
+    void set_mpls_ethertype(uint32_t label, uint16_t ethertype) {
+        m_mpls_ethertype.insert_or_assign(label, ethertype);
+    }
+
+    int32_t get_mpls_ethertype(uint32_t label) {
+        auto it = m_mpls_ethertype.find(label);
+        if (it != m_mpls_ethertype.end())
+            return it->second;
+        else
+            return m_mpls_def_ethertype;
+    }
+
     virtual int get_ip_id(uint32_t &ip_id);
     virtual void set_ip_id(uint32_t ip_id);
     virtual void set_tos_to_cpu();
@@ -173,6 +186,8 @@ class CFlowStatParser {
     uint8_t m_vlan_offset;
     uint16_t m_flags;
     uint32_t m_udp_tun_port;
+    uint16_t m_mpls_def_ethertype;
+    std::unordered_map<uint32_t, uint16_t> m_mpls_ethertype;
 };
 
 class CPassAllParser : public CFlowStatParser {

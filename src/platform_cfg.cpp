@@ -321,6 +321,20 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
     if (! utl_yaml_read_uint16(node, "gre", mac_info.m_gre_tun, 0, 1)) {
         mac_info.m_gre_tun = 0;
     }
+
+    if (node.FindValue("mpls")) {
+        const YAML::Node& mpls = node["mpls"];
+        int i = 0;
+        for(YAML::Iterator it = mpls.begin(); it != mpls.end(); ++it) {
+            uint32_t label;
+            uint16_t ethtype;
+
+            it.first() >> label;
+            it.second() >> ethtype;
+            mac_info.m_mpls_ethtype[i] = {label, ethtype};
+        }
+        
+    }
 }
 
 void operator >> (const YAML::Node& node, CPlatformMemoryYamlInfo & plat_info) {

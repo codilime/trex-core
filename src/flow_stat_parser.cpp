@@ -40,6 +40,7 @@ CFlowStatParser::CFlowStatParser(CFlowStatParser_mode mode) {
         break;
     case FLOW_STAT_PARSER_MODE_SW:
         m_flags = FSTAT_PARSER_VLAN_SUPP | FSTAT_PARSER_QINQ_SUPP | FSTAT_PARSER_MPLS_SUPP;
+        m_mpls_def_ethertype = 0;
         break;
     // In 82599 we configure the card to either always use VLAN, or never use
     case FLOW_STAT_PARSER_MODE_82599:
@@ -200,8 +201,11 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
 
             MPLSHeader* mpls = (MPLSHeader *) p;
             if (mpls->getBottomOfStack()) {
-                //For MPLS we only allow IPv4 as up layer protocol
-                next_hdr = EthernetHeader::Protocol::IP; // IPv4
+                int32_t ethtype = get_mpls_ethertype(mpls->getLabel());
+                if (ethtype < 0)
+                    return FSTAT_PARSER_E_UNKNOWN_HDR;
+
+                next_hdr = ethtype;
             } else {
                 next_hdr = EthernetHeader::Protocol::MPLS_Unicast;
             }

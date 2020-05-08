@@ -98,7 +98,10 @@ const std::string * get_mbuf_names(void);
             
 */
 
-
+struct mpls_label_mapping {
+    uint32_t label;
+    uint16_t ethtype;
+};
 
 struct CMacYamlInfo {
     std::vector     <uint8_t> m_dest_base;
@@ -110,6 +113,8 @@ struct CMacYamlInfo {
     uint16_t m_vlan;
     uint32_t m_udp_tun;
     uint16_t m_gre_tun;
+    mpls_label_mapping m_mpls_ethtype[32];
+
     void Dump(FILE *fd);
 
     void copy_dest(char *p);
