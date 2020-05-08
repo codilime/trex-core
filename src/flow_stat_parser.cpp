@@ -93,7 +93,8 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
         return res;
 
     if (get_udp_tun_skip()) {
-        uint16_t udp_tun_skip = get_vxlan_rx_payload_offset(p, len);
+        printf("Skiping UDP tunnel\n");
+        uint16_t udp_tun_skip = get_udp_tun_rx_payload_offset(p, len);
         if (udp_tun_skip) {
             res = _parse(p + udp_tun_skip, len - udp_tun_skip, m_next_header);
         }
