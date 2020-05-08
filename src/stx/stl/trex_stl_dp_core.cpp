@@ -949,6 +949,7 @@ TrexStatelessDpCore::TrexStatelessDpCore(uint8_t thread_id, CFlowGenListPerThrea
         m_ports[i].create(core);
     }
     m_parser = new CFlowStatParser(CFlowStatParser::FLOW_STAT_PARSER_MODE_SW);
+    m_parser->set_gre_skip(true);
     m_features = NO_FEATURES;
 }
 
