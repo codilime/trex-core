@@ -497,7 +497,7 @@ class CPerPortIPCfg {
     void set_udp_ethtype(uint16_t val) {m_udp_ethtype = val;}
     void set_mpls_default(uint16_t val) {m_mpls_deftype = val;}
     void set_mpls_ethtype(uint32_t label, uint16_t ethtype){
-        m_mpls_ethtype.insert_or_assign(label, ethtype);
+        m_mpls_ethtype.insert(std::make_pair(label, ethtype));
     };
 
  private:
