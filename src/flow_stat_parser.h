@@ -129,7 +129,7 @@ class CFlowStatParser {
     bool get_tunnel_skip() { return ((m_flags & FSTAT_PARSER_TUNNEL_SKIP)?true:false); }
 
     void set_mpls_ethertype(uint32_t label, uint16_t ethertype) {
-        m_mpls_ethertype.insert_or_assign(label, ethertype);
+        m_mpls_ethertype.insert(std::make_pair(label, ethertype));
     }
 
     int32_t get_mpls_ethertype(uint32_t label) {
