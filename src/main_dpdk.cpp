@@ -6135,7 +6135,7 @@ COLD_FUNC int update_global_info_from_platform_file(){
                 g_opts->m_ip_cfg[i].set_mpls_ethtype(
                     cg->m_mac_info[i].m_mpls_ethtype[j].label,
                     cg->m_mac_info[i].m_mpls_ethtype[j].ethtype
-                )
+                );
             }
             // If one of the ports has vlan, work in vlan mode
             if (cg->m_mac_info[i].get_vlan() != 0) {
