@@ -314,7 +314,7 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
         mac_info.m_vlan = 0;
     }
 
-    if (! utl_yaml_read_uint32(node, "udp_tun", mac_info.m_udp_tun, 0, 0xffff)) {
+    if (! utl_yaml_read_uint32(node, "udp_tun", mac_info.m_udp_tun)) {
         mac_info.m_udp_tun = 0;
     }
 
