@@ -336,29 +336,29 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
 
     printf("Parsing MPLS Data\n");
 
-    if (node.FindValue("mpls")) {
-        const YAML::Node& mpls = node["mpls"];
-        mac_info.m_mpls_count = 0;
-        for(YAML::Iterator it = mpls.begin(); it != mpls.end(); ++it) {
-            std::string str_label;
-            uint32_t label;
-            uint16_t ethtype;
+    // if (node.FindValue("mpls")) {
+    //     const YAML::Node& mpls = node["mpls"];
+    //     mac_info.m_mpls_count = 0;
+    //     for(YAML::Iterator it = mpls.begin(); it != mpls.end(); ++it) {
+    //         std::string str_label;
+    //         uint32_t label;
+    //         uint16_t ethtype;
 
             
 
-            it.first() >> str_label;
-            it.second() >> ethtype;
-            if(str_label == "default"){
-                mac_info.m_mpls_def_type = ethtype;
-            } else {
-                it.first() >> label;
+    //         it.first() >> str_label;
+    //         it.second() >> ethtype;
+    //         if(str_label == "default"){
+    //             mac_info.m_mpls_def_type = ethtype;
+    //         } else {
+    //             it.first() >> label;
                 
-                mac_info.m_mpls_ethtype[mac_info.m_mpls_count] = {label, ethtype};
-                mac_info.m_mpls_count += 1;
-            }
-        }
+    //             mac_info.m_mpls_ethtype[mac_info.m_mpls_count] = {label, ethtype};
+    //             mac_info.m_mpls_count += 1;
+    //         }
+    //     }
         
-    }
+    // }
 }
 
 void operator >> (const YAML::Node& node, CPlatformMemoryYamlInfo & plat_info) {
