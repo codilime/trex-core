@@ -34,6 +34,7 @@ limitations under the License.
 #include "trex_timesync.h"
 #include "hot_section.h"
 #include <algorithm>
+#include <unordered_map>
 
 
 
