@@ -179,7 +179,7 @@ class CFlowStatParser {
     uint32_t m_udp_tun_port;
     CFlowStatParser_tun_type m_tunnel_type;
     uint16_t m_tunnel_ethtype;
-    uint16_t m_mpls_def_ethertype;
+    uint16_t m_mpls_def_ethertype = 0;
     std::unordered_map<uint32_t, uint16_t> m_mpls_ethertype;
 };
 

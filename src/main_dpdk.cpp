@@ -6128,6 +6128,14 @@ COLD_FUNC int update_global_info_from_platform_file(){
             g_opts->m_ip_cfg[i].set_vlan(cg->m_mac_info[i].get_vlan());
             g_opts->m_ip_cfg[i].set_gre_tun(cg->m_mac_info[i].get_gre_tun());
             g_opts->m_ip_cfg[i].set_udp_tun(cg->m_mac_info[i].get_udp_tun());
+            g_opts->m_ip_cfg[i].set_mpls_default(cg->m_mac_info[i].get_mpls_default());
+
+            for (int j = 0; i < cg->m_mac_info[i].m_mpls_count; i++) {
+                g_opts->m_ip_cfg[i].set_mpls_ethtype(
+                    cg->m_mac_info[i].m_mpls_ethtype[j].label,
+                    cg->m_mac_info[i].m_mpls_ethtype[j].ethtype
+                )
+            }
             // If one of the ports has vlan, work in vlan mode
             if (cg->m_mac_info[i].get_vlan() != 0) {
                 g_opts->preview.set_vlan_mode_verify(CPreviewMode::VLAN_MODE_NORMAL);

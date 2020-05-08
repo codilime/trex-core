@@ -464,6 +464,11 @@ public:
     } u;
 } __rte_cache_aligned;
 
+struct mpls_label_mapping {
+    uint32_t label;
+    uint16_t ethtype;
+};
+
 class CPerPortIPCfg {
  public:
     uint32_t get_ip() {return m_ip;}
@@ -475,7 +480,10 @@ class CPerPortIPCfg {
     uint16_t get_udp_ethtype() {return m_udp_ethtype;}
     bool get_vxlan_fs() {return m_vxlan_fs;}
     bool get_gre_tun() {return m_gre_tun;}
-
+    uint16_t get_mpls_default() {return m_mpls_deftype;}
+    std::unordered_map<uint32_t, uint16_t> get_mpls_ethtype() {
+        return m_mpls_ethtype;
+    }
 
     void set_ip(uint32_t val) {m_ip = val;}
     void set_ptp_ip_dest(uint32_t val) {m_ptp_ip_dest = val;}
@@ -486,6 +494,10 @@ class CPerPortIPCfg {
     void set_gre_tun(bool val) {m_gre_tun = val;}
     void set_udp_tun(uint32_t val) {m_udp_tun = val;}
     void set_udp_ethtype(uint16_t val) {m_udp_ethtype = val;}
+    void set_mpls_default(uint16_t val) {m_mpls_deftype = val;}
+    void set_mpls_ethtype(uint32_t label, uint16_t ethtype){
+        m_mpls_ethtype.insert_or_assign(label, ethtype);
+    };
 
  private:
     uint32_t m_def_gw;
@@ -495,6 +507,8 @@ class CPerPortIPCfg {
     uint16_t m_vlan;
     uint32_t m_udp_tun;
     uint16_t m_udp_ethtype;
+    std::unordered_map<uint32_t, uint16_t> m_mpls_ethtype;
+    uint16_t m_mpls_deftype;
     bool m_vxlan_fs = false;
     bool m_gre_tun = false;
 };

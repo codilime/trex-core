@@ -67,6 +67,11 @@ void CFlowStatParser::init(uint16_t port_id) {
         set_tunnel_ethtype(34887);
         set_tunnel_uport(CGlobalInfo::m_options.m_ip_cfg[port_id].get_udp_tun());
     }
+    m_mpls_def_ethertype = CGlobalInfo::m_options.m_ip_cfg[port_id].get_mpls_default();
+    auto mpls_ethtype = CGlobalInfo::m_options.m_ip_cfg[port_id].get_mpls_ethtype();
+    if (!mpls_ethtype.empty()) {
+        m_mpls_ethertype = mpls_ethtype;
+    }
 }
 
 void CFlowStatParser::reset() {
@@ -193,7 +198,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
 
             MPLSHeader* mpls = (MPLSHeader *) p;
             if (mpls->getBottomOfStack()) {
-                int32_t ethtype = get_mpls_ethertype(mpls->getLabel());
+                uint32_t ethtype = get_mpls_ethertype(mpls->getLabel());
                 if (ethtype < 0)
                     return FSTAT_PARSER_E_UNKNOWN_HDR;
 

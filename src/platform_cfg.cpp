@@ -233,6 +233,10 @@ uint32_t CMacYamlInfo::get_gre_tun() {
     return m_gre_tun;
 }
 
+uint32_t CMacYamlInfo::get_mpls_default() {
+    return m_mpls_def_type;
+}
+
 void CMacYamlInfo::Dump(FILE *fd){
     if (m_dest_base.size() != 6) {
         fprintf(fd,"ERROR in dest mac addr \n");
@@ -324,14 +328,22 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
 
     if (node.FindValue("mpls")) {
         const YAML::Node& mpls = node["mpls"];
-        int i = 0;
+        mac_info.m_mpls_count = 0;
         for(YAML::Iterator it = mpls.begin(); it != mpls.end(); ++it) {
+            std::string str_label;
             uint32_t label;
             uint16_t ethtype;
 
-            it.first() >> label;
+            it.first() >> str_label;
             it.second() >> ethtype;
-            mac_info.m_mpls_ethtype[i] = {label, ethtype};
+            if(str_label == "default"){
+                mac_info.m_mpls_def_type = ethtype;
+            } else {
+                it.first() >> label;
+                
+                mac_info.m_mpls_ethtype[mac_info.m_mpls_count] = {label, ethtype};
+                mac_info.m_mpls_count += 1;
+            }
         }
         
     }

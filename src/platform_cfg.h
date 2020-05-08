@@ -114,6 +114,8 @@ struct CMacYamlInfo {
     uint32_t m_udp_tun;
     uint16_t m_gre_tun;
     mpls_label_mapping m_mpls_ethtype[32];
+    uint16_t m_mpls_def_type;
+    uint16_t m_mpls_count;
 
     void Dump(FILE *fd);
 
@@ -126,6 +128,7 @@ struct CMacYamlInfo {
     uint32_t get_mask();
     uint32_t get_udp_tun();
     uint32_t get_gre_tun();
+    uint32_t get_mpls_default();
 
     void dump_mac_vector( std::vector<uint8_t> & v,FILE *fd){
         int i;
