@@ -346,13 +346,13 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
 
             //it.first() >> str_label;
             //it.second() >> ethtype;
-            if(str_label == "default"){
-                mac_info.m_mpls_def_type = ethtype;
+            //if(str_label == "default"){
+            //    mac_info.m_mpls_def_type = ethtype;
             } else {
             //    it.first() >> label;
                 
-                mac_info.m_mpls_ethtype[mac_info.m_mpls_count] = {label, (uint16_t)ethtype};
-                mac_info.m_mpls_count += 1;
+            //    mac_info.m_mpls_ethtype[mac_info.m_mpls_count] = {label, (uint16_t)ethtype};
+            //    mac_info.m_mpls_count += 1;
             }
         }
         
