@@ -80,7 +80,7 @@ class CFlowStatParser {
     virtual CFlowStatParser_err_t parse(uint8_t *pkt, uint16_t len);
     virtual uint16_t get_vxlan_payload_offset(uint8_t *pkt, uint16_t len);
     virtual uint16_t get_tun_payload_offset(uint8_t *pkt, uint16_t len);
-    virtual uint16_t get_tunnel_payload_offset(uint8_t *pkt, uint16_t len);
+    //virtual uint16_t get_tunnel_payload_offset(uint8_t *pkt, uint16_t len);
     void set_vxlan_skip(bool enable){
         if (enable) {
           m_flags |=  FSTAT_PARSER_VXLAN_SKIP;
