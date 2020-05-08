@@ -6175,7 +6175,7 @@ COLD_FUNC int update_global_info_from_platform_file(){
         }
     }
 
-    g_opts->dump();
+    g_opts->dump(stdout);
 
     return (0);
 }
