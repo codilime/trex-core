@@ -27,6 +27,7 @@
 #include "common/Network/Packet/IPv6Header.h"
 #include "common/Network/Packet/TcpHeader.h"
 #include "mbuf.h"
+#include <unordered_map>
 
 typedef enum CFlowStatParser_err {
     FSTAT_PARSER_E_OK = 0,
