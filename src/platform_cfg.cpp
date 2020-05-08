@@ -334,6 +334,8 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
         mac_info.m_gre_tun = 0;
     }
 
+    printf("Parsing MPLS Data\n");
+
     if (node.FindValue("mpls")) {
         const YAML::Node& mpls = node["mpls"];
         mac_info.m_mpls_count = 0;
@@ -342,7 +344,7 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
             uint32_t label;
             uint16_t ethtype;
 
-            printf("Parsing MPLS Data\n");
+            
 
             it.first() >> str_label;
             it.second() >> ethtype;
