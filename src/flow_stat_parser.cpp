@@ -100,6 +100,7 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
     }
 
     if (get_gre_skip()) {
+        printf("Skiping GRE tunnel\n");
         uint16_t tun_skip = get_tun_rx_payload_offset(p, len);
         if (tun_skip) {
             res = _parse(p + tun_skip, len - tun_skip, m_next_header);
@@ -110,6 +111,8 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
 }
 
 CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_t next_hdr) {
+    printf("Parsing packet\n");
+
     int min_len = 0;
     bool finished = false;
     bool has_vlan = false;
@@ -132,11 +135,21 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
         } break;
 
         case EthernetHeader::Protocol::IP : {
+            printf("Found IP header\n");
             min_len += IPV4_HDR_LEN;
             if (len < min_len)
                 return FSTAT_PARSER_E_SHORT_IP_HDR;
 
             m_ipv4 = (IPHeader *) p;
+
+            unsigned char bytes[4];
+            uint32_t ip = m_ipv4->getDestIp();
+            bytes[0] = ip & 0xFF;
+            bytes[1] = (ip >> 8) & 0xFF;
+            bytes[2] = (ip >> 16) & 0xFF;
+            bytes[3] = (ip >> 24) & 0xFF;
+
+            printf("Setting m_ip to new IP Header (dest addr = '%d.%d.%d.%d')\n", bytes[3], bytes[2], bytes[1], bytes[0]);
             m_l4 = ((uint8_t *)m_ipv4) + m_ipv4->getHeaderLength();
             m_l4_proto = m_ipv4->getProtocol();
             finished = true;
@@ -244,6 +257,7 @@ uint16_t CFlowStatParser::get_tun_payload_offset(uint8_t *pkt, uint16_t len) {
 }
 
 uint16_t CFlowStatParser::get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len) {
+    printf("Getting GRE payload\n");
     uint16_t payload_len;
     if ( get_payload_len(pkt, len, payload_len) < 0 ) {
         return 0;
@@ -254,6 +268,7 @@ uint16_t CFlowStatParser::get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len) 
     if ( payload_len < GRE_HDR_LEN + IPV4_HDR_LEN ) {
         return 0;
     }
+    printf("Len: '%d' Payload length: '%d'\n", len, len - payload_len + GRE_HDR_LEN);
     return len - payload_len + GRE_HDR_LEN;
 }
 

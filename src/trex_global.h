@@ -472,14 +472,20 @@ class CPerPortIPCfg {
     uint32_t get_def_gw() {return m_def_gw;}
     uint32_t get_vlan() {return m_vlan;}
     bool get_vxlan_fs() {return m_vxlan_fs;}
-    bool get_gre_tun() {return m_gre_tun;}
+    bool get_gre_tun() {
+        printf("Getting GRE tunnel");
+        return m_gre_tun;
+    }
     void set_ip(uint32_t val) {m_ip = val;}
     void set_ptp_ip_dest(uint32_t val) {m_ptp_ip_dest = val;}
     void set_mask(uint32_t val) {m_mask = val;}
     void set_def_gw(uint32_t val) {m_def_gw = val;}
     void set_vlan(uint16_t val) {m_vlan = val;}
     void set_vxlan_fs(bool val) {m_vxlan_fs = val;}
-    void set_gre_tun(bool val) {m_gre_tun = val;}
+    void set_gre_tun(bool val) {
+        printf("Setting GRE tunnel");
+        m_gre_tun = val;
+    }
 
  private:
     uint32_t m_def_gw;
