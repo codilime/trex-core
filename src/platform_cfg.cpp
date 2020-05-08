@@ -318,7 +318,7 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
         mac_info.m_udp_tun = 0;
     }
 
-    if (! utl_yaml_read_uint16(node, "udp_tun", mac_info.m_gre_tun, 0, 1)) {
+    if (! utl_yaml_read_uint16(node, "gre", mac_info.m_gre_tun, 0, 1)) {
         mac_info.m_gre_tun = 0;
     }
 }
