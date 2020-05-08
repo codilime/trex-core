@@ -901,9 +901,21 @@ void TrexStatelessDpPerPort::create(CFlowGenListPerThread   *  core, uint8_t por
     m_profiles.clear();
     m_active_pcap_node = NULL;
     m_parser->reset();
-    m_parser->set_vxlan_skip(CGlobalInfo::m_options.m_ip_cfg[port_id].get_vxlan_fs());
-    m_parser->set_gre_skip(CGlobalInfo::m_options.m_ip_cfg[port_id].get_gre_tun());
-    m_parser->set_udp_tun_skip(CGlobalInfo::m_options.m_ip_cfg[port_id].get_udp_tun());
+
+    if (CGlobalInfo::m_options.m_ip_cfg[port_id].get_vxlan_fs()) {
+        m_parser->set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_VXLAN);
+        m_parser->set_tunnel_ethtype(0);
+        m_parser->set_tunnel_uport(4789);
+    }
+    else if (CGlobalInfo::m_options.m_ip_cfg[port_id].get_gre_tun()) {
+        m_parser->set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_GRE);
+        m_parser->set_tunnel_ethtype(34887);
+    }
+    else if (CGlobalInfo::m_options.m_ip_cfg[port_id].get_udp_tun()) {
+        m_parser->set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_UDP);
+        m_parser->set_tunnel_ethtype(34887);
+        m_parser->set_tunnel_uport(CGlobalInfo::m_options.m_ip_cfg[port_id].get_udp_tun());
+    }
 
 }
 

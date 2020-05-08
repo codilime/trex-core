@@ -93,26 +93,13 @@ CFlowStatParser_err_t CFlowStatParser::parse(uint8_t *p, uint16_t len) {
     if(res != FSTAT_PARSER_E_OK)
         return res;
 
-    if (get_udp_tun_skip()) {
-        printf("Skiping UDP tunnel\n");
-        uint16_t udp_tun_skip = get_udp_tun_rx_payload_offset(p, len);
-        if (udp_tun_skip) {
-            res = _parse(p + udp_tun_skip, len - udp_tun_skip, m_next_header);
-        }
-    }
-
-    else if (get_vxlan_skip()) {
-        uint16_t vxlan_skip = get_vxlan_rx_payload_offset(p, len);
-        if (vxlan_skip) {
-            res = _parse(p + vxlan_skip, len - vxlan_skip);
-        }
-    }
-
-    else if (get_gre_skip()) {
-        printf("Skiping GRE tunnel\n");
-        uint16_t tun_skip = get_tun_rx_payload_offset(p, len);
-        if (tun_skip) {
-            res = _parse(p + tun_skip, len - tun_skip, m_next_header);
+    if (get_tunnel_skip()) {
+        printf("Skiping Tunnel\n");
+        uint16_t tunnel_payload = get_tunnel_rx_payload_offset(p, len);
+        if (tunnel_payload) {
+            printf("Reparsing\n");
+            res = _parse(p + tunnel_payload, len - tunnel_payload, m_next_header);
+            printf("Reparsing result = '%d'\n", res);
         }
     }
 
@@ -150,15 +137,6 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
                 return FSTAT_PARSER_E_SHORT_IP_HDR;
 
             m_ipv4 = (IPHeader *) p;
-
-            unsigned char bytes[4];
-            uint32_t ip = m_ipv4->getDestIp();
-            bytes[0] = ip & 0xFF;
-            bytes[1] = (ip >> 8) & 0xFF;
-            bytes[2] = (ip >> 16) & 0xFF;
-            bytes[3] = (ip >> 24) & 0xFF;
-
-            printf("Setting m_ip to new IP Header (dest addr = '%d.%d.%d.%d')\n", bytes[3], bytes[2], bytes[1], bytes[0]);
             m_l4 = ((uint8_t *)m_ipv4) + m_ipv4->getHeaderLength();
             m_l4_proto = m_ipv4->getProtocol();
             finished = true;
@@ -303,6 +281,46 @@ uint16_t CFlowStatParser::get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len) 
     }
     printf("Len: '%d' Payload length: '%d'\n", len, len - payload_len + GRE_HDR_LEN);
     return len - payload_len + GRE_HDR_LEN;
+}
+
+uint16_t CFlowStatParser::get_tunnel_rx_payload_offset(uint8_t *pkt, uint16_t len) {
+    printf("Getting Tunnel payload\n");
+    uint16_t payload_len;
+    if ( get_payload_len(pkt, len, payload_len) < 0 ) {
+        return 0;
+    }
+
+    switch(m_tunnel_type) {
+        case FLOW_STAT_PARSER_TUNNEL_VXLAN:
+            if (payload_len < VXLAN_LEN) {
+                return 0;
+            }
+            payload_len -= VXLAN_LEN;
+        case FLOW_STAT_PARSER_TUNNEL_UDP:
+            if ( m_l4_proto != IPPROTO_UDP ) {
+                return 0;
+            }
+            if ( m_l4_port != m_udp_tun_port ) {
+                return 0;
+            }
+
+            m_next_header = m_tunnel_ethtype;
+            break;
+        case FLOW_STAT_PARSER_TUNNEL_GRE:
+            if ( m_l4_proto != IPPROTO_GRE ) {
+                return 0;
+            }
+            if (payload_len < GRE_HDR_LEN) {
+                return 0;
+            }
+            payload_len -= GRE_HDR_LEN;
+            break;
+        default:
+            return 0;
+    }
+
+    printf("Len: '%d' Payload length: '%d'\n", len, payload_len);
+    return (len - payload_len);
 }
 
 // arg is uint32_t in below two functions because we want same function to work for IPv4 and IPv6

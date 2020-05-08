@@ -552,15 +552,21 @@ int CFlowStatRuleMgr::compile_stream(const TrexStream * stream, CFlowStatParser 
     std::cout << __METHOD_NAME__ << " user id:" << stream->m_rx_check.m_pg_id << " en:";
     std::cout << stream->m_rx_check.m_enabled << std::endl;
 #endif
-    if (stream->m_rx_check.m_vxlan_skip) {
-        parser->set_vxlan_skip(true);
-    }
 
-    if (stream->m_rx_check.m_gre_skip) {
-        parser->set_gre_skip(true);
+    if (CGlobalInfo::m_options.m_ip_cfg[stream->m_port_id].get_vxlan_fs()) {
+        parser->set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_VXLAN);
+        parser->set_tunnel_ethtype(0);
+        parser->set_tunnel_uport(4789);
     }
-
-    parser->set_udp_tun_skip(CGlobalInfo::m_options.m_ip_cfg[stream->m_port_id].get_udp_tun());
+    else if (CGlobalInfo::m_options.m_ip_cfg[stream->m_port_id].get_gre_tun()) {
+        parser->set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_GRE);
+        parser->set_tunnel_ethtype(34887);
+    }
+    else if (CGlobalInfo::m_options.m_ip_cfg[stream->m_port_id].get_udp_tun()) {
+        parser->set_tunnel_skip(CFlowStatParser::FLOW_STAT_PARSER_TUNNEL_UDP);
+        parser->set_tunnel_ethtype(34887);
+        parser->set_tunnel_uport(CGlobalInfo::m_options.m_ip_cfg[stream->m_port_id].get_udp_tun());
+    }
 
     printf("Parsing packet from CFlowStatRuleMgr::compile_stream\n");
     CFlowStatParser_err_t ret = parser->parse(stream->m_pkt.binary, stream->m_pkt.len);

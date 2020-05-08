@@ -53,7 +53,8 @@ class CFlowStatParser {
       FSTAT_PARSER_MPLS_SUPP   = 0x8,
       FSTAT_PARSER_VXLAN_SKIP  = 0x10,
       FSTAT_PARSER_GRE_SKIP    = 0x20,
-      FSTAT_PARSER_UDP_SKIP    = 0x40
+      FSTAT_PARSER_UDP_SKIP    = 0x40,
+      FSTAT_PARSER_TUNNEL_SKIP    = 0x80,
     };
 
   public:
@@ -63,6 +64,14 @@ class CFlowStatParser {
         FLOW_STAT_PARSER_MODE_82599,
         FLOW_STAT_PARSER_MODE_82599_vlan,
     };
+
+    enum CFlowStatParser_tun_type {
+        FLOW_STAT_PARSER_TUNNEL_NONE,
+        FLOW_STAT_PARSER_TUNNEL_VXLAN,
+        FLOW_STAT_PARSER_TUNNEL_GRE,
+        FLOW_STAT_PARSER_TUNNEL_UDP,
+    };
+
     CFlowStatParser(CFlowStatParser_mode mode);
     virtual ~CFlowStatParser() {}
     virtual void reset();
@@ -70,6 +79,7 @@ class CFlowStatParser {
     virtual CFlowStatParser_err_t parse(uint8_t *pkt, uint16_t len);
     virtual uint16_t get_vxlan_payload_offset(uint8_t *pkt, uint16_t len);
     virtual uint16_t get_tun_payload_offset(uint8_t *pkt, uint16_t len);
+    virtual uint16_t get_tunnel_payload_offset(uint8_t *pkt, uint16_t len);
     void set_vxlan_skip(bool enable){
         if (enable) {
           m_flags |=  FSTAT_PARSER_VXLAN_SKIP;
@@ -102,6 +112,21 @@ class CFlowStatParser {
     }
     bool get_udp_tun_skip() { return ((m_flags & FSTAT_PARSER_UDP_SKIP)?true:false); }
 
+    void set_tunnel_skip(CFlowStatParser_tun_type type) {
+        if (type != FLOW_STAT_PARSER_TUNNEL_NONE) {
+          m_flags |=  FSTAT_PARSER_TUNNEL_SKIP;
+        }else{
+          m_flags &= ~FSTAT_PARSER_TUNNEL_SKIP;
+        }
+        m_tunnel_type = type;
+    }
+    void set_tunnel_ethtype(uint16_t type) {
+        m_tunnel_ethtype = type;
+    }
+    void set_tunnel_uport(uint32_t port){
+        m_udp_tun_port = port;
+    }
+    bool get_tunnel_skip() { return ((m_flags & FSTAT_PARSER_TUNNEL_SKIP)?true:false); }
 
     void set_mpls_ethertype(uint32_t label, uint16_t ethertype) {
         m_mpls_ethertype.insert_or_assign(label, ethertype);
@@ -173,6 +198,7 @@ class CFlowStatParser {
     uint16_t get_vxlan_rx_payload_offset(uint8_t *pkt, uint16_t len);
     uint16_t get_tun_rx_payload_offset(uint8_t *pkt, uint16_t len);
     uint16_t get_udp_tun_rx_payload_offset(uint8_t *pkt, uint16_t len);
+    uint16_t get_tunnel_rx_payload_offset(uint8_t *pkt, uint16_t len);
 
   protected:
     uint8_t *m_start;
@@ -186,6 +212,8 @@ class CFlowStatParser {
     uint8_t m_vlan_offset;
     uint16_t m_flags;
     uint32_t m_udp_tun_port;
+    CFlowStatParser_tun_type m_tunnel_type;
+    uint16_t m_tunnel_ethtype;
     uint16_t m_mpls_def_ethertype;
     std::unordered_map<uint32_t, uint16_t> m_mpls_ethertype;
 };
