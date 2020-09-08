@@ -326,7 +326,7 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
         mac_info.m_udp_tun = 0;
     }
 
-    if (! utl_yaml_read_uint32(node, "udp_ethtype", mac_info.m_udp_tun)) {
+    if (! utl_yaml_read_uint16(node, "udp_ethtype", mac_info.m_udp_ethtype)) {
         mac_info.m_udp_ethtype = 0;
     }
 
