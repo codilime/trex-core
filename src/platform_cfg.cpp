@@ -340,6 +340,8 @@ void operator >> (const YAML::Node& node, CMacYamlInfo & mac_info) {
         mac_info.m_mpls_def_type = 0;
     }
 
+    // TODO: Add support for ethtype per lable
+
     // if (node.FindValue("mpls")) {
     //     const YAML::Node& mpls = node["mpls"];
     //     mac_info.m_mpls_count = 0;
