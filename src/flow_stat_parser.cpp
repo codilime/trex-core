@@ -138,8 +138,10 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
     m_len = len;
 
     while (! finished) {
+        printf("Next header is = '%d'\n", next_hdr);
         switch( next_hdr ) {
         case 0: {
+            printf("Parsing eth\n");
             min_len += ETH_HDR_LEN;
             if (len < min_len)
                 return FSTAT_PARSER_E_TOO_SHORT;
@@ -151,6 +153,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
         } break;
 
         case EthernetHeader::Protocol::IP : {
+            printf("Parsing ipv4\n");
             min_len += IPV4_HDR_LEN;
             if (len < min_len)
                 return FSTAT_PARSER_E_SHORT_IP_HDR;
@@ -162,6 +165,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
         } break;
 
         case EthernetHeader::Protocol::IPv6 :
+            printf("Parsing ipv6\n");
             min_len += IPV6_HDR_LEN;
             if (len < min_len)
                 return FSTAT_PARSER_E_SHORT_IP_HDR;
@@ -173,6 +177,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
             if (! (m_flags & FSTAT_PARSER_QINQ_SUPP))
                 return FSTAT_PARSER_E_QINQ_NOT_SUP;
         case EthernetHeader::Protocol::VLAN : {
+            printf("Parsing vlan\n");
             if (! (m_flags & FSTAT_PARSER_VLAN_SUPP))
                 return FSTAT_PARSER_E_VLAN_NOT_SUP;
             // In QINQ, we also allow multiple 0x8100 headers
@@ -189,6 +194,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
 
         case EthernetHeader::Protocol::MPLS_Unicast :
         case EthernetHeader::Protocol::MPLS_Multicast : {
+            printf("Parsing mpls\n");
             if (! (m_flags & FSTAT_PARSER_MPLS_SUPP))
                 return FSTAT_PARSER_E_MPLS_NOT_SUP;
 
@@ -211,6 +217,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
         } break;
 
         default:
+            printf("Unknown header\n");
             return FSTAT_PARSER_E_UNKNOWN_HDR;
         }
     }
@@ -240,6 +247,7 @@ uint16_t CFlowStatParser::get_tunnel_rx_payload_offset(uint8_t *pkt, uint16_t le
                 return 0;
             }
             if ( m_l4_port != m_udp_tun_port ) {
+                printf("UDP port(%d) is not for tunnel UDP port (%d)\n", m_l4_port, m_udp_tun_port);
                 return 0;
             }
 
@@ -258,6 +266,7 @@ uint16_t CFlowStatParser::get_tunnel_rx_payload_offset(uint8_t *pkt, uint16_t le
             return 0;
     }
 
+    printf("len(%d) - payload_len(%d) = %d\n", len, payload_len, (len - payload_len));
     return (len - payload_len);
 }
 
@@ -407,8 +416,10 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
     switch (m_l4_proto) {
 
     case IPPROTO_UDP: {
+        printf("Parsing UDP header\n");
         if ((p_l4 + UDP_HEADER_LEN) > (p + len)) {
-            //Not enough space for TCP header
+            //Not enough space for UDP header
+            printf("Not enough space for UDP Header\n");
             payload_len = 0;
             return -2;
         }
@@ -445,6 +456,7 @@ int CFlowStatParser::get_payload_len(uint8_t *p, uint16_t len, uint16_t &payload
     }
 
     payload_len = len - (p_l4 - p) - l4_header_len;
+    printf("Payload length = '%d'\n", payload_len);
 
     if (payload_len <= 0) {
         payload_len = 0;
