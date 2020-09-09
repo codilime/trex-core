@@ -33,19 +33,19 @@ limitations under the License.
 class MPLSHeader {
 public:
     uint32_t getLabel() {
-        return (data & LABEL_MASK);
+        return (PKT_NTOHL(data) & LABEL_MASK);
     }
 
     uint8_t getTrafficClass() {
-        return ((data & TC_MASK) >> 20);
+        return ((PKT_NTOHL(data) & TC_MASK) >> 20);
     }
 
     bool getBottomOfStack() {
-        return ((data & BOS_MASK) > 1 ? true : false);
+        return ((PKT_NTOHL(data) & BOS_MASK) > 1 ? true : false);
     }
 
     uint8_t getTTL() {
-        return (data & TTL_MASK);
+        return (PKT_NTOHL(data) & TTL_MASK);
     }
 
 //private:
