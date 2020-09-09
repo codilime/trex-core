@@ -25,11 +25,6 @@ limitations under the License.
 
 #define MPLS_HDR_LEN 4
 
-#define LABEL_MASK 0xFFFFF000
-#define TC_MASK 0x00000E00
-#define BOS_MASK 0x00000100
-#define TTL_MASK 0x000000FF
-
 #define LABEL_MASK 0x000FFFFF
 #define TC_MASK 0x00700000
 #define BOS_MASK 0x00800000
