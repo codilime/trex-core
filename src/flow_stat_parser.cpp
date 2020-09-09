@@ -203,7 +203,7 @@ CFlowStatParser_err_t CFlowStatParser::_parse(uint8_t * p, uint16_t len, uint16_
                 return FSTAT_PARSER_E_TOO_SHORT;
 
             MPLSHeader* mpls = (MPLSHeader *) p;
-            printf("MPLS(lable=%d, bos=%d)", mpls->getBottomOfStack(), mpls->getLabel());
+            printf("MPLS(lable=%d, bos=%d)", mpls->getLabel(), mpls->getBottomOfStack());
             if (mpls->getBottomOfStack()) {
                 uint32_t ethtype = get_mpls_ethertype(mpls->getLabel());
                 if (ethtype < 0)
