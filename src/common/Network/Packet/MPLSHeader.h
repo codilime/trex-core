@@ -25,21 +25,31 @@ limitations under the License.
 
 #define MPLS_HDR_LEN 4
 
+#define LABEL_MASK 0xFFFFF000
+#define TC_MASK 0x00000E00
+#define BOS_MASK 0x00000100
+#define TTL_MASK 0x000000FF
+
 class MPLSHeader {
 public:
     uint32_t getLabel() {
-        return (uint32_t)label;
+        return ((data & LABEL_MASK) >> 12);
+    }
+
+    uint8_t getTrafficClass() {
+        return ((data & TC_MASK) >> 9);
     }
 
     bool getBottomOfStack() {
-        return (bottom_of_stack == 1 ? true : false);
+        return ((data & BOS_MASK) > 1 ? true : false);
+    }
+
+    uint8_t getTTL() {
+        return (data & TTL_MASK);
     }
 
 private:
-    uint32_t label : 20;
-    uint32_t tc : 3;
-    uint32_t bottom_of_stack : 1;
-    uint32_t ttl : 8;
+    uint32_t data;
 } __attribute__((packed));
 
 #endif 
